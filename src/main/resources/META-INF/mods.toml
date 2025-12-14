@@ -1,0 +1,29 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="elementalcraft"
+version="${mod_version}"
+displayName="ElementalCraft" 
+logoFile="logo.png"
+authors="XuLai"
+description='''${mod_description}'''
+
+[[dependencies.elementalcraft]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47.4.0,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.elementalcraft]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1]"
+    ordering="NONE"
+    side="BOTH"
+
+[[plugins]]
+modId = "elementalcraft"
+class = "com.xulai.elementalcraft.JadePlugin"
