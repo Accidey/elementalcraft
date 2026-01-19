@@ -29,6 +29,7 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -285,6 +286,10 @@ public class ReactionHandler {
 
         AABB area = Objects.requireNonNull(source.getBoundingBox()).inflate(radius);
         List<LivingEntity> targets = source.level().getEntitiesOfClass(LivingEntity.class, area);
+        
+        // 收集所有被成功传染的实体，用于视觉特效渲染
+        // Collect all successfully infected entities for visual effect rendering
+        List<LivingEntity> infectedTargets = new ArrayList<>();
 
         for (LivingEntity target : targets) {
             if (target == source) continue;
@@ -326,9 +331,15 @@ public class ReactionHandler {
             // The transferStacks + wetnessBonus here is the layersToAdd passed to stackSporeEffect
             // stackSporeEffect will internally adjust again based on the target's Thunder/Fire attributes
             stackSporeEffect(target, transferStacks + wetnessBonus);
+            
+            // 添加到被感染列表
+            // Add to infected list
+            infectedTargets.add(target);
         }
 
-        EffectHelper.playSporeContagion(source, radius);
+        // 播放更新后的传染特效，传入目标列表以生成定向粒子流
+        // Play updated contagion FX, passing target list to generate directional particle streams
+        EffectHelper.playSporeContagion(source, infectedTargets, radius);
     }
 
     /**

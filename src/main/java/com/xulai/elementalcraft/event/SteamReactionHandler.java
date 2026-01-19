@@ -21,12 +21,15 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -420,11 +423,13 @@ public class SteamReactionHandler {
      * 扫描实体周围的蒸汽云，判定实体是否处于云内，并根据云的属性（高温/低温）执行相应逻辑：
      * 1. 高温：造成周期性烫伤伤害。
      * 2. 低温：增加潮湿等级，促进孢子生长。
+     * 3. 智能逃离：当怪物受到高温伤害时，会尝试清除仇恨并向背离蒸汽云的方向逃离。
      * <p>
      * Core Cloud Effect Logic Processing.
      * Scans for steam clouds around the entity, determines if the entity is inside, and executes logic based on cloud properties (High/Low Heat):
      * 1. High Heat: Deals periodic scalding damage.
      * 2. Low Heat: Increases wetness level and promotes spore growth.
+     * 3. Intelligent Fleeing: When a mob takes scalding damage, it attempts to clear aggro and flee away from the steam cloud.
      */
     private static void processCloudEffects(LivingEntity entity) {
         if (entity.level().isClientSide) return;
@@ -439,6 +444,7 @@ public class SteamReactionHandler {
         boolean isHighHeat = false;
         boolean isCondensing = false;
         int cloudLevel = 1;
+        AreaEffectCloud heatSource = null; // 记录造成高温的云，用于逃跑计算 / Record the cloud causing high heat for flee calculation
 
         for (AreaEffectCloud cloud : clouds) {
             double dx = entity.getX() - cloud.getX();
@@ -461,6 +467,7 @@ public class SteamReactionHandler {
 
             if (cloud.getTags().contains(TAG_HIGH_HEAT)) {
                 isHighHeat = true;
+                heatSource = cloud; // 捕获热源 / Capture heat source
                 for (String tag : cloud.getTags()) {
                     if (tag.startsWith(TAG_LEVEL_PREFIX)) {
                         try {
@@ -473,8 +480,8 @@ public class SteamReactionHandler {
             } else isCondensing = true;
         }
 
-        // 高温蒸汽效果：伤害
-        // High Heat Steam Effect: Damage
+        // 高温蒸汽效果：伤害与逃离
+        // High Heat Steam Effect: Damage and Fleeing
         if (isHighHeat) {
             if (entity.getPersistentData().contains(NBT_CONDENSATION_TIMER)) {
                 entity.getPersistentData().remove(NBT_CONDENSATION_TIMER);
@@ -498,7 +505,28 @@ public class SteamReactionHandler {
 
                 if (damage > 0) {
                     entity.invulnerableTime = 0;
-                    entity.hurt(ModDamageTypes.source(entity.level(), ModDamageTypes.STEAM_SCALDING), damage);
+                    boolean hurtSuccess = entity.hurt(ModDamageTypes.source(entity.level(), ModDamageTypes.STEAM_SCALDING), damage);
+                    
+                    if (hurtSuccess) {
+                        // 逃离逻辑：受到伤害后强制逃离热源
+                        // Flee Logic: Force flee from heat source after taking damage
+                        if (entity instanceof PathfinderMob mob && heatSource != null) {
+                            mob.setTarget(null); // 确保仇恨清除 / Ensure aggro is cleared
+                            
+                            // [Modified] 动态计算逃离距离：云半径 + 2格安全距离，确保跑出范围
+                            // [Modified] Dynamic flee distance: Cloud radius + 2 block safety margin, ensuring exit from range
+                            int fleeDist = (int) (heatSource.getRadius() + 2);
+                            
+                            // 计算背离热源的随机位置
+                            // Calculate random position away from heat source
+                            Vec3 escapePos = DefaultRandomPos.getPosAway(mob, fleeDist, 4, heatSource.position());
+                            if (escapePos != null) {
+                                // [Modified] 速度提升至 1.5 倍
+                                // [Modified] Speed increased to 1.5x
+                                mob.getNavigation().moveTo(escapePos.x, escapePos.y, escapePos.z, 1.5);
+                            }
+                        }
+                    }
                 }
 
                 if (entity.getPersistentData().getInt(WetnessHandler.NBT_WETNESS) > 0) {

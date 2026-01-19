@@ -11,6 +11,11 @@ logoFile="logo.png"
 authors="XuLai"
 description='''${mod_description}'''
 
+# -----------------------------------------------------------------------
+# Dependencies / 依赖项配置
+# -----------------------------------------------------------------------
+
+# 1. Forge 依赖 (Forge Dependency)
 [[dependencies.elementalcraft]]
     modId="forge"
     mandatory=true
@@ -18,12 +23,25 @@ description='''${mod_description}'''
     ordering="NONE"
     side="BOTH"
 
+# 2. Minecraft 依赖 (Minecraft Dependency)
 [[dependencies.elementalcraft]]
     modId="minecraft"
     mandatory=true
     versionRange="[1.20.1]"
     ordering="NONE"
     side="BOTH"
+
+# 3. Jade 依赖 (Jade Dependency) - [Added]
+# 强制玩家安装 Jade 11.12.3 或更高版本
+# Mandatory requirement for Jade 11.12.3 or higher
+[[dependencies.elementalcraft]]
+    modId="jade"
+    mandatory=true         # true = 必须安装，否则游戏无法启动 / true = Game won't start without it
+    versionRange="[11.12.3,)" # 指定版本范围 / Specified version range
+    ordering="AFTER"       # 在 Jade 之后加载 / Load after Jade
+    side="BOTH"            # 客户端和服务端都需要 / Required on both client and server
+
+# -----------------------------------------------------------------------
 
 [[plugins]]
 modId = "elementalcraft"

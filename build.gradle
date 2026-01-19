@@ -18,7 +18,7 @@ println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty '
 
 minecraft {
     mappings channel: mapping_channel, version: mapping_version
-    copyIdeResources = true   // Must be true to copy custom models/textures to run directory
+    copyIdeResources = true
 
     runs {
         configureEach {
@@ -26,7 +26,6 @@ minecraft {
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
 
-            // Force JVM to use UTF-8 to fix Chinese garbled text in console
             jvmArgs '-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8'
 
             mods {
@@ -54,21 +53,41 @@ minecraft {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
+// --- 关键修改：国内镜像源配置 ---
 repositories {
-    // Add other repositories here if needed (e.g. Parchment, JEI)
+    // 1. Minecraft 官方库源 (必须放在第一位，修复 com.mojang 403 报错)
+    // 用于下载 logging, blocklist 等 Mojang 官方库，这些库在国内下载通常很快且不需要代理
+    maven { url 'https://libraries.minecraft.net/' }
+
+    // 2. 阿里云 (加速通用库：Guava, Gson 等)
+    maven { url 'https://maven.aliyun.com/repository/public/' }
+    maven { url 'https://maven.aliyun.com/repository/google/' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+    
+    // 3. BMCLAPI (!!!加速 Forge 核心库下载!!!)
+    // 阿里云没有 Forge 的库，必须用这个，否则会卡死在 configuring 阶段
+    maven {
+        name = 'BMCLAPI'
+        url = 'https://bmclapi2.bangbang93.com/maven'
+    }
+
+    // 4. Forge 官方源 (兜底)
+    maven {
+        name = 'MinecraftForge'
+        url = 'https://maven.minecraftforge.net/'
+    }
+    
+    mavenLocal()
 }
+// ------------------------------
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    
-    // Local Jade dependency
     implementation files('libs/Jade-1.20.1-Forge-11.12.3.jar')
 }
 
-// Ensure libs directory is included in compile classpath
 sourceSets.main.compileClasspath += files('libs/Jade-1.20.1-Forge-11.12.3.jar')
 
-// Inject into mods.toml (safe way for Forge Gradle 6)
 tasks.named('processResources') {
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
@@ -84,7 +103,6 @@ tasks.named('processResources') {
     }
 }
 
-// Jar manifest settings
 tasks.named('jar', Jar).configure {
     manifest {
         attributes([
@@ -92,9 +110,9 @@ tasks.named('jar', Jar).configure {
                 'Specification-Vendor'    : mod_authors,
                 'Specification-Version'   : '1',
                 'Implementation-Title'    : project.name,
-                'Implementation-Version'   : project.jar.archiveVersion,
+                'Implementation-Version'  : project.jar.archiveVersion,
                 'Implementation-Vendor'   : mod_authors,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
         ])
     }
     finalizedBy 'reobfJar'
@@ -113,12 +131,10 @@ publishing {
     }
 }
 
-// Force UTF-8 for Java compilation
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
-// Force UTF-8 for Java execution (runClient/runServer)
 tasks.withType(JavaExec).configureEach {
     jvmArgs '-Dfile.encoding=UTF-8'
 }

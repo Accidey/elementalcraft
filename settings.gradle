@@ -1,5 +1,13 @@
 pluginManagement {
     repositories {
+        // 1. 阿里云 (通用插件)
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+
+        // 2. BMCLAPI (加速 ForgeGradle 插件下载)
+        maven { url 'https://bmclapi2.bangbang93.com/maven' }
+
+        // 3. 官方源 (兜底)
         gradlePluginPortal()
         maven {
             name = 'MinecraftForge'
@@ -11,3 +19,5 @@ pluginManagement {
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
 }
+
+rootProject.name = 'forge-1.20.1-47.4.0-mdk'

@@ -85,9 +85,9 @@ public class FlammableSporesEffect extends MobEffect {
             // 造成伤害
             // Deal damage
             if (damagePerStack > 0) {
-                // 伤害随层数线性叠加：基础伤害 * (层数 + 1)
-                // Damage scales linearly with stacks: Base Damage * (Stacks + 1)
-                float totalDamage = (float) (damagePerStack * (pAmplifier + 1));
+                // 伤害不再随层数叠加：固定为基础配置伤害
+                // Damage no longer scales with stacks: Fixed at Base Config Damage
+                float totalDamage = (float) damagePerStack;
 
                 // 使用 Wither (凋零) 伤害源。
                 // 凋零伤害特性：无视护甲，且不属于 Magic 类型，因此能无视女巫等生物的魔法抗性。

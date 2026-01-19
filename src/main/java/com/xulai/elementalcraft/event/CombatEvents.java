@@ -6,12 +6,12 @@ import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalConfig;
 import com.xulai.elementalcraft.config.ElementalReactionConfig;
 import com.xulai.elementalcraft.potion.ModMobEffects;
-import com.xulai.elementalcraft.util.EffectHelper; // [New] 导入特效工具
+import com.xulai.elementalcraft.util.EffectHelper;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
 import com.xulai.elementalcraft.event.SteamReactionHandler;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerLevel; // [New] 导入服务端世界
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -77,19 +77,15 @@ public class CombatEvents {
             int stacks = (effect != null) ? (effect.getAmplifier() + 1) : 0;
 
             if (stacks > 0) {
-                // A. 火焰易伤：增加受到的火焰属性伤害
-                // A. Fire Vulnerability: Increases Fire damage received
-                if (source.is(DamageTypeTags.IS_FIRE)) {
-                    float vulnPerStack = (float) ElementalReactionConfig.sporeFireVulnPerStack;
-                    float multiplier = 1.0f + (stacks * vulnPerStack);
-                    currentDamage *= multiplier;
-                }
-                // B. 物理硬化：减少受到的非魔法、非爆炸类物理伤害
-                // B. Physical Hardening: Reduces non-magic, non-explosion physical damage received
-                else if (!source.is(DamageTypeTags.IS_FIRE) 
+                // [Modified] B. 物理硬化
+                // 修正逻辑：必须同时排除 WITHER 伤害，否则孢子自身的周期性伤害会被此处的抗性减免！
+                // [Modified] B. Physical Hardening
+                // Fix Logic: MUST exclude WITHER damage, otherwise the Spore's own periodic damage will be reduced by this resistance!
+                if (!source.is(DamageTypeTags.IS_FIRE) 
                         && !source.is(DamageTypes.MAGIC) 
                         && !source.is(DamageTypes.INDIRECT_MAGIC) 
-                        && !source.is(DamageTypeTags.IS_EXPLOSION)) {
+                        && !source.is(DamageTypeTags.IS_EXPLOSION)
+                        && !source.is(DamageTypes.WITHER)) { // <--- 关键修复：排除凋零伤害 / Critical Fix: Exclude Wither damage
                     
                     float resistPerStack = (float) ElementalReactionConfig.sporePhysResist;
                     float totalResist = Math.min(0.9f, stacks * resistPerStack); // Cap at 90%
@@ -178,8 +174,8 @@ public class CombatEvents {
                             attacker.removeEffect(ModMobEffects.WETNESS.get());
                         }
                         
-                        // [Fix] 恢复视觉特效：播放蒸汽爆发粒子
-                        // [Fix] Restore visual effects: Play steam burst particles
+                        // 恢复视觉特效：播放蒸汽爆发粒子
+                        // Restore visual effects: Play steam burst particles
                         int maxBurstLevel = ElementalReactionConfig.steamHighHeatMaxLevel;
                         EffectHelper.playSteamBurst((ServerLevel) attacker.level(), attacker, 0.5f, Math.min(layersToRemove, maxBurstLevel), true);
 
