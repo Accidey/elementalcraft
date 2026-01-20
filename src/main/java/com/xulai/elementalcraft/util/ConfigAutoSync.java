@@ -53,9 +53,11 @@ public class ConfigAutoSync {
     /**
      * 检查间隔（Ticks）。
      * 设置为 100 ticks (约 5 秒) 可以平衡性能开销与响应速度。
+     * 避免每 tick (每秒20次) 访问文件系统导致的性能损耗。
      * <p>
      * Check interval (Ticks).
      * Setting to 100 ticks (approx. 5 seconds) balances performance overhead and response speed.
+     * Prevents performance loss caused by accessing the file system every tick (20 times/sec).
      */
     private static final int CHECK_INTERVAL = 100;
 
@@ -74,9 +76,13 @@ public class ConfigAutoSync {
         // Execute only in Phase.END to ensure logic runs at the end of each frame, avoiding concurrency issues
         if (event.phase != TickEvent.Phase.END) return;
 
-        // 使用计数器控制频率
-        // Use counter to control frequency
-        if (tickCounter++ % CHECK_INTERVAL != 0) return;
+        // 性能优化：使用计数器控制频率，每 5 秒检查一次
+        // Performance Optimization: Use counter to control frequency, check every 5 seconds
+        tickCounter++;
+        if (tickCounter < CHECK_INTERVAL) {
+            return;
+        }
+        tickCounter = 0; // 重置计数器 / Reset counter
 
         // 1. 检查通用配置文件（包含生物群系偏好、强制实体属性等）
         // 1. Check common configuration file (includes biome bias, forced entity attributes, etc.)

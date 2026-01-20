@@ -350,20 +350,13 @@ public class SteamReactionHandler {
             return;
         }
 
+        // [Updated] 移除了原有的“反向还原”逻辑。
+        // 现在我们依赖 bypasses_enchantments.json 来防止原版双重减伤，
+        // 因此 currentDamage 就是纯净的、未经附魔减少的原始伤害。
+        // [Updated] Removed the original "reverse calculation" logic.
+        // We now rely on bypasses_enchantments.json to prevent vanilla double reduction,
+        // so currentDamage IS the pure, unreduced raw damage.
         float trueRawDamage = currentDamage;
-
-        // 计算原版火焰保护附魔减免
-        // Calculate Vanilla Fire Protection Reduction
-        if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
-            int vanillaEPF = EnchantmentHelper.getDamageProtection(target.getArmorSlots(), event.getSource());
-
-            if (vanillaEPF > 0) {
-                float reductionRatio = Math.min(vanillaEPF, 20) * 0.04f;
-                if (reductionRatio < 1.0f) {
-                    trueRawDamage = currentDamage / (1.0f - reductionRatio);
-                }
-            }
-        }
 
         // 计算模组自定义抗性减免
         // Calculate Mod Custom Resistance Reduction
@@ -371,7 +364,7 @@ public class SteamReactionHandler {
         int totalProtLevel = getTotalEnchantmentLevel(Enchantments.ALL_DAMAGE_PROTECTION, target);
 
         // 动态计算系数：假设原版满级附魔（4件 * 4级 = 16级）能达到配置设定的最大上限
-        // 这样可以确保配置文件的调整能真实影响每级附魔的收益        
+        // 这样可以确保配置文件的调整能真实影响每级附魔的收益 
         // Dynamic Factor Calculation: Assume full vanilla enchant (16 levels) reaches the config max cap
         // This ensures config adjustments actually affect the benefit per level
         double maxFireCap = ElementalReactionConfig.steamMaxFireProtCap;

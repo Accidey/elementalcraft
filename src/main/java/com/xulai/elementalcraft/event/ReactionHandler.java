@@ -4,6 +4,7 @@ package com.xulai.elementalcraft.event;
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.EffectHelper;
 import com.xulai.elementalcraft.util.ElementType;
@@ -100,10 +101,12 @@ public class ReactionHandler {
      * 造成伤害事件监听器。
      * 用于处理由主动攻击触发的元素反应。
      * 识别攻击者的自然或赤焰属性，判定是否触发动态寄生、寄生吸取或毒火爆燃效果。
+     * 优先级保持默认 (NORMAL)，确保在 CombatEvents (HIGH) 之后执行，防止提前移除孢子导致物理减伤失效。
      * <p>
      * Living Damage Event Listener.
      * Handles elemental reactions triggered by active attacks.
      * Identifies the attacker's Nature or Fire attributes to determine whether to trigger Dynamic Parasitism, Parasitic Drain, or Toxic Blast effects.
+     * Priority kept as default (NORMAL) to run AFTER CombatEvents (HIGH), preventing premature spore removal and loss of physical resistance.
      */
     @SubscribeEvent
     public static void onLivingDamage(LivingDamageEvent event) {
@@ -353,7 +356,11 @@ public class ReactionHandler {
      */
     private static void triggerParasiticDrain(LivingEntity attacker, LivingEntity target, int currentWetness, double naturePower) {
         double step = ElementalReactionConfig.natureDrainPowerStep;
-        int drainCapacity = (int) Math.floor(naturePower / step);
+        
+        int baseDrain = ElementalReactionConfig.natureDrainAmount;
+        int bonusDrain = (int) Math.floor(naturePower / step);
+        int drainCapacity = baseDrain + bonusDrain;
+        
         if (drainCapacity < 1) drainCapacity = 1;
 
         int actualDrain = Math.min(currentWetness, drainCapacity);
@@ -411,11 +418,26 @@ public class ReactionHandler {
         } else {
             int extraStacks = stacks - 3;
 
-            float rawBaseDamage = (float) (ElementalReactionConfig.blastBaseDamage + (extraStacks * ElementalReactionConfig.blastGrowthDamage));
+            // [Fixed] 加入赤焰属性伤害成长 (BLAST_DMG_STEP & BLAST_DMG_AMOUNT)
+            // [Fixed] Added Fire Attribute Damage Scaling (BLAST_DMG_STEP & BLAST_DMG_AMOUNT)
+            double fireStep = ElementalReactionConfig.blastDmgStep;
+            double dmgPerStep = ElementalReactionConfig.blastDmgAmount;
+            double bonusFromStats = 0;
+
+            if (fireStep > 0) {
+                bonusFromStats = (firePower / fireStep) * dmgPerStep;
+            }
+
+            float rawBaseDamage = (float) (ElementalReactionConfig.blastBaseDamage 
+                    + (extraStacks * ElementalReactionConfig.blastGrowthDamage)
+                    + bonusFromStats);
+
             double radius = ElementalReactionConfig.blastBaseRange + (extraStacks * ElementalReactionConfig.blastGrowthRange);
             int scorchDuration = (int) ((ElementalReactionConfig.blastBaseScorchTime + (extraStacks * ElementalReactionConfig.blastGrowthScorchTime)) * 20);
 
-            level.explode(attacker, target.getX(), target.getY() + target.getBbHeight() * 0.5, target.getZ(), 3.0F, Level.ExplosionInteraction.NONE);
+            // 手动播放爆炸音效
+            // Manually play explosion sound
+            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, net.minecraft.sounds.SoundSource.BLOCKS, 4.0F, (1.0F + (level.random.nextFloat() - level.random.nextFloat()) * 0.2F) * 0.7F);
 
             if (level instanceof ServerLevel serverLevel) {
                 serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER,
@@ -445,7 +467,13 @@ public class ReactionHandler {
                         float mitigation = calculateBlastMitigation(entity);
                         float finalDamage = rawBaseDamage * (1.0f - mitigation);
 
-                        entity.hurt(level.damageSources().explosion(attacker, attacker), finalDamage);
+                        // 使用 LAVA_MAGIC 伤害源
+                        // 1. 无视物理护甲 (配合 bypasses_armor.json)
+                        // 2. 避免原版保护附魔二次减伤 (必须配合 bypasses_enchantments.json 使用)
+                        // Use LAVA_MAGIC damage source
+                        // 1. Bypasses physical armor (works with bypasses_armor.json)
+                        // 2. Avoids vanilla protection double-reduction (MUST use with bypasses_enchantments.json)
+                        entity.hurt(ModDamageTypes.source(level, ModDamageTypes.LAVA_MAGIC), finalDamage);
 
                         ScorchedHandler.applyScorched(entity, (int) firePower, scorchDuration);
                         affectedCount++;

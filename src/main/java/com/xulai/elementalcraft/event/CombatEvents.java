@@ -23,6 +23,7 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.eventbus.api.EventPriority; // [Add] Import EventPriority
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -52,12 +53,14 @@ public class CombatEvents {
     /**
      * 核心伤害处理方法。
      * 计算并应用元素伤害、抗性抵消、克制倍率以及特殊状态（孢子、潮湿、自我干燥）的修正。
+     * 优先级设置为 HIGH，确保在 ReactionHandler 移除孢子之前执行物理硬化判定。
      * <p>
      * Core damage handling method.
      * Calculates and applies elemental damage, resistance reduction, restraint multipliers, 
      * and modifications from special states (Spores, Wetness, Self-Drying).
+     * Priority set to HIGH to ensure physical hardening check runs before ReactionHandler removes spores.
      */
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onLivingDamage(LivingDamageEvent event) {
         // 服务端检查：防止客户端重复运行逻辑
         // Server-side check: Prevent client-side logic duplication
@@ -68,24 +71,22 @@ public class CombatEvents {
         float currentDamage = event.getAmount();
 
         // --------------------------------------------------------
-        // 1. 易燃孢子效果修正 (Flammable Spores Modification)
+        // 1. 易燃孢子物理硬化修正 (Spore Physical Hardening)
         // --------------------------------------------------------
-        // 检查目标是否感染了易燃孢子，根据层数调整受到的伤害
-        // Check if the target is infected with Flammable Spores and adjust damage based on stacks
+        // 检查目标是否感染了易燃孢子，如果受到的不是元素/魔法/爆炸伤害，则根据层数提供物理减伤。
+        // Check if the target is infected with Flammable Spores. If damage is not elemental/magic/explosion, provide physical resistance based on stacks.
         if (target.hasEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()))) {
             MobEffectInstance effect = target.getEffect(ModMobEffects.SPORES.get());
             int stacks = (effect != null) ? (effect.getAmplifier() + 1) : 0;
 
             if (stacks > 0) {
-                // [Modified] B. 物理硬化
-                // 修正逻辑：必须同时排除 WITHER 伤害，否则孢子自身的周期性伤害会被此处的抗性减免！
-                // [Modified] B. Physical Hardening
-                // Fix Logic: MUST exclude WITHER damage, otherwise the Spore's own periodic damage will be reduced by this resistance!
+                // 排除各类非物理伤害源，确保只对物理攻击生效
+                // Exclude various non-physical damage sources to ensure it applies only to physical attacks
                 if (!source.is(DamageTypeTags.IS_FIRE) 
                         && !source.is(DamageTypes.MAGIC) 
                         && !source.is(DamageTypes.INDIRECT_MAGIC) 
                         && !source.is(DamageTypeTags.IS_EXPLOSION)
-                        && !source.is(DamageTypes.WITHER)) { // <--- 关键修复：排除凋零伤害 / Critical Fix: Exclude Wither damage
+                        && !source.is(DamageTypes.WITHER)) { 
                     
                     float resistPerStack = (float) ElementalReactionConfig.sporePhysResist;
                     float totalResist = Math.min(0.9f, stacks * resistPerStack); // Cap at 90%
@@ -135,7 +136,26 @@ public class CombatEvents {
         }
 
         // --------------------------------------------------------
-        // 3. 自我干燥机制 (Self-Drying Mechanism)
+        // 3. 孢子火属性易伤 (Spore Fire Vulnerability)
+        // --------------------------------------------------------
+        // 如果攻击属性为赤焰且目标感染了孢子，根据孢子层数增加受到的伤害。
+        // 这是一个双刃剑效果：孢子提供物理抗性的同时增加火属性易伤。
+        // If the attack element is Fire and the target is infected with spores, increase damage based on spore stacks.
+        // This is a double-edged sword effect: Spores provide physical resistance but increase fire vulnerability.
+        if (attackElement == ElementType.FIRE && target.hasEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()))) {
+            MobEffectInstance spore = target.getEffect(ModMobEffects.SPORES.get());
+            int stacks = (spore != null) ? (spore.getAmplifier() + 1) : 0;
+            
+            if (stacks > 0) {
+                double vulnPerStack = ElementalReactionConfig.sporeFireVulnPerStack;
+                float vulnMultiplier = 1.0f + (float)(stacks * vulnPerStack);
+                currentDamage *= vulnMultiplier;
+                event.setAmount(currentDamage);
+            }
+        }
+
+        // --------------------------------------------------------
+        // 4. 自我干燥机制 (Self-Drying Mechanism)
         // --------------------------------------------------------
         // 如果攻击者是赤焰属性且自身潮湿，利用高温蒸发自身水分。
         // 根据赤焰强度消耗潮湿层数，并为后续逻辑标记"自我干燥惩罚"。
@@ -179,8 +199,8 @@ public class CombatEvents {
                         int maxBurstLevel = ElementalReactionConfig.steamHighHeatMaxLevel;
                         EffectHelper.playSteamBurst((ServerLevel) attacker.level(), attacker, 0.5f, Math.min(layersToRemove, maxBurstLevel), true);
 
-                        // 添加惩罚标记，供后续步骤 6 使用
-                        // Add penalty tag for use in Step 6
+                        // 添加惩罚标记，供后续步骤使用
+                        // Add penalty tag for use in subsequent steps
                         attacker.addTag(SteamReactionHandler.TAG_SELF_DRYING_PENALTY);
                         
                         // 发送调试日志
@@ -196,7 +216,7 @@ public class CombatEvents {
         }
 
         // --------------------------------------------------------
-        // 4. 基础元素数据获取 (Base Elemental Data Retrieval)
+        // 5. 基础元素数据获取 (Base Elemental Data Retrieval)
         // --------------------------------------------------------
         // 获取攻击者的元素属性、强化点数以及目标的抗性点数
         // Retrieve attacker's elemental attribute, enhancement points, and target's resistance points
@@ -215,7 +235,7 @@ public class CombatEvents {
         }
 
         // --------------------------------------------------------
-        // 5. 目标潮湿修正 (Target Wetness Modification)
+        // 6. 目标潮湿修正 (Target Wetness Modification)
         // --------------------------------------------------------
         // 根据受击者的潮湿层数调整伤害（如水克火）。
         // Adjust damage based on victim's wetness level (e.g., Water dampens Fire).
@@ -249,10 +269,10 @@ public class CombatEvents {
         }
 
         // --------------------------------------------------------
-        // 6. 自我干燥惩罚应用 (Self-Drying Penalty Application)
+        // 7. 自我干燥惩罚应用 (Self-Drying Penalty Application)
         // --------------------------------------------------------
-        // 如果在步骤 3 中触发了自我干燥，此处读取标记并降低本次伤害。
-        // If self-drying was triggered in Step 3, read the tag here and reduce damage.
+        // 如果在步骤 4 中触发了自我干燥，此处读取标记并降低本次伤害。
+        // If self-drying was triggered in Step 4, read the tag here and reduce damage.
         if (attacker.getTags().contains(SteamReactionHandler.TAG_SELF_DRYING_PENALTY) 
                 && attackElement == ElementType.FIRE) {
             float penalty = 1.0f - (float) ElementalReactionConfig.wetnessSelfDryingDamagePenalty;
@@ -264,7 +284,7 @@ public class CombatEvents {
         }
 
         // --------------------------------------------------------
-        // 7. 克制关系计算 (Restraint Calculation)
+        // 8. 克制关系计算 (Restraint Calculation)
         // --------------------------------------------------------
         // 比较攻击元素与目标主手/副手武器的元素，计算克制倍率
         // Compare attack element with target's weapon element to calculate restraint multiplier
@@ -287,7 +307,7 @@ public class CombatEvents {
         float restraintMultiplier = ElementalConfig.getRestraintMultiplier(attackElement, targetDominant);
 
         // --------------------------------------------------------
-        // 8. 最终伤害公式应用 (Final Damage Application)
+        // 9. 最终伤害公式应用 (Final Damage Application)
         // --------------------------------------------------------
         // 综合所有系数计算最终的元素伤害，并处理防御抵消逻辑
         // Calculate final elemental damage combining all factors and handle defense reduction logic
@@ -317,7 +337,7 @@ public class CombatEvents {
         }
 
         // --------------------------------------------------------
-        // 9. 应用伤害与日志 (Apply Damage & Logging)
+        // 10. 应用伤害与日志 (Apply Damage & Logging)
         // --------------------------------------------------------
         // 将计算出的元素伤害附加到原始物理伤害上，并输出调试信息
         // Add calculated elemental damage to raw physical damage and output debug info
@@ -341,7 +361,7 @@ public class CombatEvents {
         );
 
         // --------------------------------------------------------
-        // 10. 灼烧判定 (Scorched Trigger)
+        // 11. 灼烧判定 (Scorched Trigger)
         // --------------------------------------------------------
         // 判定赤焰属性攻击是否触发独立的灼烧效果
         // Determine if Fire attribute attack triggers the standalone Scorched effect

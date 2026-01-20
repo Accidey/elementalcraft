@@ -7,7 +7,7 @@ import com.xulai.elementalcraft.config.ElementalConfig;
 import com.xulai.elementalcraft.config.ElementalReactionConfig;
 import com.xulai.elementalcraft.config.ForcedItemConfig;
 import com.xulai.elementalcraft.enchantment.ModEnchantments;
-import com.xulai.elementalcraft.event.*; // [Update] Import all events
+import com.xulai.elementalcraft.event.*;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.CustomBiomeBias;
 import com.xulai.elementalcraft.util.ForcedAttributeHelper;
@@ -76,25 +76,9 @@ public class ElementalCraft {
 
         // 注册 Forge 事件总线监听器（游戏逻辑事件）
         // Register Forge event bus listeners (Game logic events)
-
-        // 核心逻辑处理器
-        // Core Logic Handlers
-        MinecraftForge.EVENT_BUS.register(CombatEvents.class);
-        MinecraftForge.EVENT_BUS.register(PlayerTrackEvents.class);
-        MinecraftForge.EVENT_BUS.register(InventoryAutoForceEvents.class);
+        
         MinecraftForge.EVENT_BUS.register(TooltipEvents.class);
         MinecraftForge.EVENT_BUS.register(ModCommands.class);
-        
-        //  注册新的反应处理器
-        //  Register new reaction handlers
-        MinecraftForge.EVENT_BUS.register(ReactionHandler.class);
-        MinecraftForge.EVENT_BUS.register(ScorchedHandler.class);
-        
-        // 注意：SteamReactionHandler 和 WetnessHandler 使用了 @EventBusSubscriber 自动注册，
-        // 但为了统一管理，也可以显式注册（如果去掉了注解）。
-        // 这里假设它们保留了注解，或者通过 ConfigAutoSync 自动加载。
-        // 为确保无误，若类上已有 @EventBusSubscriber，则无需在此重复注册。
-        // Note: SteamReactionHandler and WetnessHandler use @EventBusSubscriber for auto-registration.
 
         // 注册资源重载监听器 (/reload)
         // Register resource reload listener (/reload)

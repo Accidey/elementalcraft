@@ -52,6 +52,21 @@ public class DebugMode {
     }
 
     /**
+     * 移除指定玩家的调试状态。
+     * 通常在玩家退出服务器时调用，以防止内存泄漏。
+     * <p>
+     * Removes the debug status for the specified player.
+     * Usually called when a player disconnects to prevent memory leaks.
+     *
+     * @param player 要移除的玩家实体 / The player entity to remove
+     */
+    public static void remove(Player player) {
+        if (player != null) {
+            DEBUG_PLAYERS.remove(player.getUUID());
+        }
+    }
+
+    /**
      * 检查指定玩家是否已开启调试模式。
      * <p>
      * Checks if the specified player has debug mode enabled.
