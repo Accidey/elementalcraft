@@ -52,9 +52,8 @@ public class ModCommands {
         // Register ScorchedBlacklistCommand
         ScorchedBlacklistCommand.register(event.getDispatcher());
 
-        // 注意：部分命令（如 ForcedEntityCommand, BlacklistCommand 等）
-        // 可能在其自身的类中通过 @SubscribeEvent 进行了自动注册，因此无需在此重复调用。
-        // Note: Some commands (such as ForcedEntityCommand, BlacklistCommand, etc.)
-        // may be automatically registered via @SubscribeEvent in their own classes, so no need to repeat here.
+        // 注册易燃孢子黑名单命令
+        // Register SporeBlacklistCommand
+        SporeBlacklistCommand.register(event.getDispatcher());
     }
 }
