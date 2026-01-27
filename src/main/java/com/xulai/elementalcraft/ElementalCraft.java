@@ -5,6 +5,7 @@ import com.mojang.logging.LogUtils;
 import com.xulai.elementalcraft.command.ModCommands;
 import com.xulai.elementalcraft.config.ElementalConfig;
 import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalVisualConfig;
 import com.xulai.elementalcraft.config.ForcedItemConfig;
 import com.xulai.elementalcraft.enchantment.ModEnchantments;
 import com.xulai.elementalcraft.event.*;
@@ -31,7 +32,7 @@ import org.slf4j.Logger;
  * 中文说明：
  * ElementalCraft 的主入口类。
  * 负责模组的初始化工作，包括：
- * 1. 注册配置文件 (Common, ForcedItem, Reaction)。
+ * 1. 注册配置文件 (Common, ForcedItem, Reaction, Visual)。
  * 2. 注册延迟注册器 (DeferredRegister)，如附魔和药水效果。
  * 3. 注册事件监听器，包括模组生命周期事件和游戏逻辑事件 (MinecraftForge.EVENT_BUS)。
  * 4. 处理配置文件的加载与热重载逻辑，确保缓存数据与配置文件保持同步。
@@ -39,7 +40,7 @@ import org.slf4j.Logger;
  * English Description:
  * The main entry class for ElementalCraft.
  * Responsible for mod initialization, including:
- * 1. Registering configuration files (Common, ForcedItem, Reaction).
+ * 1. Registering configuration files (Common, ForcedItem, Reaction, Visual).
  * 2. Registering DeferredRegisters, such as Enchantments and Potion Effects.
  * 3. Registering event listeners, including mod lifecycle events and game logic events (MinecraftForge.EVENT_BUS).
  * 4. Handling configuration loading and hot-reloading logic to ensure cached data stays in sync with config files.
@@ -62,6 +63,7 @@ public class ElementalCraft {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ElementalConfig.SPEC, "elementalcraft-common.toml");
         ForcedItemConfig.register();
         ElementalReactionConfig.register(); // 注册反应配置 / Register reaction config
+        ElementalVisualConfig.register();   // 注册视觉特效配置 / Register visual effect config
 
         // 注册延迟注册器（附魔、药水效果）
         // Register deferred registers (Enchantments, Potion Effects)
@@ -97,6 +99,7 @@ public class ElementalCraft {
     private void commonSetup(final FMLCommonSetupEvent event) {
         ElementalConfig.refreshCache();
         ElementalReactionConfig.refreshCache();
+        ElementalVisualConfig.refreshCache();
         LOGGER.info("[ElementalCraft] Common Setup: Config cache initialized.");
     }
 
@@ -117,6 +120,9 @@ public class ElementalCraft {
         if (event.getConfig().getSpec() == ElementalReactionConfig.SPEC) {
             ElementalReactionConfig.refreshCache();
             LOGGER.info("[ElementalCraft] Config Loaded: elementalcraft-reactions.toml");
+        }
+        if (event.getConfig().getSpec() == ElementalVisualConfig.SPEC) {
+            ElementalVisualConfig.refreshCache();
         }
         // ForcedItemConfig 通常在需要时懒加载或通过 Reload 触发
         // ForcedItemConfig is usually lazy-loaded when needed or triggered by Reload
@@ -146,6 +152,9 @@ public class ElementalCraft {
             ElementalReactionConfig.refreshCache();
             LOGGER.info("[ElementalCraft] Config reloaded from file: elementalcraft-reactions.toml");
         }
+        if (event.getConfig().getSpec() == ElementalVisualConfig.SPEC) {
+            ElementalVisualConfig.refreshCache();
+        }
     }
 
     /**
@@ -165,6 +174,7 @@ public class ElementalCraft {
                 // Force refresh all caches
                 ElementalConfig.refreshCache();
                 ElementalReactionConfig.refreshCache();
+                ElementalVisualConfig.refreshCache();
                 CustomBiomeBias.clearCache();
                 ForcedAttributeHelper.clearCache();
                 ForcedItemHelper.clearCache();

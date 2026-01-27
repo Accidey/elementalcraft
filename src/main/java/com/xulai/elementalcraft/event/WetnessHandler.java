@@ -282,11 +282,11 @@ public class WetnessHandler {
     /**
      * 优化后的热源检测。
      * 检测周围的熔岩或干燥的岩浆块。
-     * 使用配置的搜索半径代替硬编码循环。
+     * 使用配置的搜索半径，并保留熔岩范围大于岩浆块范围的逻辑。
      * <p>
      * Optimized Heat Source Detection.
      * Detects nearby Lava or dry Magma Blocks.
-     * Uses configured search radius instead of hardcoded loops.
+     * Uses configured search radius, while maintaining the logic that Lava range is greater than Magma range.
      */
     private static boolean checkHeatSource(Level level, BlockPos center) {
         int cx = center.getX();
@@ -296,49 +296,69 @@ public class WetnessHandler {
         BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
         BlockPos.MutableBlockPos checkWaterPos = new BlockPos.MutableBlockPos();
 
-        // 使用配置的热源检测半径
-        // Use configured heat source detection radius
-        int range = (int) Math.ceil(ElementalReactionConfig.wetnessHeatSearchRadius);
+        // 获取配置的基础半径（视为熔岩的检测半径）
+        // Get configured base radius (treated as Lava detection radius)
+        double configRadius = ElementalReactionConfig.wetnessHeatSearchRadius;
+        
+        // 熔岩使用完整半径
+        // Lava uses full radius
+        int lavaRange = (int) Math.ceil(configRadius);
+        
+        // 岩浆块使用缩减后的半径（配置值 - 1，最少为 1），保持层级差异
+        // Magma Blocks use reduced radius (config - 1, min 1) to maintain hierarchy
+        int magmaRange = Math.max(1, lavaRange - 1);
 
-        for (int x = -range; x <= range; x++) {
-            for (int z = -range; z <= range; z++) {
-                for (int y = -range; y <= range; y++) {
+        // 统一循环范围，取最大值（lavaRange）
+        // Unified loop range, taking the maximum (lavaRange)
+        for (int x = -lavaRange; x <= lavaRange; x++) {
+            for (int z = -lavaRange; z <= lavaRange; z++) {
+                for (int y = -lavaRange; y <= lavaRange; y++) {
+                    
+                    // 计算相对距离（简单盒式距离）
+                    // Calculate relative distances (Simple Box Distance)
+                    int absX = Math.abs(x);
+                    int absY = Math.abs(y);
+                    int absZ = Math.abs(z);
                     
                     mutablePos.set(cx + x, cy + y, cz + z);
                     
-                    // 1. 熔岩检测
-                    // 1. Lava Check
-                    if (level.getFluidState(mutablePos).is(Objects.requireNonNull(FluidTags.LAVA))) {
-                        return true;
+                    // 1. 熔岩检测 (使用 lavaRange)
+                    // 1. Lava Check (Uses lavaRange)
+                    if (absX <= lavaRange && absZ <= lavaRange && absY <= lavaRange) {
+                        if (level.getFluidState(mutablePos).is(Objects.requireNonNull(FluidTags.LAVA))) {
+                            return true;
+                        }
                     }
                     
-                    // 2. 岩浆块检测
-                    // 2. Magma Block Check
-                    if (level.getBlockState(mutablePos).is(Objects.requireNonNull(Blocks.MAGMA_BLOCK))) {
-                         // 检查岩浆块周围 1 格范围内（3x3x3 区域）是否有水
-                         // Check if there is water within 1 block radius of the Magma Block
-                         boolean hasWaterNearby = false;
-                         
-                         // 遍历 3x3x3 区域
-                         // Iterate 3x3x3 area
-                         searchWater:
-                         for (int dx = -1; dx <= 1; dx++) {
-                             for (int dy = -1; dy <= 1; dy++) {
-                                 for (int dz = -1; dz <= 1; dz++) {
-                                     checkWaterPos.set(mutablePos.getX() + dx, mutablePos.getY() + dy, mutablePos.getZ() + dz);
-                                     if (level.getFluidState(checkWaterPos).is(Objects.requireNonNull(FluidTags.WATER))) {
-                                         hasWaterNearby = true;
-                                         break searchWater;
+                    // 2. 岩浆块检测 (使用 magmaRange)
+                    // 2. Magma Block Check (Uses magmaRange)
+                    if (absX <= magmaRange && absZ <= magmaRange && absY <= magmaRange) {
+                        if (level.getBlockState(mutablePos).is(Objects.requireNonNull(Blocks.MAGMA_BLOCK))) {
+                             // 检查岩浆块周围 1 格范围内（3x3x3 区域）是否有水
+                             // Check if there is water within 1 block radius of the Magma Block
+                             boolean hasWaterNearby = false;
+                             
+                             // 遍历 3x3x3 区域
+                             // Iterate 3x3x3 area
+                             searchWater:
+                             for (int dx = -1; dx <= 1; dx++) {
+                                 for (int dy = -1; dy <= 1; dy++) {
+                                     for (int dz = -1; dz <= 1; dz++) {
+                                         checkWaterPos.set(mutablePos.getX() + dx, mutablePos.getY() + dy, mutablePos.getZ() + dz);
+                                         if (level.getFluidState(checkWaterPos).is(Objects.requireNonNull(FluidTags.WATER))) {
+                                             hasWaterNearby = true;
+                                             break searchWater;
+                                         }
                                      }
                                  }
                              }
-                         }
 
-                         // 只有周围没有水，才视为有效热源
-                         // Only considered a valid heat source if there is no water nearby
-                         if (!hasWaterNearby) {
-                             return true;
-                         }
+                             // 只有周围没有水，才视为有效热源
+                             // Only considered a valid heat source if there is no water nearby
+                             if (!hasWaterNearby) {
+                                 return true;
+                             }
+                        }
                     }
                 }
             }

@@ -196,11 +196,11 @@ public class ElementalReactionConfig {
                         "The cap ratio for Wetness stacks when in shallow water (feet only). (0.6 = 60% of max)")
                 .defineInRange("wetness_shallow_water_cap_ratio", 0.6, 0.0, 1.0);
         WETNESS_FIRE_REDUCTION = BUILDER
-                .comment("每一层潮湿抵挡火属性伤害的百分比。(0.1 = 10% 减伤)",
+                .comment("每一层潮湿抵挡赤焰属性伤害的百分比。(0.1 = 10% 减伤)",
                         "Percentage of fire damage reduction provided by each stack of Wetness. (0.1 = 10% reduction)")
                 .defineInRange("wetness_fire_reduction", 0.1, 0.0, 1.0);
         WETNESS_MAX_REDUCTION = BUILDER
-                .comment("潮湿状态提供的最大火属性伤害减免比例。(0.9 = 90%)",
+                .comment("潮湿状态提供的最大赤焰属性伤害减免比例。(0.9 = 90%)",
                         "Maximum fire damage reduction provided by Wetness status. (0.9 = 90%)")
                 .defineInRange("wetness_max_reduction", 0.9, 0.0, 1.0);
         WETNESS_RAIN_GAIN_INTERVAL = BUILDER
@@ -236,8 +236,8 @@ public class ElementalReactionConfig {
                         "Interval (Ticks) for updating Wetness logic (decay/accumulation).")
                 .defineInRange("wetness_tick_interval", 20, 1, 1200);
         WETNESS_HEAT_SEARCH_RADIUS = BUILDER
-                .comment("检测周围热源（熔岩/岩浆块）的半径范围（格）。",
-                        "Radius (blocks) to search for nearby heat sources (Lava/Magma).")
+                .comment("检测周围热源（熔岩/岩浆块）的半径范围（格）。注意：岩浆块的检测半径会-1格。",
+                        "Radius (blocks) to search for nearby heat sources (Lava/Magma). Note: Magma Block detection radius is automatically reduced by 1.")
                 .defineInRange("wetness_heat_search_radius", 2.0, 1.0, 16.0);
         BUILDER.push("immunity");
         WETNESS_WATER_ANIMAL_IMMUNE = BUILDER
@@ -277,7 +277,7 @@ public class ElementalReactionConfig {
                         "Percentage of physical resistance provided per Spore stack. (0.05 = 5%)")
                 .defineInRange("spore_phys_resist", 0.05, 0.0, 0.5);
         SPORE_FIRE_VULN_PER_STACK = BUILDER
-                .comment("每一层孢子增加的火属性和蒸汽易伤比例。(0.1 = 10%)",
+                .comment("每一层孢子增加的赤焰属性和蒸汽易伤比例。(0.1 = 10%)",
                         "Percentage of fire/steam vulnerability increased per Spore stack. (0.1 = 10%)")
                 .defineInRange("spore_fire_vuln_per_stack", 0.1, 0.0, 1.0);
         SPORE_DURATION_PER_STACK = BUILDER

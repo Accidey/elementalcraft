@@ -1,4 +1,3 @@
-// src/main/java/com/xulai/elementalcraft/event/ReactionHandler.java
 package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
@@ -29,7 +28,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -40,36 +38,60 @@ import java.util.Objects;
 import java.util.Random;
 
 /**
- * ReactionHandler
- * <p>
  * 元素反应系统的核心事件处理器。
- * 负责监听游戏内实体的状态更新与伤害交互，依据攻击者的元素属性与受击者的状态触发相应的元素反应链。
- * 主要包含：易燃孢子传染、自然系寄生吸取、赤焰系毒火爆燃（含连锁爆炸）、防御性野火喷射。
  * <p>
  * Core event handler for the Elemental Reaction System.
- * Listens to entity ticks and damage interactions, triggering elemental reaction chains based on attacker element and victim status.
- * Includes: Flammable Spore contagion, Nature Parasitism/Siphon, Fire Toxic Blast (w/ Chain Reaction), and Defensive Wildfire Ejection.
+ *
+ * @author ElementalCraft Dev Team
+ * @since 1.0.0
  */
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
 public class ReactionHandler {
 
+    /**
+     * 全局随机数实例，用于概率判定、粒子生成等随机逻辑
+     * <p>
+     * Global random instance for probability judgment, particle generation and other random logic
+     */
     private static final Random RANDOM = new Random();
 
-    // NBT Keys
+    /**
+     * 寄生吸取冷却的NBT存储键
+     * <p>
+     * NBT key for Parasitic Drain cooldown
+     */
     private static final String NBT_DRAIN_COOLDOWN = "ec_drain_cd";
+    /**
+     * 野火喷射冷却的NBT存储键
+     * <p>
+     * NBT key for Wildfire Ejection cooldown
+     */
     private static final String NBT_WILDFIRE_COOLDOWN = "ec_wildfire_cd";
+    /**
+     * 孢子已触发传染的NBT标记键
+     * <p>
+     * NBT key for spore spreaded mark
+     */
     private static final String NBT_SPREADED = "ec_spreaded";
+    /**
+     * 实体已被孢子感染的NBT标记键
+     * <p>
+     * NBT key for entity infected mark
+     */
     private static final String NBT_INFECTED = "ec_infected";
+    /**
+     * 实体湿润度等级的NBT存储键
+     * <p>
+     * NBT key for entity wetness level
+     */
     private static final String NBT_WETNESS = "EC_WetnessLevel";
 
     /**
-     * 生物 Tick 事件监听器。
-     * 处理易燃孢子的环境传染逻辑：当实体携带高层数孢子时，定期向周围未感染实体传播。
-     * 传染的触发阈值现在由配置文件控制，而非硬编码的 3 层。
+     * 生物实体Tick周期事件监听器，处理孢子传染的周期性检测逻辑。
      * <p>
-     * Living Entity Tick Event Listener.
-     * Handles Flammable Spore contagion: Periodically spreads spores to nearby uninfected entities when the host has high stacks.
-     * The trigger threshold for contagion is now controlled by configuration instead of a hardcoded 3 stacks.
+     * Living entity tick event listener, handles periodic detection logic for spore contagion.
+     *
+     * @param event 生物Tick事件对象 / Living tick event instance
      */
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
@@ -78,8 +100,6 @@ public class ReactionHandler {
 
         if (entity.tickCount % ElementalReactionConfig.contagionCheckInterval != 0) return;
 
-        // 确保效果实例非空，避免空指针异常
-        // Ensure effect instance is non-null to avoid NullPointerException
         if (ModMobEffects.SPORES.isPresent() && entity.hasEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()))) {
             MobEffectInstance sporeEffect = entity.getEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()));
             if (sporeEffect == null) return;
@@ -87,8 +107,6 @@ public class ReactionHandler {
             int amplifier = sporeEffect.getAmplifier();
             int stacks = amplifier + 1;
 
-            // 使用配置的阈值代替硬编码的 3
-            // Use configured threshold instead of hardcoded 3
             if (stacks >= ElementalReactionConfig.sporeReactionThreshold) {
                 processContagion(entity, stacks);
             }
@@ -96,15 +114,12 @@ public class ReactionHandler {
     }
 
     /**
-     * 造成伤害事件监听器。
-     * 处理主动攻击触发的反应：
-     * 1. 自然属性：触发动态寄生（挂孢子）或寄生吸取（吸潮湿回血）。
-     * 2. 赤焰属性：触发毒火爆燃（引爆孢子）。
+     * 生物实体受伤害事件监听器，处理所有元素攻击相关的反应逻辑，包括孢子叠加、寄生吸取、毒火爆燃、野火喷射。
      * <p>
-     * Living Damage Event Listener.
-     * Handles reactions from active attacks:
-     * 1. Nature: Triggers Dynamic Parasitism (apply spores) or Parasitic Drain (drain wetness to heal).
-     * 2. Fire: Triggers Toxic Blast (detonate spores).
+     * Living entity damage event listener, handles all reaction logic related to elemental attacks,
+     * including spore stacking, parasitic drain, toxic blast and wildfire ejection.
+     *
+     * @param event 生物受伤害事件对象 / Living damage event instance
      */
     @SubscribeEvent
     public static void onLivingDamage(LivingDamageEvent event) {
@@ -122,8 +137,6 @@ public class ReactionHandler {
         double firePower = ElementUtils.getDisplayEnhancement(attacker, ElementType.FIRE);
 
         if (attackType == ElementType.NATURE) {
-            // 动态寄生逻辑：根据自然属性强度概率性施加孢子
-            // Dynamic Parasitism Logic: Apply spores based on Nature attribute strength and chance
             if (naturePower >= ElementalReactionConfig.natureParasiteBaseThreshold) {
                 double chance = 0.0;
                 double scalingStep = ElementalReactionConfig.natureParasiteScalingStep;
@@ -142,15 +155,11 @@ public class ReactionHandler {
                 }
 
                 if (RANDOM.nextDouble() < chance) {
-                    // 使用配置的寄生层数代替硬编码的 1
-                    // Use configured parasite amount instead of hardcoded 1
                     stackSporeEffect(target, ElementalReactionConfig.natureParasiteAmount);
                     EffectHelper.playSporeAmbient(target);
                 }
             }
 
-            // 寄生吸取逻辑：攻击潮湿目标时吸取水分并回血
-            // Parasitic Drain Logic: Drain moisture and heal when attacking a wet target
             if (checkCooldown(attacker, NBT_DRAIN_COOLDOWN)) {
                 CompoundTag targetData = target.getPersistentData();
                 int wetnessLevel = targetData.getInt(NBT_WETNESS);
@@ -160,10 +169,6 @@ public class ReactionHandler {
                 }
             }
         } else if (attackType == ElementType.FIRE) {
-            // 毒火爆燃逻辑：引爆目标身上的孢子，造成范围伤害
-            // Toxic Blast Logic: Detonate spores on the target, causing area damage
-            // 确保对象非空并处理标签空安全
-            // Ensure objects non-null and handle tag null safety
             if (ModMobEffects.SPORES.isPresent() && target.hasEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()))
                     && !event.getSource().is(Objects.requireNonNull(DamageTypeTags.IS_EXPLOSION))) {
 
@@ -171,69 +176,45 @@ public class ReactionHandler {
                     triggerToxicBlast(level, attacker, target, firePower);
                 }
             }
-        }
-    }
 
-    /**
-     * 受到伤害事件监听器。
-     * 处理防御性被动反应：当自然属性实体受到火伤时，触发野火喷射进行反击。
-     * <p>
-     * Living Hurt Event Listener.
-     * Handles defensive passive reactions: Triggers Wildfire Ejection when a Nature entity takes Fire damage.
-     */
-    @SubscribeEvent
-    public static void onLivingHurt(LivingHurtEvent event) {
-        if (event.getEntity().level().isClientSide) return;
+            double victimNaturePower = ElementUtils.getDisplayEnhancement(target, ElementType.NATURE);
+            // 判定目标是否为自然属性实体，且自然强化点数达标、冷却结束时触发野火喷射
+            if (ElementUtils.getConsistentAttackElement(target) == ElementType.NATURE
+                    && victimNaturePower >= ElementalReactionConfig.wildfireTriggerThreshold
+                    && checkCooldown(target, NBT_WILDFIRE_COOLDOWN)) {
 
-        LivingEntity victim = event.getEntity();
+                target.clearFire();
+                CompoundTag data = target.getPersistentData();
+                data.remove(ScorchedHandler.NBT_SCORCHED_TICKS);
+                data.remove(ScorchedHandler.NBT_SCORCHED_STRENGTH);
 
-        // 确保伤害类型标签非空，并在冷却就绪时触发
-        // Ensure damage type tag is non-null and trigger when cooldown is ready
-        if (event.getSource().is(Objects.requireNonNull(DamageTypeTags.IS_FIRE)) && checkCooldown(victim, NBT_WILDFIRE_COOLDOWN)) {
-            double naturePower = ElementUtils.getDisplayEnhancement(victim, ElementType.NATURE);
-
-            if (naturePower >= ElementalReactionConfig.wildfireTriggerThreshold) {
-                triggerWildfireEjection(victim, event.getSource().getEntity());
+                triggerWildfireEjection(target, attacker);
             }
         }
     }
 
-    // ================================================================================================================
-    // Logic Implementations / 逻辑实现
-    // ================================================================================================================
-
     /**
-     * 易燃孢子叠加逻辑。
-     * 1. 全局黑名单检查：如果目标在黑名单中，拒绝施加。
-     * 2. 自然抗性免疫检查：如果目标自然抗性达到阈值，拒绝施加。
-     * 3. 正常叠加层数。
-     * 4. 计算持续时间：雷霆属性目标时间翻倍，赤焰属性目标时间减少。
+     * 易燃孢子效果的叠加与刷新逻辑，处理层数限制、元素抗性/增强的时长修正。
      * <p>
-     * Flammable Spores stacking logic.
-     * 1. Global Blacklist Check: If target is blacklisted, deny application.
-     * 2. Nature Resistance Immunity Check: If target's Nature resistance meets threshold, deny application.
-     * 3. Stacks add normally.
-     * 4. Duration calculation: Doubled for Thunder targets, reduced for Fire targets.
+     * Flammable Spores stacking and refreshing logic, handles stack limit and
+     * duration correction by elemental resistance/enhancement.
+     *
+     * @param target      孢子效果目标实体 / Target entity for spore effect
+     * @param layersToAdd 要叠加的孢子层数 / Spore layers to add
      */
     private static void stackSporeEffect(LivingEntity target, int layersToAdd) {
         if (!ModMobEffects.SPORES.isPresent()) return;
 
-        // 全局黑名单检查：禁止黑名单内的生物获得孢子
-        // Global Blacklist Check: Prevent blacklisted entities from getting spores
         String entityId = ForgeRegistries.ENTITY_TYPES.getKey(target.getType()).toString();
         if (ElementalReactionConfig.cachedSporeBlacklist != null && ElementalReactionConfig.cachedSporeBlacklist.contains(entityId)) {
             return;
         }
 
-        // 自然抗性免疫检查：如果目标自然抗性达到阈值，则免疫孢子
-        // Nature Resistance Immunity Check: If target's Nature resistance reaches the threshold, they are immune to spores
         double natureResistance = ElementUtils.getDisplayResistance(target, ElementType.NATURE);
         if (natureResistance >= ElementalReactionConfig.natureImmunityThreshold) {
             return;
         }
 
-        // 确保获取效果非空
-        // Ensure get effect non-null
         MobEffectInstance currentEffect = target.getEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()));
         int currentAmp = (currentEffect != null) ? currentEffect.getAmplifier() : -1;
         int currentStacks = currentAmp + 1;
@@ -261,20 +242,18 @@ public class ReactionHandler {
         }
 
         if (newStacks > 0) {
-            // 确保添加效果非空
-            // Ensure add effect non-null
             target.addEffect(new MobEffectInstance(Objects.requireNonNull(ModMobEffects.SPORES.get()), durationTicks, newStacks - 1));
         }
     }
 
     /**
-     * 孢子传染逻辑。
-     * 将孢子传播给周围实体，支持将目标的潮湿层数转化为额外孢子。
-     * 包含可配置的“仅传染敌对生物”过滤器。
+     * 孢子传染的核心执行逻辑，处理范围检测、目标过滤、湿润度加成与孢子层数传递。
      * <p>
-     * Spore contagion logic.
-     * Spreads spores to nearby entities, supporting conversion of target's wetness levels into extra spores.
-     * Includes a configurable "Spread to Hostile Only" filter.
+     * Core execution logic for spore contagion, handles range detection, target filtering,
+     * wetness bonus and spore layer transfer.
+     *
+     * @param source 孢子传染的源实体 / Source entity for spore contagion
+     * @param stacks 源实体的孢子层数 / Spore stacks of source entity
      */
     private static void processContagion(LivingEntity source, int stacks) {
         CompoundTag data = source.getPersistentData();
@@ -286,15 +265,11 @@ public class ReactionHandler {
 
         data.putBoolean(NBT_SPREADED, true);
 
-        // 使用配置的阈值计算动态半径
-        // Calculate dynamic radius using configured threshold
         double radius = ElementalReactionConfig.contagionBaseRadius + ((stacks - ElementalReactionConfig.sporeReactionThreshold) * ElementalReactionConfig.contagionRadiusPerStack);
 
         int transferStacks = (int) Math.floor(stacks * ElementalReactionConfig.contagionIntensityRatio);
         if (transferStacks < 1) transferStacks = 1;
 
-        // 确保边界框非空并进行空检查
-        // Ensure bounding box non-null and check for null
         AABB sourceBox = source.getBoundingBox();
         if (sourceBox == null) return;
         
@@ -306,8 +281,6 @@ public class ReactionHandler {
         for (LivingEntity target : targets) {
             if (target == source) continue;
 
-            // 传染过滤器：如果开启“仅传染敌对生物”，则跳过非敌对生物（如玩家、动物）
-            // Contagion Filter: If "Spread to Hostile Only" is enabled, skip non-hostile entities (e.g., Players, Animals)
             if (ElementalReactionConfig.contagionOnlyHostile && !(target instanceof Enemy)) {
                 continue;
             }
@@ -325,8 +298,6 @@ public class ReactionHandler {
 
             if (wetnessBonus > 0 && ElementalReactionConfig.contagionConsumesWetness) {
                 target.getPersistentData().remove(NBT_WETNESS);
-                // 确保移除效果非空
-                // Ensure remove effect non-null
                 if (ModMobEffects.WETNESS.isPresent() && target.hasEffect(Objects.requireNonNull(ModMobEffects.WETNESS.get()))) {
                     target.removeEffect(Objects.requireNonNull(ModMobEffects.WETNESS.get()));
                 }
@@ -340,11 +311,15 @@ public class ReactionHandler {
     }
 
     /**
-     * 寄生吸取执行逻辑。
-     * 吸取目标潮湿层数，回复攻击者生命值并施加孢子。
+     * 寄生吸取的核心执行逻辑，处理湿润度吸取、转移、生命恢复与孢子叠加。
      * <p>
-     * Parasitic Drain execution logic.
-     * Drains target wetness to heal attacker and apply spores.
+     * Core execution logic for Parasitic Drain, handles wetness drain, transfer,
+     * health recovery and spore stacking.
+     *
+     * @param attacker     发动寄生吸取的攻击者 / Attacker that triggers Parasitic Drain
+     * @param target       寄生吸取的目标 / Target of Parasitic Drain
+     * @param currentWetness 目标当前的湿润度等级 / Current wetness level of target
+     * @param naturePower  攻击者的自然元素强化点数 / Nature element enhancement points of attacker
      */
     private static void triggerParasiticDrain(LivingEntity attacker, LivingEntity target, int currentWetness, double naturePower) {
         double step = ElementalReactionConfig.natureDrainPowerStep;
@@ -361,8 +336,6 @@ public class ReactionHandler {
         int newTargetWetness = currentWetness - actualDrain;
         if (newTargetWetness <= 0) {
             target.getPersistentData().remove(NBT_WETNESS);
-            // 确保移除效果非空
-            // Ensure remove effect non-null
             target.removeEffect(Objects.requireNonNull(ModMobEffects.WETNESS.get()));
         } else {
             target.getPersistentData().putInt(NBT_WETNESS, newTargetWetness);
@@ -382,48 +355,34 @@ public class ReactionHandler {
         setCooldown(attacker, NBT_DRAIN_COOLDOWN, ElementalReactionConfig.natureDrainCooldown);
 
         EffectHelper.playDrainEffect(attacker, target);
-        // 确保音效事件非空
-        // Ensure sound event non-null
         EffectHelper.playSound(target.level(), attacker, Objects.requireNonNull(SoundEvents.ZOMBIE_VILLAGER_CONVERTED), 0.5f, 1.5f);
     }
 
     /**
-     * 毒火爆燃执行逻辑。
-     * 1. 立即移除目标身上的孢子，防止递归死循环。
-     * 2. 低层数触发弱灼烧，高层数触发终结爆燃。
-     * 3. 终结爆燃支持连锁反应：如果范围内其他生物也有孢子，将立即触发它们的爆炸。
-     * 4. 包含宠物保护机制：攻击者及其宠物不受爆炸伤害。
+     * 毒火爆燃的核心执行逻辑，分低层数弱灼烧和高层数范围爆炸两种分支处理，支持连锁反应。
      * <p>
-     * Toxic Blast execution logic.
-     * 1. Immediately removes spores from target to prevent recursive loops.
-     * 2. Low stacks trigger weak scorch; High stacks trigger Terminal Blast.
-     * 3. Terminal Blast supports Chain Reaction: Recursively detonates nearby spore-infected entities immediately.
-     * 4. Includes Pet Protection: Attacker and their pets are immune to explosion damage.
+     * Core execution logic for Toxic Blast, handles two branches: weak scorch for low stacks
+     * and area explosion for high stacks, supports chain reaction.
+     *
+     * @param level       游戏世界等级 / Game world level
+     * @param attacker    发动毒火爆燃的攻击者 / Attacker that triggers Toxic Blast
+     * @param target      毒火爆燃的触发目标 / Trigger target of Toxic Blast
+     * @param firePower   攻击者的火焰元素强化点数 / Fire element enhancement points of attacker
      */
     private static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower) {
-        // 确保获取效果非空
-        // Ensure get effect non-null
         MobEffectInstance sporeEffect = target.getEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()));
         int amplifier = (sporeEffect != null) ? sporeEffect.getAmplifier() : -1;
         int stacks = amplifier + 1;
 
-        // 立即移除孢子以防止死循环
-        // Immediately remove spores to prevent infinite recursion
         target.removeEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()));
 
-        // 使用配置的阈值判定是否触发爆炸
-        // Use configured threshold to determine whether to trigger explosion
         if (stacks < ElementalReactionConfig.sporeReactionThreshold) {
             int scorchDuration = (int) (ElementalReactionConfig.blastScorchBase * 20);
             int damageStrength = (int) (firePower * ElementalReactionConfig.blastWeakIgniteMult);
 
             ScorchedHandler.applyScorched(target, damageStrength, scorchDuration);
-            // 确保音效事件非空
-            // Ensure sound event non-null
             EffectHelper.playSound(level, target, Objects.requireNonNull(SoundEvents.FIRECHARGE_USE), 1.0f, 1.2f);
         } else {
-            // 计算超过阈值的额外层数
-            // Calculate extra stacks above threshold
             int extraStacks = stacks - ElementalReactionConfig.sporeReactionThreshold;
 
             double fireStep = ElementalReactionConfig.blastDmgStep;
@@ -444,8 +403,6 @@ public class ReactionHandler {
             level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, net.minecraft.sounds.SoundSource.BLOCKS, 4.0F, (1.0F + (level.random.nextFloat() - level.random.nextFloat()) * 0.2F) * 0.7F);
 
             if (level instanceof ServerLevel serverLevel) {
-                // 确保粒子类型非空
-                // Ensure particle types non-null
                 serverLevel.sendParticles(Objects.requireNonNull(ParticleTypes.EXPLOSION_EMITTER),
                         target.getX(), target.getY() + 1.0, target.getZ(), 1, 0, 0, 0, 0);
 
@@ -457,11 +414,7 @@ public class ReactionHandler {
                         target.getX(), target.getY() + 0.5, target.getZ(),
                         20, 1.0, 1.0, 1.0, 0.0);
 
-                // 执行延迟逻辑处理范围伤害
-                // Execute deferred logic for area damage
                 serverLevel.getServer().execute(() -> {
-                    // 确保边界框非空并检查空值
-                    // Ensure bounding box non-null and check for null
                     AABB targetBox = target.getBoundingBox();
                     if (targetBox == null) return;
                     
@@ -471,12 +424,8 @@ public class ReactionHandler {
                     int affectedCount = 0;
 
                     for (LivingEntity entity : nearbyEntities) {
-                        // 1. 绝对不炸攻击者本人
-                        // 1. Absolutely do not damage the attacker themselves
                         if (entity == attacker) continue;
 
-                        // 2. 宠物保护：如果目标是攻击者的宠物或坐骑，则跳过
-                        // 2. Pet Protection: Skip if the entity is a pet or mount owned by the attacker
                         boolean isPet = false;
                         if (entity instanceof OwnableEntity ownable && Objects.equals(ownable.getOwnerUUID(), attacker.getUUID())) {
                             isPet = true;
@@ -487,21 +436,15 @@ public class ReactionHandler {
 
                         entity.invulnerableTime = 0;
 
-                        // 连锁爆炸检测：确保效果非空
-                        // Chain Reaction Check: Ensure effect non-null
                         if (ElementalReactionConfig.blastChainReaction 
                                 && ModMobEffects.SPORES.isPresent() 
                                 && entity.hasEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()))) {
-                            // 递归调用，传递相同的攻击者和火力强度
-                            // Recursive call, passing the same attacker and fire power
                             triggerToxicBlast(level, attacker, entity, firePower);
                         }
 
                         float mitigation = calculateBlastMitigation(entity);
                         float finalDamage = rawBaseDamage * (1.0f - mitigation);
 
-                        // 确保伤害源非空
-                        // Ensure damage source non-null
                         entity.hurt(Objects.requireNonNull(ModDamageTypes.source(level, ModDamageTypes.LAVA_MAGIC)), finalDamage);
 
                         ScorchedHandler.applyScorched(entity, (int) firePower, scorchDuration);
@@ -515,13 +458,13 @@ public class ReactionHandler {
     }
 
     /**
-     * 爆炸防御计算逻辑。
-     * 计算爆炸保护和普通保护附魔对终结爆燃伤害的减免比例。
-     * 使用配置的分母来计算每个附魔等级的权重，避免硬编码 16.0 导致的上限限制。
+     * 计算实体对毒火爆燃的伤害减免比例，综合爆炸保护和通用保护附魔的效果，有上限限制。
      * <p>
-     * Blast Defense Calculation Logic.
-     * Calculates mitigation percentage against Terminal Blast based on Blast Protection and Protection enchantments.
-     * Uses a configured denominator to calculate weight per enchantment level, avoiding the hardcoded 16.0 cap limit.
+     * Calculates the damage mitigation ratio of entity to Toxic Blast, integrates the effects
+     * of Blast Protection and All Damage Protection enchantments with upper limit.
+     *
+     * @param entity 要计算减免的实体 / Entity to calculate mitigation for
+     * @return 0~1之间的伤害减免比例 / Damage mitigation ratio between 0 and 1
      */
     private static float calculateBlastMitigation(LivingEntity entity) {
         int blastProtLevel = getTotalEnchantmentLevel(Enchantments.BLAST_PROTECTION, entity);
@@ -530,8 +473,6 @@ public class ReactionHandler {
         double maxBlastCap = ElementalReactionConfig.blastMaxBlastProtCap;
         double maxGeneralCap = ElementalReactionConfig.blastMaxGeneralProtCap;
 
-        // 使用配置的分母代替硬编码的 16.0
-        // Use configured denominator instead of hardcoded 16.0
         double blastFactor = maxBlastCap / ElementalReactionConfig.enchantmentCalculationDenominator;
         double generalFactor = maxGeneralCap / ElementalReactionConfig.enchantmentCalculationDenominator;
 
@@ -545,13 +486,13 @@ public class ReactionHandler {
     }
 
     /**
-     * 野火喷射执行逻辑。
-     * 移除自身负面状态，击退周围敌人并反向施加孢子。
-     * 垂直击退力度现在由配置控制。
+     * 野火喷射的核心执行逻辑，处理范围敌对检测、击退效果、孢子叠加与特效播放。
      * <p>
-     * Wildfire Ejection execution logic.
-     * Removes negative status from self, knocks back enemies, and applies spores defensively.
-     * Vertical knockback strength is now controlled by configuration.
+     * Core execution logic for Wildfire Ejection, handles area hostile detection,
+     * knockback effect, spore stacking and effect playback.
+     *
+     * @param victim   发动野火喷射的受害实体（自然属性） / Victim entity (nature type) that triggers Wildfire Ejection
+     * @param attacker 触发野火喷射的攻击者 / Attacker that triggers Wildfire Ejection
      */
     private static void triggerWildfireEjection(LivingEntity victim, Entity attacker) {
         if (victim.level() instanceof ServerLevel serverLevel) {
@@ -566,8 +507,6 @@ public class ReactionHandler {
         double radius = ElementalReactionConfig.wildfireRadius;
         EffectHelper.playWildfireEjection(victim, radius);
 
-        // 确保边界框非空并检查空值
-        // Ensure bounding box non-null and check for null
         AABB victimBox = victim.getBoundingBox();
         if (victimBox == null) return;
         
@@ -580,14 +519,10 @@ public class ReactionHandler {
             boolean isHostile = (enemy == attacker) || (enemy instanceof Enemy);
             if (enemy == victim || !isHostile) continue;
 
-            // 确保向量对象非空并检查空值
-            // Ensure vector objects non-null and check for null
             Vec3 enemyPos = enemy.position();
             Vec3 victimPos = victim.position();
             if (enemyPos == null || victimPos == null) continue;
 
-            // 使用配置的垂直击退力度代替硬编码的 0.5
-            // Use configured vertical knockback strength instead of hardcoded 0.5
             Vec3 vec = enemyPos.subtract(victimPos).normalize().scale(ElementalReactionConfig.wildfireKnockback);
             enemy.push(vec.x, ElementalReactionConfig.wildfireVerticalKnockback, vec.z);
             enemy.hurtMarked = true;
@@ -601,22 +536,47 @@ public class ReactionHandler {
         setCooldown(victim, NBT_WILDFIRE_COOLDOWN, ElementalReactionConfig.wildfireCooldown);
     }
 
+    /**
+     * 检查实体指定键的冷却是否结束，基于游戏刻进行判定。
+     * <p>
+     * Checks if the cooldown of the specified key for the entity has ended,
+     * judged based on game ticks.
+     *
+     * @param entity 要检查的实体 / Entity to check
+     * @param key    冷却的NBT键 / NBT key of cooldown
+     * @return 冷却结束返回true，否则返回false / True if cooldown ended, false otherwise
+     */
     private static boolean checkCooldown(LivingEntity entity, String key) {
         CompoundTag data = entity.getPersistentData();
-        // 确保键值非空
-        // Ensure key non-null
         if (!data.contains(Objects.requireNonNull(key))) return true;
 
         long endTick = data.getLong(Objects.requireNonNull(key));
         return entity.level().getGameTime() >= endTick;
     }
 
+    /**
+     * 为实体指定键设置冷却时间，基于游戏刻进行计算。
+     * <p>
+     * Sets the cooldown time for the specified key of the entity,
+     * calculated based on game ticks.
+     *
+     * @param entity        要设置冷却的实体 / Entity to set cooldown
+     * @param key           冷却的NBT键 / NBT key of cooldown
+     * @param durationTicks 冷却持续的游戏刻数 / Cooldown duration in game ticks
+     */
     private static void setCooldown(LivingEntity entity, String key, int durationTicks) {
-        // 确保键值非空
-        // Ensure key non-null
         entity.getPersistentData().putLong(Objects.requireNonNull(key), entity.level().getGameTime() + durationTicks);
     }
 
+    /**
+     * 计算实体所有护甲槽位指定附魔的总等级。
+     * <p>
+     * Calculates the total level of the specified enchantment on all armor slots of the entity.
+     *
+     * @param ench   要计算的附魔 / Enchantment to calculate
+     * @param entity 要计算的实体 / Entity to calculate
+     * @return 附魔的总等级 / Total level of the enchantment
+     */
     private static int getTotalEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantment ench, LivingEntity entity) {
         int total = 0;
         for (ItemStack stack : entity.getArmorSlots()) {
