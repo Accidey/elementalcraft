@@ -14,12 +14,12 @@ import net.minecraftforge.fml.common.Mod;
  * <p>
  * 中文说明：
  * 玩家追踪事件处理类。
- * 负责监听服务端玩家的 Tick 事件，周期性地（每秒）扫描玩家周围的生物。
+ * 负责监听服务端玩家的 Tick 事件，周期性地（每2秒）扫描玩家周围的生物。
  * 如果发现尚未被赋予属性的生物，则调用 {@link MobAttributeLogic} 进行处理。
  * <p>
  * English Description:
  * Player tracking event handler class.
- * Responsible for listening to server-side player Tick events and periodically (every second) scanning mobs around the player.
+ * Responsible for listening to server-side player Tick events and periodically (every 2 seconds) scanning mobs around the player.
  * If mobs without assigned attributes are found, {@link MobAttributeLogic} is called to process them.
  */
 @Mod.EventBusSubscriber(modid = "elementalcraft")
@@ -27,11 +27,11 @@ public class PlayerTrackEvents {
 
     /**
      * 监听玩家 Tick 事件。
-     * 每秒（20 ticks）扫描一次玩家周围的生物并尝试应用元素属性。
+     * 每秒（40 ticks）扫描一次玩家周围的生物并尝试应用元素属性。
      * 仅在服务端执行，且只处理尚未设置属性的存活生物。
      * <p>
      * Listens to the Player Tick event.
-     * Scans mobs around the player every second (20 ticks) and attempts to apply elemental attributes.
+     * Scans mobs around the player every second (40 ticks) and attempts to apply elemental attributes.
      * Executes only on the server side and processes only living mobs that haven't had attributes set yet.
      *
      * @param event 玩家 Tick 事件 / Player Tick event
@@ -48,9 +48,9 @@ public class PlayerTrackEvents {
         
         if (!(event.player instanceof ServerPlayer player)) return;
 
-        // 性能优化：每 20 tick (1秒) 执行一次，避免每 tick 扫描造成卡顿
-        // Performance optimization: Execute every 20 ticks (1 second) to prevent lag from scanning every tick
-        if (player.tickCount % 20 != 0) return;
+        // 性能优化：每 40 tick (1秒) 执行一次，避免每 tick 扫描造成卡顿
+        // Performance optimization: Execute every 40 ticks (1 second) to prevent lag from scanning every tick
+        if (player.tickCount % 40 != 0) return;
 
         ServerLevel level = player.serverLevel();
 

@@ -184,8 +184,8 @@ public class ElementalReactionConfig {
     static {
         ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
         BUILDER.comment("Elemental Reaction System Configuration",
-                "元素反应系统配置 - 调整所有元素交互的平衡性。",
-                "Elemental Reaction System Configuration - Adjust balances for all interactions.")
+                "元素反应系统配置 - 调整赤焰和自然元素交互的平衡性。",
+                "Elemental Reaction System Configuration - Adjust balances for fire and nature interactions.")
                 .push("wetness_system");
         WETNESS_MAX_LEVEL = BUILDER
                 .comment("潮湿状态的最高叠加层数。",
@@ -220,7 +220,7 @@ public class ElementalReactionConfig {
                         "Number of Wetness stacks instantly added when hit by a Splash Water Bottle.")
                 .defineInRange("wetness_potion_add_level", 1, 1, 100);
         WETNESS_DRYING_THRESHOLD = BUILDER
-                .comment("瞬间蒸发1层潮湿所需的赤焰属性点数阈值。",
+                .comment("瞬间蒸发1层潮湿所需的赤焰属性强化点数阈值。",
                         "Threshold of Fire Attribute points required to instantly evaporate 1 layer of Wetness.")
                 .defineInRange("wetness_drying_threshold", 20, 1, 1000);
         WETNESS_SELF_DRYING_DAMAGE_PENALTY = BUILDER
@@ -255,34 +255,34 @@ public class ElementalReactionConfig {
         BUILDER.pop();
         BUILDER.pop();
         
-        BUILDER.push("spore_system");
+BUILDER.push("spore_system");
         SPORE_MAX_STACKS = BUILDER
                 .comment("易燃孢子的最大叠加层数。",
                         "Maximum stack amount for Flammable Spores.")
                 .defineInRange("max_spore_stacks", 5, 1, 1000);
         SPORE_REACTION_THRESHOLD = BUILDER
-                .comment("孢子触发剧烈反应（传染扩散、毒火爆燃）所需的最小层数。",
-                        "Minimum spore stacks required to trigger severe reactions (Contagion spread, Toxic Blast explosion).")
+                .comment("易燃孢子触发剧烈反应（传染扩散、毒火爆燃）所需的最小层数。",
+                        "Minimum Flammable Spore stacks required to trigger severe reactions (Contagion spread, Toxic Blast explosion).")
                 .defineInRange("spore_reaction_threshold", 3, 1, 100);
         SPORE_POISON_DAMAGE = BUILDER
-                .comment("感染孢子后，每秒造成的无视护甲伤害。",
-                        "Armor-bypassing damage per second when infected with Spores.")
+                .comment("感染易燃孢子后，每秒造成的无视护甲伤害。",
+                        "Armor-bypassing damage per second when infected with Flammable Spores.")
                 .defineInRange("spore_poison_damage", 0.5, 0.0, 200.0);
         SPORE_SPEED_REDUCTION = BUILDER
-                .comment("每一层孢子造成的减速比例。(0.1 = 10%)",
-                        "Percentage of slowness applied per Spore stack. (0.1 = 10%)")
+                .comment("每一层易燃孢子效果造成的减速比例。(0.1 = 10%)",
+                        "Percentage of slowness applied per Flammable Spore stack. (0.1 = 10%)")
                 .defineInRange("spore_speed_reduction", 0.1, 0.0, 0.5);
         SPORE_PHYS_RESIST = BUILDER
-                .comment("每一层孢子提供的物理伤害减免比例。(0.05 = 5%)",
-                        "Percentage of physical resistance provided per Spore stack. (0.05 = 5%)")
+                .comment("每一层易燃孢子提供的物理伤害减免比例。(0.05 = 5%)",
+                        "Percentage of physical resistance provided per Flammable Spore stack. (0.05 = 5%)")
                 .defineInRange("spore_phys_resist", 0.05, 0.0, 0.5);
         SPORE_FIRE_VULN_PER_STACK = BUILDER
-                .comment("每一层孢子增加的赤焰属性和蒸汽易伤比例。(0.1 = 10%)",
-                        "Percentage of fire/steam vulnerability increased per Spore stack. (0.1 = 10%)")
+                .comment("每一层孢子增加的赤焰属性和高温蒸汽易伤比例。(0.1 = 10%)",
+                        "Percentage of Fire and High-Heat Steam vulnerability increased per Flammable Spore stack. (0.1 = 10%)")
                 .defineInRange("spore_fire_vuln_per_stack", 0.1, 0.0, 1.0);
         SPORE_DURATION_PER_STACK = BUILDER
-                .comment("每一层孢子增加的基础持续时间（秒）。",
-                        "Base duration (seconds) added per Spore stack.")
+                .comment("每一层易燃孢子增加的基础持续时间（秒）。",
+                        "Base duration (seconds) added per Flammable Spore stack.")
                 .defineInRange("spore_duration_per_stack", 5, 1, 6000);
         SPORE_THUNDER_MULTIPLIER = BUILDER
                 .comment("雷霆属性宿主的持续时间倍率。(2.0 = 时间翻倍)",
@@ -293,108 +293,110 @@ public class ElementalReactionConfig {
                         "Duration reduction multiplier for Fire attribute hosts. (0.5 = Halved duration)")
                 .defineInRange("spore_fire_duration_reduction", 0.5, 0.0, 1.0);
         SPORE_ENTITY_BLACKLIST = BUILDER
-                .comment("易燃孢子免疫黑名单（填入实体ID，例如：minecraft:creeper）。",
+                .comment("易燃孢子效果免疫黑名单（填入实体ID，例如：minecraft:creeper）。",
                         "Flammable Spore immunity blacklist (Entity IDs, e.g., minecraft:creeper).")
                 .defineListAllowEmpty("spore_entity_blacklist", List.of(), o -> o instanceof String);
         BUILDER.pop();
         
-        BUILDER.push("contagion_system");
+BUILDER.push("contagion_system");
         CONTAGION_CHECK_INTERVAL = BUILDER
-                .comment("系统检测孢子传染的间隔（Tick）。",
-                        "Interval (Ticks) for checking spore contagion.")
+                .comment("感染易燃孢子后触发传染所需时间（Tick）。",
+                        "Interval (Ticks) required to trigger contagion after being infected with Flammable Spores.")
                 .defineInRange("contagion_check_interval", 20, 1, 12000);
         CONTAGION_BASE_RADIUS = BUILDER
-                .comment("孢子传染的基础半径（格）。",
-                        "Base radius (blocks) for spore contagion.")
+                .comment("易燃孢子传染的基础半径（格）。",
+                        "Base radius (blocks) for Flammable Spore contagion.")
                 .defineInRange("contagion_base_radius", 2.0, 1.0, 16.0);
         CONTAGION_RADIUS_PER_STACK = BUILDER
                 .comment("高层数时，每多一层增加的传染半径（格）。",
                         "Additional contagion radius (blocks) per extra stack at high levels.")
                 .defineInRange("contagion_radius_per_stack", 1.0, 0.0, 5.0);
         CONTAGION_INTENSITY_RATIO = BUILDER
-                .comment("传染时，传递给受害者的孢子层数比例。(0.2 = 20%)",
-                        "Ratio of spore stacks transferred to the victim during contagion. (0.2 = 20%)")
+                .comment("传染时，传递给受害者的易燃孢子层数比例。(0.2 = 20%)",
+                        "Ratio of Flammable Spore stacks transferred to the victim during contagion. (0.2 = 20%)")
                 .defineInRange("contagion_intensity_ratio", 0.2, 0.0, 1.0);
         CONTAGION_WETNESS_THRESHOLD = BUILDER
                 .comment("触发潮湿加速繁殖所需的最小潮湿层数。",
-                        "Minimum wetness stacks required to trigger accelerated spore reproduction.")
+                        "Minimum Wetness stacks required to trigger accelerated spore reproduction.")
                 .defineInRange("contagion_wetness_threshold", 1, 0, 1000);
         CONTAGION_CONSUMES_WETNESS = BUILDER
                 .comment("传染发生时，是否消耗受害者的潮湿状态？",
-                        "Whether to consume the victim's wetness status when contagion occurs.")
+                        "Whether to consume the victim's Wetness status when contagion occurs.")
                 .define("contagion_consumes_wetness", true);
         CONTAGION_WETNESS_CONVERSION_RATIO = BUILDER
-                .comment("每层多余的潮湿可转化为多少层额外的孢子。",
-                        "Ratio of extra spore stacks converted from each excess wetness level.")
+                .comment("被传染的目标每层潮湿效果可转化为多少层额外的易燃孢子。",
+                        "Ratio of extra Flammable Spore stacks converted from each Wetness level of the infected target.")
                 .defineInRange("contagion_wetness_conversion_ratio", 1.0, 0.0, 10.0);
         CONTAGION_WETNESS_MAX_BONUS = BUILDER
-                .comment("通过潮湿转化能获得的最大额外孢子层数。",
-                        "Maximum extra spore stacks obtainable through wetness conversion.")
+                .comment("通过潮湿转化能获得的最大额外易燃孢子层数。",
+                        "Maximum extra Flammable Spore stacks obtainable through Wetness conversion.")
                 .defineInRange("contagion_wetness_max_bonus", 5, 0, 500);
         CONTAGION_ONLY_HOSTILE = BUILDER
-                .comment("是否只允许孢子传染给敌对生物？如果为 true，玩家和被动生物将不会被环境传染。",
-                        "Whether spores should only spread to hostile entities. If true, players and passive mobs will not be infected by contagion.")
+                .comment("是否只允许易燃孢子传染给敌对生物？如果为 true，玩家和被动生物将不会被环境传染。",
+                        "Whether Flammable Spores should only spread to hostile entities. If true, players and passive mobs will not be infected by contagion.")
                 .define("contagion_only_hostile", false);
         BUILDER.pop();
         
         BUILDER.push("nature_reaction");
         BUILDER.push("dynamic_parasitism");
+        BUILDER.push("dynamic_parasitism");
         NATURE_PARASITE_BASE_THRESHOLD = BUILDER
-                .comment("攻击触发寄生（挂孢子）所需的最小自然属性点数。",
-                        "Minimum Nature attribute points required to trigger Parasitism (apply spores) on attack.")
+                .comment("攻击触发易燃孢子效果所需的最小自然属性强化点数。",
+                        "Minimum Nature attribute points required to trigger Flammable Spores effect on attack.")
                 .defineInRange("base_threshold", 5.0, 0.0, 10000.0);
         NATURE_PARASITE_BASE_CHANCE = BUILDER
-                .comment("触发寄生的基础概率。(0.05 = 5%)",
-                        "Base chance to trigger Parasitism. (0.05 = 5%)")
+                .comment("触发易燃孢子效果的基础概率。(0.05 = 5%)",
+                        "Base chance to trigger Flammable Spores effect. (0.05 = 5%)")
                 .defineInRange("base_chance", 0.05, 0.0, 1.0);
         NATURE_PARASITE_SCALING_STEP = BUILDER
-                .comment("寄生概率提升一级所需的自然属性增量。",
-                        "Nature attribute increment required to increase Parasitism chance tier.")
+                .comment("易燃孢子概率成长的属性阶梯值。例如设为20时，自然属性强化点数达到20/40/60点都会触发概率提升。",
+                        "The attribute step size for Flammable Spores chance scaling. E.g., if set to 20, chance increases at 20, 40, 60 points.")
                 .defineInRange("scaling_step", 20.0, 1.0, 10000.0);
         NATURE_PARASITE_SCALING_CHANCE = BUILDER
-                .comment("每提升一级增加的寄生概率。",
-                        "Parasitism chance increase per tier.")
+                .comment("每个阶梯（等级）额外增加的易燃孢子触发概率。",
+                        "Flammable Spores chance increase per tier.")
                 .defineInRange("scaling_chance", 0.05, 0.0, 1.0);
         NATURE_PARASITE_AMOUNT = BUILDER
-                .comment("每次触发寄生时施加的孢子层数。",
-                        "Number of Spore stacks applied when Parasitism is triggered.")
+                .comment("每次触发效果时施加的易燃孢子层数。",
+                        "Number of Flammable Spore stacks applied when effect is triggered.")
                 .defineInRange("parasite_amount", 1, 1, 100);
         NATURE_PARASITE_WETNESS_BONUS = BUILDER
-                .comment("自身每层潮湿提供的额外寄生概率。",
-                        "Extra Parasitism chance provided per stack of self-wetness.")
+                .comment("自身每层潮湿提供的额外易燃孢子触发概率。",
+                        "Extra Flammable Spores chance provided per stack of self-wetness.")
                 .defineInRange("wetness_bonus", 0.05, 0.0, 1.0);
         NATURE_IMMUNITY_THRESHOLD = BUILDER
                 .comment("完全免疫易燃孢子所需的自然抗性点数。",
                         "Nature Resistance points required to be completely immune to Flammable Spores.")
                 .defineInRange("nature_immunity_threshold", 80, 0, 10000);
         BUILDER.pop();
-        
+
         BUILDER.push("parasitic_drain");
+BUILDER.push("parasitic_drain");
         NATURE_SIPHON_THRESHOLD = BUILDER
-                .comment("触发寄生吸取（吸潮湿回血）所需的最小自然属性点数。",
-                        "Minimum Nature attribute points required to trigger Parasitic Drain (drain wetness to heal).")
+                .comment("触发寄生吸取（吸取目标潮湿效果到自身，然后恢复自身血量）所需的最小自然属性强化点数。",
+                        "Minimum Nature attribute points required to trigger Parasitic Drain (absorb target's Wetness to restore health).")
                 .defineInRange("nature_drain_threshold", 20, 1, 10000);
         NATURE_DRAIN_POWER_STEP = BUILDER
-                .comment("每增加一级吸取量所需的自然属性点数。",
-                        "Nature attribute points required per additional drain amount level.")
+                .comment("每增加一级吸取目标潮湿等级所需的自然属性强化点数。",
+                        "Nature attribute points required to increase Wetness drain amount by one level.")
                 .defineInRange("nature_drain_power_step", 20.0, 1.0, 10000.0);
         NATURE_DRAIN_AMOUNT = BUILDER
-                .comment("基础吸取量（层数）。",
-                        "Base drain amount (stacks).")
+                .comment("吸取目标潮湿效果基础层数。",
+                        "Base number of Wetness stacks drained from the target.")
                 .defineInRange("nature_drain_amount_per_step", 1, 1, 1000);
         NATURE_SIPHON_HEAL = BUILDER
-                .comment("每吸取一层潮湿恢复的血量。",
-                        "Health restored per drained wetness stack.")
+                .comment("每吸取一层潮湿自身恢复的血量。",
+                        "Health points restored to self per Wetness stack drained.")
                 .defineInRange("nature_heal_amount", 1.0, 0.0, 1000.0);
         NATURE_DRAIN_COOLDOWN = BUILDER
                 .comment("寄生吸取的冷却时间（Tick）。",
                         "Cooldown (Ticks) for Parasitic Drain.")
                 .defineInRange("nature_drain_cooldown", 200, 0, 60000);
         BUILDER.pop();
-        
+
         BUILDER.push("wildfire_ejection");
         WILDFIRE_TRIGGER_THRESHOLD = BUILDER
-                .comment("触发野火喷射（反击）所需的最小自然属性点数。",
+                .comment("触发野火喷射（反击）所需的最小自然属性强化点数。",
                         "Minimum Nature attribute points required to trigger Wildfire Ejection (counter-attack).")
                 .defineInRange("wildfire_trigger_threshold", 20.0, 0.0, 10000.0);
         WILDFIRE_COOLDOWN = BUILDER
@@ -423,8 +425,8 @@ public class ElementalReactionConfig {
         BUILDER.push("fire_reaction");
         BUILDER.push("toxic_blast");
         BLAST_TRIGGER_THRESHOLD = BUILDER
-                .comment("触发毒火爆燃（引爆孢子）所需的最小赤焰属性点数。",
-                        "Minimum Fire attribute points required to trigger Toxic Blast (detonate spores).")
+.comment("触发毒火爆燃（引爆易燃孢子）所需的最小赤焰属性强化点数。",
+                        "Minimum Fire attribute points required to trigger Toxic Blast (detonate Flammable Spores).")
                 .defineInRange("blast_trigger_threshold", 50.0, 0.0, 10000.0);
         BLAST_WEAK_IGNITE_MULT = BUILDER
                 .comment("低层数（低于反应阈值）时的引燃伤害倍率。",
@@ -435,7 +437,7 @@ public class ElementalReactionConfig {
                         "Base explosion damage when detonating at the reaction threshold (default 3).")
                 .defineInRange("blast_base_damage", 5.0, 0.0, 1000.0);
         BLAST_DMG_STEP = BUILDER
-                .comment("爆炸伤害提升一级所需的赤焰属性点数。",
+                .comment("爆炸伤害提升一级所需的赤焰属性强化点数。",
                         "Fire attribute points required to increase explosion damage tier.")
                 .defineInRange("blast_dmg_step", 20.0, 1.0, 10000.0);
         BLAST_DMG_AMOUNT = BUILDER
@@ -443,16 +445,16 @@ public class ElementalReactionConfig {
                         "Explosion damage added per tier.")
                 .defineInRange("blast_dmg_amount", 1.0, 0.0, 1000.0);
         BLAST_GROWTH_DAMAGE = BUILDER
-                .comment("超过反应阈值后，每多一层孢子增加的爆炸伤害。",
-                        "Bonus explosion damage per extra spore stack above the threshold.")
+                .comment("超过反应阈值后，每多一层易燃孢子增加的爆炸伤害。",
+                        "Bonus explosion damage per extra Flammable Spore stack above the threshold.")
                 .defineInRange("blast_growth_damage", 1.0, 0.0, 1000.0);
         BLAST_BASE_RANGE = BUILDER
                 .comment("基础爆炸半径（格）。",
                         "Base explosion radius (blocks).")
                 .defineInRange("blast_base_range", 1.5, 0.5, 1000.0);
         BLAST_GROWTH_RANGE = BUILDER
-                .comment("超过反应阈值后，每多一层孢子增加的爆炸半径（格）。",
-                        "Bonus explosion radius per extra spore stack above the threshold.")
+                .comment("超过反应阈值后，每多一层易燃孢子增加的爆炸半径（格）。",
+                        "Bonus explosion radius per extra Flammable Spore stack above the threshold.")
                 .defineInRange("blast_growth_range", 1.0, 0.0, 5.0);
         BLAST_SCORCH_BASE = BUILDER
                 .comment("弱效引燃（低于反应阈值）造成的灼烧持续时间（秒）。",
@@ -463,8 +465,8 @@ public class ElementalReactionConfig {
                         "Duration (seconds) of scorching applied by a successful explosion (at reaction threshold).")
                 .defineInRange("blast_base_scorch_time", 3.0, 0.0, 6000.0);
         BLAST_GROWTH_SCORCH_TIME = BUILDER
-                .comment("超过反应阈值后，每多一层孢子增加的灼烧时间（秒）。",
-                        "Bonus scorch time (seconds) per extra spore stack above the threshold.")
+                .comment("超过反应阈值后，每多一层易燃孢子增加的灼烧时间（秒）。",
+                        "Bonus scorch time (seconds) per extra Flammable Spore stack above the threshold.")
                 .defineInRange("blast_growth_scorch_time", 1.0, 0.0, 1000.0);
         BLAST_CHAIN_REACTION = BUILDER
                 .comment("是否开启毒火爆燃的连锁反应机制？如果开启，当爆炸波及到身上有孢子的生物时，会立即诱发它们也发生爆炸（连环爆炸）。",
@@ -545,11 +547,11 @@ public class ElementalReactionConfig {
         
         BUILDER.push("condensation_logic");
         STEAM_CONDENSATION_STEP_FROST= BUILDER
-                .comment("产生低温蒸汽时，提升一级蒸汽等级所需的冰霜属性点数。",
+                .comment("产生低温蒸汽时，提升一级蒸汽等级所需的冰霜属性强化点数。",
                         "Frost attribute points required to increase Low-Heat Steam level by one.")
                 .defineInRange("steam_condensation_step_frost", 20, 1, 10000);
         STEAM_CONDENSATION_STEP_FIRE = BUILDER
-                .comment("产生高温蒸汽时，提升一级蒸汽等级所需的赤焰属性点数。",
+                .comment("产生高温蒸汽时，提升一级蒸汽等级所需的赤焰属性强化点数。",
                         "Fire attribute points required to increase High-Heat Steam level by one.")
                 .defineInRange("steam_condensation_step_fire", 20, 1, 10000);
         STEAM_CONDENSATION_DELAY = BUILDER
@@ -565,11 +567,11 @@ public class ElementalReactionConfig {
                         "Additional duration (Ticks) per level for Low-Heat Steam.")
                 .defineInRange("steam_condensation_duration_per_level", 20, 0, 2000);
         STEAM_SPORE_GROWTH_RATE = BUILDER
-                .comment("在低温蒸汽中，孢子繁殖的间隔时间（Tick）。",
-                        "Interval (Ticks) for spore reproduction inside Low-Heat Steam.")
+                .comment("在低温蒸汽中，易燃孢子繁殖的间隔时间（Tick）。",
+                        "Interval (Ticks) for Flammable Spore reproduction inside Low-Heat Steam.")
                 .defineInRange("steam_spore_growth_rate", 20, 1, 6000);
         BUILDER.pop();
-        
+
         BUILDER.push("scalding_damage");
         STEAM_SCALDING_DAMAGE = BUILDER
                 .comment("高温蒸汽每秒造成的基础烫伤伤害。",
@@ -584,8 +586,8 @@ public class ElementalReactionConfig {
                         "Damage multiplier for Frost/Nature attribute entities in High-Heat Steam.")
                 .defineInRange("steam_scalding_multiplier_weakness", 1.5, 1.0, 1000.0);
         STEAM_SCALDING_MULTIPLIER_SPORE = BUILDER
-                .comment("携带孢子的生物受到蒸汽烫伤伤害的倍率。",
-                        "Damage multiplier for spore-infected entities in steam.")
+                .comment("携带易燃孢子的生物受到蒸汽烫伤伤害的倍率。",
+                        "Damage multiplier for Flammable Spore infected entities in steam.")
                 .defineInRange("steam_scalding_multiplier_spore", 1.5, 1.0, 1000.0);
         STEAM_IMMUNITY_THRESHOLD = BUILDER
                 .comment("完全免疫蒸汽烫伤所需的赤焰抗性点数。",
@@ -599,21 +601,17 @@ public class ElementalReactionConfig {
         
         BUILDER.push("trigger_logic");
         STEAM_TRIGGER_THRESHOLD_FIRE = BUILDER
-                .comment("攻击时，把水/冰蒸发成高温蒸汽所需的最小赤焰属性点数。",
+                .comment("攻击时，触发高温蒸汽所需的最小赤焰属性强化点数。",
                         "Minimum Fire attribute points required to trigger High-Heat Steam (evaporate water/ice).")
                 .defineInRange("fire_trigger_threshold", 20, 0, 1000);
         STEAM_TRIGGER_THRESHOLD_FROST = BUILDER
-                .comment("攻击时，把火冷却成低温蒸汽所需的最小冰霜属性点数。",
+                .comment("攻击时，触发低温蒸汽所需的最小冰霜属性强化点数。",
                         "Minimum Frost attribute points required to trigger Low-Heat Steam (cool down fire).")
                 .defineInRange("frost_trigger_threshold", 20, 0, 1000);
         STEAM_TRIGGER_COOLDOWN = BUILDER
                 .comment("触发蒸汽反应后的冷却时间（Tick）。",
                         "Cooldown (Ticks) applied to an entity after triggering a steam reaction.")
                 .defineInRange("steam_trigger_cooldown", 200, 0, 6000);
-        STEAM_DAMAGE_FLOOR_RATIO = BUILDER
-                .comment("对于被克制生物，蒸汽伤害保留的最低比例。(0.5 = 50%)",
-                        "Minimum damage floor ratio for vulnerable entities (Frost/Nature), regardless of resistance. (0.5 = 50%)")
-                .defineInRange("damage_floor_ratio", 0.5, 0.0, 1.0);
         STEAM_MAX_FIRE_PROT_CAP = BUILDER
                 .comment("火焰保护附魔最多能抵消的蒸汽伤害比例。(0.5 = 50%)",
                         "Maximum steam damage mitigation provided by 'Fire Protection' enchantment. (0.5 = 50%)")
@@ -622,6 +620,11 @@ public class ElementalReactionConfig {
                 .comment("普通保护附魔最多能抵消的蒸汽伤害比例。(0.25 = 25%)",
                         "Maximum steam damage mitigation provided by general 'Protection' enchantment. (0.25 = 25%)")
                 .defineInRange("max_general_prot_cap", 0.25, 0.0, 1.0);
+STEAM_DAMAGE_FLOOR_RATIO = BUILDER
+                .comment("冰霜/自然属性生物的蒸汽伤害保底比例。",
+                        "无论附魔提供多少减伤，它们至少要承受原始伤害的这一比例。（0.1 = 10%）",
+                        "Minimum damage floor ratio for vulnerable entities (Frost/Nature), regardless of resistance. (0.1 = 10%)")
+                .defineInRange("damage_floor_ratio", 0.1, 0.0, 1.0);
         BUILDER.pop();
         BUILDER.pop();
         
@@ -630,7 +633,7 @@ public class ElementalReactionConfig {
                 "Scorched Mechanic Configuration - A powerful burning effect that is hard to extinguish.")
                 .push("scorched_mechanic");
         SCORCHED_TRIGGER_THRESHOLD = BUILDER
-                .comment("攻击触发“灼烧”效果所需的最小赤焰属性点数。",
+                .comment("攻击触发“灼烧”效果所需的最小赤焰属性强化点数。",
                         "Minimum Fire attribute points required to trigger 'Scorched' effect on attack.")
                 .defineInRange("scorched_trigger_threshold", 20, 1, 10000);
         SCORCHED_BASE_CHANCE = BUILDER

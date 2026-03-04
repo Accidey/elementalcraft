@@ -1,5 +1,5 @@
 {
-  "itemGroup.elementalcraft": "Elemental Craft",
+  "itemGroup.elementalcraft": "§6Elemental Craft",
 
   "element.none": "None",
   "element.nature": "§2Nature",
@@ -20,18 +20,18 @@
   "debug.elementalcraft.relation.weak": "§9%s is weak against %s!",
   "debug.elementalcraft.relation.neutral": "§7%s attacks %s (Neutral)",
   
-  "debug.elementalcraft.damage_overview": "Dealt %s Damage (Physical %s + Elemental %s)",
+  "debug.elementalcraft.damage_overview": "Dealt %s damage (Physical %s + Elemental %s)",
   
-  "debug.elementalcraft.formula.enhance": "Enhance%s",
-  "debug.elementalcraft.formula.dmg_mult": "Multiplier%s",
-  "debug.elementalcraft.formula.restraint": "Restraint%s",
-  "debug.elementalcraft.formula.wetness": "Wetness%s(x%s)",
-  "debug.elementalcraft.formula.wetness_none": "Wetness%s(No Mod)",
-  "debug.elementalcraft.formula.self_drying": "Self-Drying(x%s)",
+  "debug.elementalcraft.formula.enhance": "Enhance %s",
+  "debug.elementalcraft.formula.dmg_mult": "Multiplier %s",
+  "debug.elementalcraft.formula.restraint": "Restraint %s",
+  "debug.elementalcraft.formula.wetness": "Wetness %s (x%s)",
+  "debug.elementalcraft.formula.wetness_none": "Wetness %s (No Mod)",
+  "debug.elementalcraft.formula.self_drying": "Self-Drying (x%s)",
   
-  "debug.elementalcraft.formula.resist": "ResistReduct%s",
-  "debug.elementalcraft.formula.res_mult": "ResistMult%s",
-  "debug.elementalcraft.formula.floor": "Floor%s%%",
+  "debug.elementalcraft.formula.resist": "Resist Reduction %s",
+  "debug.elementalcraft.formula.res_mult": "Resist Multiplier %s",
+  "debug.elementalcraft.formula.floor": "Floor %s%%",
 
   "debug.elementalcraft.exhaustion.header": "Exhaustion: %s",
   "debug.elementalcraft.exhaustion.base": "%s (Base)",
@@ -45,7 +45,7 @@
   "debug.elementalcraft.steam_trigger.high": "High-Heat Steam (Burst)",
   "debug.elementalcraft.steam_trigger.low": "Low-Heat Steam (Condense)",
 
-  "debug.elementalcraft.nature.siphon": "[Nature Siphon] Siphoned %s Wetness levels, Healed %s HP",
+  "debug.elementalcraft.nature.siphon": "Triggered §a[Nature Siphon]§r: Drained %s wetness levels, restored %s HP",
 
   "jade.elementalcraft.attack_title": "§lAttack Element",
   "jade.elementalcraft.attack_suffix": " Attack",
@@ -153,19 +153,31 @@
   "command.elementalcraft.scorched.blacklist.not_found": "§e%s §7is not in the Scorched Immunity Blacklist.",
   "command.elementalcraft.scorched.blacklist.empty": "§eScorched Immunity Blacklist is empty.",
   "command.elementalcraft.scorched.blacklist.header": "§eScorched Immunity Blacklist (%s):",
-  "command.elementalcraft.scorched.blacklist.saved": "§7Config saved, cache refreshed.",
+
+  "command.elementalcraft.spore.blacklist.no_egg": "§cPlease hold a Spawn Egg!",
+  "command.elementalcraft.spore.blacklist.already_exists": "§e%s §7is already in the Flammable Spores Immunity Blacklist.",
+  "command.elementalcraft.spore.blacklist.added": "§aAdded §e%s §ato Flammable Spores Immunity Blacklist.",
+  "command.elementalcraft.spore.blacklist.removed": "§aRemoved §e%s §afrom Flammable Spores Immunity Blacklist.",
+  "command.elementalcraft.spore.blacklist.not_found": "§e%s §7is not in the Flammable Spores Immunity Blacklist.",
+  "command.elementalcraft.spore.blacklist.empty": "§eFlammable Spores Immunity Blacklist is empty.",
+  "command.elementalcraft.spore.blacklist.header": "§eFlammable Spores Immunity Blacklist (%s):",
 
   "death.attack.steam_scalding": "%1$s was scalded to death by high-pressure steam",
   "death.attack.steam_scalding.player": "%1$s was scalded to death by steam whilst fighting %2$s",
   "death.attack.scorched": "%1$s was scorched to death",
   "death.attack.lava_magic": "%1$s melted away due to internal heat",
   "death.attack.lava_magic.player": "%1$s melted away whilst fighting %2$s",
+  "death.attack.static_shock": "%1$s was electrocuted by static shock",
+  "death.attack.static_shock.player": "%1$s was electrocuted by static shock whilst fighting %2$s",
 
   "effect.elementalcraft.wetness": "Wetness",
-  "effect.elementalcraft.wetness.description": "You are soaked! You take increased Thunder and Frost damage, but gain Fire resistance.",
-
+  "effect.elementalcraft.wetness.description": "You are soaked! Elemental attacks will trigger reactions on you!",
+  
   "effect.elementalcraft.flammable_spores": "Flammable Spores",
   "effect.elementalcraft.flammable_spores.description": "Mysterious spores are parasitizing you. You feel sluggish and extremely weak to fire, though physical attacks struggle to pierce your skin.",
+
+  "effect.elementalcraft.static_shock": "Static Shock",
+  "effect.elementalcraft.static_shock.description": "You are charged with static electricity, taking random damage periodically.",
 
   "debug.elementalcraft.reaction.nature_siphon.header": "[Nature Siphon]",
   "debug.elementalcraft.reaction.nature_siphon.message": "%s drained %s levels of wetness from %s and restored %s HP!",

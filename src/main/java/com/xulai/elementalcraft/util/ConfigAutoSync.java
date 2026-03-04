@@ -5,6 +5,7 @@ import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.config.ElementalConfig;
 import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.config.ElementalVisualConfig;
 import com.xulai.elementalcraft.config.ForcedItemConfig;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -24,12 +25,24 @@ import java.util.Map;
  * 用于解决 /reload 命令有时无法更新 Forge 配置，或玩家手动修改配置文件后无法实时生效的问题。
  * 该类通过监听 ServerTickEvent，周期性地检查配置文件的“最后修改时间戳”。
  * 一旦检测到文件内容发生变更，会立即强制重新加载内存中的配置对象，并触发相关缓存的清理与刷新。
+ * 当前支持检查的配置文件包括：
+ * - elementalcraft-common.toml
+ * - elementalcraft-forced-items.toml
+ * - elementalcraft-reactions.toml
+ * - elementalcraft-visuals.toml
+ * - elementalcraft-thunderfrost-reactions.toml
  * <p>
  * English Description:
  * Automatic Configuration Synchronizer utility class.
  * Solves the issue where /reload sometimes fails to update Forge configs, or manual file edits do not take effect in real-time.
  * This class listens to ServerTickEvent and periodically checks the "last modified timestamp" of configuration files.
  * Upon detecting a change in file content, it immediately forces a reload of the in-memory configuration object and triggers the cleanup and refresh of related caches.
+ * Currently supports checking the following config files:
+ * - elementalcraft-common.toml
+ * - elementalcraft-forced-items.toml
+ * - elementalcraft-reactions.toml
+ * - elementalcraft-visuals.toml
+ * - elementalcraft-thunderfrost-reactions.toml
  */
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
 public class ConfigAutoSync {
@@ -130,6 +143,16 @@ public class ConfigAutoSync {
 
             ElementalCraft.LOGGER.info("[ElementalCraft] Detected change in elementalcraft-visuals.toml, caches refreshed automatically.");
         });
+
+        // 5. 检查雷霆-冰霜反应配置文件（包含静电系统等）
+        // 5. Check thunder-frost reactions configuration file (includes Static Shock system, etc.)
+        checkConfig(ElementalThunderFrostReactionsConfig.SPEC, "elementalcraft-thunderfrost-reactions.toml", () -> {
+            // 刷新雷霆-冰霜配置缓存
+            // Refresh thunder-frost config cache
+            ElementalThunderFrostReactionsConfig.refreshCache();
+
+            ElementalCraft.LOGGER.info("[ElementalCraft] Detected change in elementalcraft-thunderfrost-reactions.toml, caches refreshed automatically.");
+        });
     }
 
     /**
@@ -172,7 +195,8 @@ public class ConfigAutoSync {
             if (fileName.contains("common")) ElementalConfig.refreshCache();
             if (fileName.contains("reactions")) ElementalReactionConfig.refreshCache();
             if (fileName.contains("visuals")) ElementalVisualConfig.refreshCache();
-            if (fileName.contains("forced-items")) ForcedItemHelper.clearCache(); 
+            if (fileName.contains("forced-items")) ForcedItemHelper.clearCache();
+            if (fileName.contains("thunderfrost-reactions")) ElementalThunderFrostReactionsConfig.refreshCache(); // 新增 / Added
             
             return;
         }

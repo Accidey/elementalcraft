@@ -67,9 +67,9 @@ public class InventoryAutoForceEvents {
         Player player = event.player;
         if (player == null || player.level().isClientSide()) return;
 
-        // 性能优化：每秒仅检查一次（20 ticks）
-        // Performance optimization: Check only once per second (20 ticks)
-        if (player.tickCount % 20 != 0) return;
+        // 性能优化：每秒仅检查一次（100 ticks）
+        // Performance optimization: Check only once per second (100 ticks)
+        if (player.tickCount % 100 != 0) return;
 
         processList(player.getInventory().items, player);   // 主物品栏 / Main inventory
         processList(player.getInventory().armor, player);   // 护甲栏 / Armor slots

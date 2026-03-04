@@ -49,40 +49,44 @@ import java.util.Random;
 public class ReactionHandler {
 
     /**
-     * 全局随机数实例，用于概率判定、粒子生成等随机逻辑
+     * 全局随机数实例，用于概率判定、粒子生成等随机逻辑。
      * <p>
-     * Global random instance for probability judgment, particle generation and other random logic
+     * Global random instance for probability judgment, particle generation and other random logic.
      */
     private static final Random RANDOM = new Random();
 
     /**
-     * 寄生吸取冷却的NBT存储键
+     * 寄生吸取冷却的NBT存储键。
      * <p>
-     * NBT key for Parasitic Drain cooldown
+     * NBT key for Parasitic Drain cooldown.
      */
     private static final String NBT_DRAIN_COOLDOWN = "ec_drain_cd";
+
     /**
-     * 野火喷射冷却的NBT存储键
+     * 野火喷射冷却的NBT存储键。
      * <p>
-     * NBT key for Wildfire Ejection cooldown
+     * NBT key for Wildfire Ejection cooldown.
      */
     private static final String NBT_WILDFIRE_COOLDOWN = "ec_wildfire_cd";
+
     /**
-     * 孢子已触发传染的NBT标记键
+     * 孢子已触发传染的NBT标记键。
      * <p>
-     * NBT key for spore spreaded mark
+     * NBT key for spore spreaded mark.
      */
     private static final String NBT_SPREADED = "ec_spreaded";
+
     /**
-     * 实体已被孢子感染的NBT标记键
+     * 实体已被孢子感染的NBT标记键。
      * <p>
-     * NBT key for entity infected mark
+     * NBT key for entity infected mark.
      */
     private static final String NBT_INFECTED = "ec_infected";
+
     /**
-     * 实体湿润度等级的NBT存储键
+     * 实体湿润度等级的NBT存储键。
      * <p>
-     * NBT key for entity wetness level
+     * NBT key for entity wetness level.
      */
     private static final String NBT_WETNESS = "EC_WetnessLevel";
 
@@ -137,6 +141,8 @@ public class ReactionHandler {
         double firePower = ElementUtils.getDisplayEnhancement(attacker, ElementType.FIRE);
 
         if (attackType == ElementType.NATURE) {
+            // 自然属性攻击：孢子叠加与寄生吸取
+            // Nature attribute attack: spore stacking and parasitic drain
             if (naturePower >= ElementalReactionConfig.natureParasiteBaseThreshold) {
                 double chance = 0.0;
                 double scalingStep = ElementalReactionConfig.natureParasiteScalingStep;
@@ -169,6 +175,8 @@ public class ReactionHandler {
                 }
             }
         } else if (attackType == ElementType.FIRE) {
+            // 赤焰属性攻击：毒火爆燃（引爆孢子）
+            // Fire attribute attack: Toxic Blast (detonate spores)
             if (ModMobEffects.SPORES.isPresent() && target.hasEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()))
                     && !event.getSource().is(Objects.requireNonNull(DamageTypeTags.IS_EXPLOSION))) {
 
@@ -177,17 +185,15 @@ public class ReactionHandler {
                 }
             }
 
+            // 自然属性目标反击：野火喷射（不再清除燃烧/灼烧）
+            // Nature target counterattack: Wildfire Ejection (no longer clears fire/scorched)
             double victimNaturePower = ElementUtils.getDisplayEnhancement(target, ElementType.NATURE);
-            // 判定目标是否为自然属性实体，且自然强化点数达标、冷却结束时触发野火喷射
             if (ElementUtils.getConsistentAttackElement(target) == ElementType.NATURE
                     && victimNaturePower >= ElementalReactionConfig.wildfireTriggerThreshold
                     && checkCooldown(target, NBT_WILDFIRE_COOLDOWN)) {
 
-                target.clearFire();
-                CompoundTag data = target.getPersistentData();
-                data.remove(ScorchedHandler.NBT_SCORCHED_TICKS);
-                data.remove(ScorchedHandler.NBT_SCORCHED_STRENGTH);
-
+                // 触发野火喷射，保留目标身上的燃烧和灼烧效果
+                // Trigger Wildfire Ejection, keep the target's fire and scorched effects
                 triggerWildfireEjection(target, attacker);
             }
         }
@@ -316,10 +322,10 @@ public class ReactionHandler {
      * Core execution logic for Parasitic Drain, handles wetness drain, transfer,
      * health recovery and spore stacking.
      *
-     * @param attacker     发动寄生吸取的攻击者 / Attacker that triggers Parasitic Drain
-     * @param target       寄生吸取的目标 / Target of Parasitic Drain
+     * @param attacker       发动寄生吸取的攻击者 / Attacker that triggers Parasitic Drain
+     * @param target         寄生吸取的目标 / Target of Parasitic Drain
      * @param currentWetness 目标当前的湿润度等级 / Current wetness level of target
-     * @param naturePower  攻击者的自然元素强化点数 / Nature element enhancement points of attacker
+     * @param naturePower    攻击者的自然元素强化点数 / Nature element enhancement points of attacker
      */
     private static void triggerParasiticDrain(LivingEntity attacker, LivingEntity target, int currentWetness, double naturePower) {
         double step = ElementalReactionConfig.natureDrainPowerStep;
@@ -364,10 +370,10 @@ public class ReactionHandler {
      * Core execution logic for Toxic Blast, handles two branches: weak scorch for low stacks
      * and area explosion for high stacks, supports chain reaction.
      *
-     * @param level       游戏世界等级 / Game world level
-     * @param attacker    发动毒火爆燃的攻击者 / Attacker that triggers Toxic Blast
-     * @param target      毒火爆燃的触发目标 / Trigger target of Toxic Blast
-     * @param firePower   攻击者的火焰元素强化点数 / Fire element enhancement points of attacker
+     * @param level      游戏世界等级 / Game world level
+     * @param attacker   发动毒火爆燃的攻击者 / Attacker that triggers Toxic Blast
+     * @param target     毒火爆燃的触发目标 / Trigger target of Toxic Blast
+     * @param firePower  攻击者的火焰元素强化点数 / Fire element enhancement points of attacker
      */
     private static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower) {
         MobEffectInstance sporeEffect = target.getEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()));
@@ -495,15 +501,6 @@ public class ReactionHandler {
      * @param attacker 触发野火喷射的攻击者 / Attacker that triggers Wildfire Ejection
      */
     private static void triggerWildfireEjection(LivingEntity victim, Entity attacker) {
-        if (victim.level() instanceof ServerLevel serverLevel) {
-            serverLevel.getServer().execute(() -> {
-                if (victim.isAlive()) {
-                    victim.clearFire();
-                    victim.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_TICKS);
-                }
-            });
-        }
-
         double radius = ElementalReactionConfig.wildfireRadius;
         EffectHelper.playWildfireEjection(victim, radius);
 

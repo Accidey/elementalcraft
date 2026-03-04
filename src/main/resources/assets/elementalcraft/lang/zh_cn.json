@@ -154,17 +154,30 @@
   "command.elementalcraft.scorched.blacklist.empty": "§e灼烧免疫黑名单为空。",
   "command.elementalcraft.scorched.blacklist.header": "§e当前灼烧免疫黑名单 (%s):",
 
+  "command.elementalcraft.spore.blacklist.no_egg": "§c请手持一个刷怪蛋！",
+  "command.elementalcraft.spore.blacklist.already_exists": "§e%s §7已在易燃孢子免疫黑名单中。",
+  "command.elementalcraft.spore.blacklist.added": "§a成功将 §e%s §a加入易燃孢子免疫黑名单。",
+  "command.elementalcraft.spore.blacklist.removed": "§a成功将 §e%s §a从易燃孢子免疫黑名单移除。",
+  "command.elementalcraft.spore.blacklist.not_found": "§e%s §7不在易燃孢子免疫黑名单中。",
+  "command.elementalcraft.spore.blacklist.empty": "§e易燃孢子免疫黑名单为空。",
+  "command.elementalcraft.spore.blacklist.header": "§e当前易燃孢子免疫黑名单 (%s):",
+
   "death.attack.steam_scalding": "%1$s 被高压蒸汽烫死了",
   "death.attack.steam_scalding.player": "%1$s 在与 %2$s 战斗时被蒸汽烫死",
   "death.attack.scorched": "%1$s 被严重灼烧致死",
   "death.attack.lava_magic": "%1$s 被体内高热熔化了",
   "death.attack.lava_magic.player": "%1$s 在试图对抗 %2$s 时因体内高热熔化了",
+  "death.attack.static_shock": "%1$s 被静电电死了",
+  "death.attack.static_shock.player": "%1$s 在与 %2$s 战斗时被静电电死",
 
   "effect.elementalcraft.wetness": "潮湿",
-  "effect.elementalcraft.wetness.description": "你湿透了！雷霆与冰霜会对你造成更多伤害，但你的赤焰抗性会增加。",
+  "effect.elementalcraft.wetness.description": "你湿透了！属性攻击将会对你造成元素反应！",
   
   "effect.elementalcraft.flammable_spores": "易燃孢子",
   "effect.elementalcraft.flammable_spores.description": "这种神秘孢子正在寄生。你变得迟钝且极度畏火，但物理攻击更难伤到你。",
+
+  "effect.elementalcraft.static_shock": "静电",
+  "effect.elementalcraft.static_shock.description": "你被静电缠绕，每过一段时间会受到随机伤害。",
 
   "debug.elementalcraft.reaction.nature_siphon.header": "[寄生吸取]",
   "debug.elementalcraft.reaction.nature_siphon.message": "%s 从 %s 身上吸取了 %s 层潮湿，并恢复了 %s 点生命值！",
