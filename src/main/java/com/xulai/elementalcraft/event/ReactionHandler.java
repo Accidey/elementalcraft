@@ -39,8 +39,13 @@ import java.util.Random;
 
 /**
  * 元素反应系统的核心事件处理器。
+ * 负责处理所有与元素属性相关的交互反应，包括易燃孢子的叠加、传染、寄生吸取、
+ * 毒火爆燃以及野火喷射等逻辑。所有反应均基于配置参数动态调整，支持热重载。
  * <p>
  * Core event handler for the Elemental Reaction System.
+ * Responsible for handling all interactions related to elemental attributes,
+ * including spore stacking, contagion, parasitic drain, toxic blast, and wildfire ejection.
+ * All reactions are dynamically adjustable based on configuration and support hot-reloading.
  *
  * @author ElementalCraft Dev Team
  * @since 1.0.0
@@ -51,51 +56,54 @@ public class ReactionHandler {
     /**
      * 全局随机数实例，用于概率判定、粒子生成等随机逻辑。
      * <p>
-     * Global random instance for probability judgment, particle generation and other random logic.
+     * Global random instance for probability checks, particle generation and other random logic.
      */
     private static final Random RANDOM = new Random();
 
     /**
-     * 寄生吸取冷却的NBT存储键。
+     * 寄生吸取冷却的 NBT 存储键。
      * <p>
      * NBT key for Parasitic Drain cooldown.
      */
     private static final String NBT_DRAIN_COOLDOWN = "ec_drain_cd";
 
     /**
-     * 野火喷射冷却的NBT存储键。
+     * 野火喷射冷却的 NBT 存储键。
      * <p>
      * NBT key for Wildfire Ejection cooldown.
      */
     private static final String NBT_WILDFIRE_COOLDOWN = "ec_wildfire_cd";
 
     /**
-     * 孢子已触发传染的NBT标记键。
+     * 孢子已触发传染的 NBT 标记键。
      * <p>
-     * NBT key for spore spreaded mark.
+     * NBT key indicating that spore contagion has already been triggered from this source.
      */
     private static final String NBT_SPREADED = "ec_spreaded";
 
     /**
-     * 实体已被孢子感染的NBT标记键。
+     * 实体已被孢子感染的 NBT 标记键，用于防止同一目标在单次传染中被重复处理。
      * <p>
-     * NBT key for entity infected mark.
+     * NBT key indicating that an entity has already been infected during current contagion cycle.
      */
     private static final String NBT_INFECTED = "ec_infected";
 
     /**
-     * 实体湿润度等级的NBT存储键。
+     * 实体湿润度等级的 NBT 存储键。
      * <p>
      * NBT key for entity wetness level.
      */
     private static final String NBT_WETNESS = "EC_WetnessLevel";
 
     /**
-     * 生物实体Tick周期事件监听器，处理孢子传染的周期性检测逻辑。
+     * 生物实体 Tick 周期事件监听器，处理孢子传染的周期性检测逻辑。
+     * 根据配置的检测间隔，检查生物是否达到触发传染所需的孢子层数。
      * <p>
-     * Living entity tick event listener, handles periodic detection logic for spore contagion.
+     * Living entity tick event listener that handles periodic detection of spore contagion.
+     * Checks whether the entity has reached the required spore stacks to trigger contagion,
+     * based on the configured check interval.
      *
-     * @param event 生物Tick事件对象 / Living tick event instance
+     * @param event 生物 Tick 事件对象 / Living tick event instance
      */
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
@@ -118,10 +126,16 @@ public class ReactionHandler {
     }
 
     /**
-     * 生物实体受伤害事件监听器，处理所有元素攻击相关的反应逻辑，包括孢子叠加、寄生吸取、毒火爆燃、野火喷射。
+     * 生物实体受伤害事件监听器，处理所有与元素攻击相关的反应逻辑。
+     * 根据攻击者的元素类型分别处理：
+     * - 自然属性：孢子叠加与寄生吸取
+     * - 赤焰属性：毒火爆燃（引爆孢子）以及目标自然属性且处于灼烧状态时的野火喷射反击
      * <p>
-     * Living entity damage event listener, handles all reaction logic related to elemental attacks,
-     * including spore stacking, parasitic drain, toxic blast and wildfire ejection.
+     * Living entity damage event listener that handles all reaction logic related to elemental attacks.
+     * Depending on the attacker's element:
+     * - Nature: spore stacking and parasitic drain
+     * - Fire: toxic blast (detonate spores) and, if the target is a nature entity and currently scorched,
+     *         triggers wildfire ejection as a counterattack.
      *
      * @param event 生物受伤害事件对象 / Living damage event instance
      */
@@ -185,25 +199,29 @@ public class ReactionHandler {
                 }
             }
 
-            // 自然属性目标反击：野火喷射（不再清除燃烧/灼烧）
-            // Nature target counterattack: Wildfire Ejection (no longer clears fire/scorched)
+            // 自然属性目标反击：野火喷射（仅当目标处于灼烧状态时触发）
+            // Nature target counterattack: Wildfire Ejection (only triggered when target is scorched)
             double victimNaturePower = ElementUtils.getDisplayEnhancement(target, ElementType.NATURE);
-            if (ElementUtils.getConsistentAttackElement(target) == ElementType.NATURE
-                    && victimNaturePower >= ElementalReactionConfig.wildfireTriggerThreshold
-                    && checkCooldown(target, NBT_WILDFIRE_COOLDOWN)) {
+            boolean isNatureTarget = ElementUtils.getConsistentAttackElement(target) == ElementType.NATURE;
+            boolean hasScorched = target.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS);
+            boolean cooldownOk = checkCooldown(target, NBT_WILDFIRE_COOLDOWN);
+            boolean powerOk = victimNaturePower >= ElementalReactionConfig.wildfireTriggerThreshold;
 
-                // 触发野火喷射，保留目标身上的燃烧和灼烧效果
-                // Trigger Wildfire Ejection, keep the target's fire and scorched effects
+            if (isNatureTarget && powerOk && hasScorched && cooldownOk) {
                 triggerWildfireEjection(target, attacker);
             }
         }
     }
 
     /**
-     * 易燃孢子效果的叠加与刷新逻辑，处理层数限制、元素抗性/增强的时长修正。
+     * 易燃孢子效果的叠加与刷新逻辑。
+     * 处理层数上限、免疫检查、元素抗性/增强对持续时间的影响。
+     * 当目标已经达到最大层数时，无法再次施加或刷新效果，必须等待效果自然结束后才能重新施加。
      * <p>
-     * Flammable Spores stacking and refreshing logic, handles stack limit and
-     * duration correction by elemental resistance/enhancement.
+     * Flammable Spores stacking and refreshing logic.
+     * Handles stack limits, immunity checks, and duration adjustments based on elemental resistance/enhancement.
+     * If the target has already reached maximum stacks, no further application or refresh is allowed;
+     * the effect must expire completely before new stacks can be applied.
      *
      * @param target      孢子效果目标实体 / Target entity for spore effect
      * @param layersToAdd 要叠加的孢子层数 / Spore layers to add
@@ -227,9 +245,10 @@ public class ReactionHandler {
 
         int maxStacks = ElementalReactionConfig.sporeMaxStacks;
 
+        // 如果已经达到最大层数，则无法再次施加或刷新效果
+        // If already at maximum stacks, cannot apply or refresh
         if (currentStacks >= maxStacks) {
-            currentStacks = maxStacks;
-            layersToAdd = 0;
+            return;
         }
 
         int newStacks = Math.min(maxStacks, currentStacks + layersToAdd);
@@ -253,10 +272,14 @@ public class ReactionHandler {
     }
 
     /**
-     * 孢子传染的核心执行逻辑，处理范围检测、目标过滤、湿润度加成与孢子层数传递。
+     * 孢子传染的核心执行逻辑。
+     * 在源实体周围指定半径内搜索其他生物，根据配置传递部分孢子层数，
+     * 并根据目标身上的潮湿层数提供额外孢子层数加成。传染后会消耗目标的潮湿状态（如果配置允许）。
      * <p>
-     * Core execution logic for spore contagion, handles range detection, target filtering,
-     * wetness bonus and spore layer transfer.
+     * Core execution logic for spore contagion.
+     * Scans for other entities within a radius around the source, transfers a portion of the spore stacks
+     * based on configuration, and grants bonus stacks depending on the target's wetness level.
+     * Optionally consumes the target's wetness if configured.
      *
      * @param source 孢子传染的源实体 / Source entity for spore contagion
      * @param stacks 源实体的孢子层数 / Spore stacks of source entity
@@ -317,10 +340,13 @@ public class ReactionHandler {
     }
 
     /**
-     * 寄生吸取的核心执行逻辑，处理湿润度吸取、转移、生命恢复与孢子叠加。
+     * 寄生吸取的核心执行逻辑。
+     * 攻击者从目标身上吸取潮湿层数，转移部分到自身，并根据吸取的层数恢复生命值，
+     * 同时对目标施加相应层数的孢子效果。
      * <p>
-     * Core execution logic for Parasitic Drain, handles wetness drain, transfer,
-     * health recovery and spore stacking.
+     * Core execution logic for Parasitic Drain.
+     * The attacker drains wetness levels from the target, transfers part to itself,
+     * restores health based on drained levels, and applies corresponding spore stacks to the target.
      *
      * @param attacker       发动寄生吸取的攻击者 / Attacker that triggers Parasitic Drain
      * @param target         寄生吸取的目标 / Target of Parasitic Drain
@@ -365,10 +391,16 @@ public class ReactionHandler {
     }
 
     /**
-     * 毒火爆燃的核心执行逻辑，分低层数弱灼烧和高层数范围爆炸两种分支处理，支持连锁反应。
+     * 毒火爆燃的核心执行逻辑。
+     * 根据目标身上的孢子层数分为两种分支：
+     * - 低层数（小于反应阈值）：施加弱灼烧效果。
+     * - 高层数（达到或超过阈值）：引发范围爆炸，伤害周围生物并施加灼烧，支持连锁反应。
      * <p>
-     * Core execution logic for Toxic Blast, handles two branches: weak scorch for low stacks
-     * and area explosion for high stacks, supports chain reaction.
+     * Core execution logic for Toxic Blast.
+     * Branches based on the target's spore stacks:
+     * - Low stacks (below reaction threshold): applies a weak scorch effect.
+     * - High stacks (at or above threshold): triggers an area explosion, damages nearby entities,
+     *   applies scorch, and supports chain reaction.
      *
      * @param level      游戏世界等级 / Game world level
      * @param attacker   发动毒火爆燃的攻击者 / Attacker that triggers Toxic Blast
@@ -464,10 +496,12 @@ public class ReactionHandler {
     }
 
     /**
-     * 计算实体对毒火爆燃的伤害减免比例，综合爆炸保护和通用保护附魔的效果，有上限限制。
+     * 计算实体对毒火爆燃的伤害减免比例。
+     * 综合考虑爆炸保护和通用保护附魔的效果，并应用配置的上限限制。
      * <p>
-     * Calculates the damage mitigation ratio of entity to Toxic Blast, integrates the effects
-     * of Blast Protection and All Damage Protection enchantments with upper limit.
+     * Calculates the damage mitigation ratio of an entity against Toxic Blast.
+     * Combines the effects of Blast Protection and All Damage Protection enchantments,
+     * applying configurable caps.
      *
      * @param entity 要计算减免的实体 / Entity to calculate mitigation for
      * @return 0~1之间的伤害减免比例 / Damage mitigation ratio between 0 and 1
@@ -492,10 +526,14 @@ public class ReactionHandler {
     }
 
     /**
-     * 野火喷射的核心执行逻辑，处理范围敌对检测、击退效果、孢子叠加与特效播放。
+     * 野火喷射的核心执行逻辑。
+     * 自然属性的受害者在受到赤焰攻击且满足条件时触发反击，将周围敌对生物击退，
+     * 并对其施加孢子效果。根据配置可选择是否清除燃烧和灼烧效果。
      * <p>
-     * Core execution logic for Wildfire Ejection, handles area hostile detection,
-     * knockback effect, spore stacking and effect playback.
+     * Core execution logic for Wildfire Ejection.
+     * A nature-attribute victim triggers a counterattack when hit by fire under certain conditions,
+     * knocking back nearby hostile entities and applying spore effects.
+     * Optionally clears burning and scorched effects based on configuration.
      *
      * @param victim   发动野火喷射的受害实体（自然属性） / Victim entity (nature type) that triggers Wildfire Ejection
      * @param attacker 触发野火喷射的攻击者 / Attacker that triggers Wildfire Ejection
@@ -524,6 +562,21 @@ public class ReactionHandler {
             enemy.push(vec.x, ElementalReactionConfig.wildfireVerticalKnockback, vec.z);
             enemy.hurtMarked = true;
 
+            // 根据配置决定是否清除燃烧和灼烧效果
+            // Clear burning and scorched effects based on configuration
+            if (ElementalReactionConfig.wildfireClearBurning) {
+                // 清除原版燃烧效果
+                // Clear vanilla burning effect
+                enemy.clearFire();
+                
+                // 清除灼烧效果（如果存在）
+                // Clear scorched effect if present
+                if (enemy.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+                    enemy.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_TICKS);
+                    enemy.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_STRENGTH);
+                }
+            }
+
             stackSporeEffect(enemy, ElementalReactionConfig.wildfireSporeAmount);
             affectedCount++;
         }
@@ -534,14 +587,16 @@ public class ReactionHandler {
     }
 
     /**
-     * 检查实体指定键的冷却是否结束，基于游戏刻进行判定。
+     * 检查实体指定键的冷却是否结束。
+     * 基于游戏刻进行判定，如果冷却键不存在或当前时间已达到或超过结束时间，则返回 true。
      * <p>
-     * Checks if the cooldown of the specified key for the entity has ended,
-     * judged based on game ticks.
+     * Checks if the cooldown for the specified key on an entity has ended.
+     * Determined by game ticks; returns true if the key does not exist or the current time
+     * is greater than or equal to the stored end time.
      *
      * @param entity 要检查的实体 / Entity to check
-     * @param key    冷却的NBT键 / NBT key of cooldown
-     * @return 冷却结束返回true，否则返回false / True if cooldown ended, false otherwise
+     * @param key    冷却的 NBT 键 / NBT key of the cooldown
+     * @return 冷却结束返回 true，否则返回 false / True if cooldown ended, false otherwise
      */
     private static boolean checkCooldown(LivingEntity entity, String key) {
         CompoundTag data = entity.getPersistentData();
@@ -552,13 +607,14 @@ public class ReactionHandler {
     }
 
     /**
-     * 为实体指定键设置冷却时间，基于游戏刻进行计算。
+     * 为实体指定键设置冷却时间。
+     * 将结束时间设置为当前游戏时间加上指定的持续时间（刻）。
      * <p>
-     * Sets the cooldown time for the specified key of the entity,
-     * calculated based on game ticks.
+     * Sets the cooldown time for the specified key on an entity.
+     * The end time is set to the current game time plus the specified duration in ticks.
      *
-     * @param entity        要设置冷却的实体 / Entity to set cooldown
-     * @param key           冷却的NBT键 / NBT key of cooldown
+     * @param entity        要设置冷却的实体 / Entity to set cooldown on
+     * @param key           冷却的 NBT 键 / NBT key of the cooldown
      * @param durationTicks 冷却持续的游戏刻数 / Cooldown duration in game ticks
      */
     private static void setCooldown(LivingEntity entity, String key, int durationTicks) {
@@ -568,10 +624,10 @@ public class ReactionHandler {
     /**
      * 计算实体所有护甲槽位指定附魔的总等级。
      * <p>
-     * Calculates the total level of the specified enchantment on all armor slots of the entity.
+     * Calculates the total level of a specified enchantment across all armor slots of an entity.
      *
      * @param ench   要计算的附魔 / Enchantment to calculate
-     * @param entity 要计算的实体 / Entity to calculate
+     * @param entity 要计算的实体 / Entity to check
      * @return 附魔的总等级 / Total level of the enchantment
      */
     private static int getTotalEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantment ench, LivingEntity entity) {

@@ -32,10 +32,14 @@ import net.minecraftforge.registries.ForgeRegistries;
  * 灼烧机制的核心事件处理器。
  * 该类负责管理实体的“灼烧”状态，这是一种基于 NBT 的持久化状态，不依赖于原版药水系统。
  * 它处理状态的施加、周期性逻辑（伤害与特效）、环境交互（如遇水爆炸）以及伤害计算公式。
+ * 新增限制：当目标已经处于灼烧状态时，无法再次施加新的灼烧效果（不能刷新持续时间），
+ * 必须等待当前灼烧完全结束后才能重新施加。
  * <p>
  * Core event handler for the Scorched mechanic.
  * This class manages the "Scorched" status of entities, which is a persistent state based on NBT and does not rely on the vanilla potion system.
  * It handles application, periodic logic (damage and effects), environmental interactions (e.g., explosion in water), and damage calculation formulas.
+ * New restriction: When the target is already scorched, new scorched effects cannot be applied (no duration refresh);
+ * the current scorch must expire completely before a new one can be applied.
  */
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
 public class ScorchedHandler {
@@ -56,10 +60,12 @@ public class ScorchedHandler {
      * 施加灼烧状态
      * <p>
      * Applies the scorched effect to a target entity.
-     * This method performs blacklist checks and cooldown validation before applying the state.
+     * This method performs blacklist checks, active scorch check, and cooldown validation before applying the state.
+     * If the target is already scorched, the application is ignored to prevent refreshing.
      * <p>
      * 对目标实体施加灼烧效果。
-     * 此方法在施加状态前会执行黑名单检查和冷却时间验证。
+     * 此方法在施加状态前会执行黑名单检查、当前灼烧状态检查和冷却时间验证。
+     * 如果目标已经在灼烧状态，则忽略本次施加以防止刷新。
      *
      * @param target       The target entity. (目标实体)
      * @param fireStrength The strength of the fire element attacking. (攻击的火属性强度)
@@ -75,9 +81,16 @@ public class ScorchedHandler {
             return;
         }
 
+        CompoundTag data = target.getPersistentData();
+
+        // Check if already scorched (active burn)
+        // 检查是否已经在灼烧状态（正在燃烧）
+        if (data.contains(NBT_SCORCHED_TICKS) && data.getInt(NBT_SCORCHED_TICKS) > 0) {
+            return; // Already scorched, cannot refresh / 已在灼烧中，无法刷新
+        }
+
         // Cooldown Check
         // 冷却时间检查
-        CompoundTag data = target.getPersistentData();
         long gameTime = target.level().getGameTime();
         if (data.contains(NBT_SCORCHED_COOLDOWN)) {
             if (gameTime < data.getLong(NBT_SCORCHED_COOLDOWN)) {

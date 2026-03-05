@@ -98,6 +98,7 @@ public class ElementalReactionConfig {
     public static final ForgeConfigSpec.DoubleValue WILDFIRE_KNOCKBACK;
     public static final ForgeConfigSpec.DoubleValue WILDFIRE_VERTICAL_KNOCKBACK;
     public static final ForgeConfigSpec.IntValue WILDFIRE_SPORE_AMOUNT;
+    public static final ForgeConfigSpec.BooleanValue WILDFIRE_CLEAR_BURNING;
 
     /**
      * Fire Reaction Configuration
@@ -419,6 +420,10 @@ BUILDER.push("parasitic_drain");
                 .comment("反击时施加给敌人的孢子层数。",
                         "Number of Spore stacks applied to enemies during counter-attack.")
                 .defineInRange("wildfire_spore_amount", 2, 0, 10);
+        WILDFIRE_CLEAR_BURNING = BUILDER
+                .comment("野火喷射是否清除目标身上的燃烧和灼烧效果？如果为 false，则保留这些效果。",
+                        "Whether Wildfire Ejection clears burning and scorched effects from targets. If false, these effects are preserved.")
+                .define("wildfire_clear_burning", false);
         BUILDER.pop();
         BUILDER.pop();
         
@@ -755,6 +760,7 @@ STEAM_DAMAGE_FLOOR_RATIO = BUILDER
     public static double wildfireKnockback;
     public static double wildfireVerticalKnockback;
     public static int wildfireSporeAmount;
+    public static boolean wildfireClearBurning;
     public static double blastTriggerThreshold;
     public static double blastWeakIgniteMult;
     public static double blastBaseDamage;
@@ -888,6 +894,7 @@ STEAM_DAMAGE_FLOOR_RATIO = BUILDER
         wildfireKnockback = WILDFIRE_KNOCKBACK.get();
         wildfireVerticalKnockback = WILDFIRE_VERTICAL_KNOCKBACK.get();
         wildfireSporeAmount = WILDFIRE_SPORE_AMOUNT.get();
+        wildfireClearBurning = WILDFIRE_CLEAR_BURNING.get();
         blastTriggerThreshold = BLAST_TRIGGER_THRESHOLD.get();
         blastWeakIgniteMult = BLAST_WEAK_IGNITE_MULT.get();
         blastBaseDamage = BLAST_BASE_DAMAGE.get();

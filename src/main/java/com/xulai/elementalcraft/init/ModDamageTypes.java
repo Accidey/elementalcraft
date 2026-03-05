@@ -51,6 +51,20 @@ public class ModDamageTypes {
     );
 
     /**
+     * 静电伤害类型的资源键。
+     * 用于静电效果造成的周期性伤害。死亡信息使用语言键：death.attack.static_shock 和 death.attack.static_shock.player。
+     * 对应 data/elementalcraft/damage_type/static_shock.json 文件。
+     * <p>
+     * ResourceKey for Static Shock damage type.
+     * Used for periodic damage caused by the Static Shock effect. Death messages use language keys: death.attack.static_shock and death.attack.static_shock.player.
+     * Corresponds to data/elementalcraft/damage_type/static_shock.json file.
+     */
+    public static final ResourceKey<DamageType> STATIC_SHOCK = ResourceKey.create(
+            Registries.DAMAGE_TYPE,
+            new ResourceLocation(ElementalCraft.MODID, "static_shock")
+    );
+
+    /**
      * 辅助方法：根据资源键和当前世界创建一个新的伤害源实例。
      * <p>
      * Helper method: Creates a new DamageSource instance based on the ResourceKey and the current level.
