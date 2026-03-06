@@ -381,6 +381,28 @@ public class DebugCommand {
     }
 
     /**
+     * 发送灼烧孢子反应调试日志。
+     * 显示目标因灼烧状态触发毒火爆燃的日志。
+     * <p>
+     * Sends scorched spore reaction debug log.
+     * Shows log of target triggering toxic blast due to scorched status.
+     */
+    public static void sendScorchedSporeReactionLog(LivingEntity target, LivingEntity applier, int stacks) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+
+        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.scorched_spore.header")
+                .withStyle(ChatFormatting.DARK_RED);
+
+        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.scorched_spore.message",
+                target.getDisplayName(),
+                applier.getDisplayName(),
+                Component.literal(String.valueOf(stacks)).withStyle(ChatFormatting.DARK_GREEN)
+        ).withStyle(ChatFormatting.WHITE);
+
+        sendDebugMessage(target, prefix.append(" ").append(content));
+    }
+
+    /**
      * 发送通用调试消息。
      * 接受 Component 类型，支持本地化。消息会发送给所有开启调试模式的玩家，并在服务端控制台打印。
      * <p>

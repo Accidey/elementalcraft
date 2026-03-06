@@ -167,8 +167,8 @@
   "death.attack.scorched": "%1$s 被严重灼烧致死",
   "death.attack.lava_magic": "%1$s 被体内高热熔化了",
   "death.attack.lava_magic.player": "%1$s 在试图对抗 %2$s 时因体内高热熔化了",
-  "death.attack.static_shock": "%1$s 被静电电死了",
-  "death.attack.static_shock.player": "%1$s 在与 %2$s 战斗时被静电电死",
+  "death.attack.static_shock": "%1$s 触电而死",
+  "death.attack.static_shock.player": "%1$s 在与 %2$s 触电而死",
 
   "effect.elementalcraft.wetness": "潮湿",
   "effect.elementalcraft.wetness.description": "你湿透了！属性攻击将会对你造成元素反应！",

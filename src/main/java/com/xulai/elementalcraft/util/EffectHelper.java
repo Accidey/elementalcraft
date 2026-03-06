@@ -17,19 +17,6 @@ import org.joml.Vector3f;
 import java.util.List;
 import java.util.Random;
 
-/**
- * EffectHelper
- * <p>
- * 中文说明：
- * 视觉与音效辅助工具类。
- * 集中管理模组内的粒子特效生成与音效播放逻辑。
- * 包括：孢子传染、毒气爆燃、蒸汽升腾、生命汲取等视觉效果。
- * <p>
- * English Description:
- * Visual and Sound Effect Helper Utility.
- * Centralizes logic for particle generation and sound playback within the mod.
- * Includes: Spore contagion, toxic combustion, steam rising, life drain, and other visual effects.
- */
 @SuppressWarnings("null")
 public class EffectHelper {
 
@@ -37,11 +24,6 @@ public class EffectHelper {
 
     private static final Vector3f SMOG_COLOR = new Vector3f(0.1f, 0.8f, 0.2f); 
 
-    /**
-     * 播放：孢子扩散传染特效 (Spore Contagion)。
-     * <p>
-     * Plays: Spore Contagion Spread FX.
-     */
     public static void playSporeContagion(Entity source, List<LivingEntity> targets, double radius) {
         if (!(source.level() instanceof ServerLevel level)) return;
 
@@ -99,11 +81,6 @@ public class EffectHelper {
         }
     }
 
-    /**
-     * 播放：易燃孢子持续特效 (Flammable Spore Ambient)。
-     * <p>
-     * Plays: Flammable Spore Ambient FX.
-     */
     public static void playSporeAmbient(Entity entity) {
         if (!(entity.level() instanceof ServerLevel level)) return;
         
@@ -122,11 +99,6 @@ public class EffectHelper {
         }
     }
 
-    /**
-     * 播放：生命汲取特效 (Drain Effect)。
-     * <p>
-     * Plays: Life Drain FX.
-     */
     public static void playDrainEffect(Entity attacker, Entity target) {
         if (!(attacker.level() instanceof ServerLevel level)) return;
         Vec3 start = target.position().add(0, target.getBbHeight() * 0.5, 0);
@@ -143,11 +115,6 @@ public class EffectHelper {
         }
     }
 
-    /**
-     * 播放：毒气爆燃特效 (Toxic Combustion Blast)。
-     * <p>
-     * Plays: Toxic Combustion Blast FX.
-     */
     public static void playToxicBlast(Level level, Vec3 pos, double radius) {
         if (!(level instanceof ServerLevel serverLevel)) return;
 
@@ -184,30 +151,18 @@ public class EffectHelper {
         serverLevel.sendParticles(ParticleTypes.LAVA, pos.x, pos.y + 0.5, pos.z, 8, 0.5, 0.5, 0.5, 0.2);
     }
 
-    /**
-     * 播放：野火喷射特效 (Wildfire Ejection)。
-     * <p>
-     * Plays: Wildfire Ejection FX.
-     */
     public static void playWildfireEjection(Entity center, double radius) {
         if (!(center.level() instanceof ServerLevel level)) return;
 
-        // 音效组合：植物/孢子急速生长爆发 + 低沉冲击 + 残留野火噼啪
         level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.BONE_MEAL_USE, SoundSource.HOSTILE, 2.5F, 1.2F);
         level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.BONE_MEAL_USE, SoundSource.HOSTILE, 2.5F, 1.3F);
         level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.BONE_MEAL_USE, SoundSource.HOSTILE, 2.5F, 1.4F);
-        //level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 2.0F, 0.8F);
         level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.CAMPFIRE_CRACKLE, SoundSource.HOSTILE, 1.5F, 1.0F);
         level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.LAVA_POP, SoundSource.HOSTILE, 1.0F, 1.2F);
 
         playShockwave(center, radius);
     }
 
-    /**
-     * 播放：环形孢子野火震荡波 (Spore Wildfire Shockwave)。
-     * <p>
-     * Plays: Spore Wildfire Shockwave FX.
-     */
     public static void playShockwave(Entity center, double radius) {
         if (!(center.level() instanceof ServerLevel level)) return;
         int points = (int) (radius * 16);
@@ -220,34 +175,22 @@ public class EffectHelper {
             double vx = Math.cos(angle) * 0.25;
             double vz = Math.sin(angle) * 0.25;
 
-            // 主孢子粒子（绿色飘浮孢子 + 毒雾尘埃 + 绿色实体效果）
             level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, x, y + RANDOM.nextDouble() * 0.8, z, 2, vx * 0.5, 0.05, vz * 0.5, 0.02);
             level.sendParticles(new DustParticleOptions(SMOG_COLOR, 1.5f + RANDOM.nextFloat()), x, y, z, 1, vx, 0.1, vz, 0.0);
             if (RANDOM.nextFloat() < 0.4f) {
                 level.sendParticles(ParticleTypes.ENTITY_EFFECT, x, y, z, 0, vx * 1.2, 0.8, vz * 1.2, 1.0);
             }
 
-            // 辅助火焰粒子（点缀热烈感）
             if (RANDOM.nextFloat() < 0.3f) {
                 level.sendParticles(ParticleTypes.FLAME, x, y, z, 1, vx * 1.5, 0.1, vz * 1.5, 0.05);
             }
         }
     }
 
-    /**
-     * 播放：通用音效 (Generic Sound Playback)。
-     * <p>
-     * Plays: Generic Sound Playback.
-     */
     public static void playSound(Level level, Entity pos, SoundEvent sound, float volume, float pitch) {
         level.playSound(null, pos.getX(), pos.getY(), pos.getZ(), sound, SoundSource.PLAYERS, volume, pitch);
     }
 
-    /**
-     * 播放：蒸汽云持续特效 (Steam Cloud Tick FX)。
-     * <p>
-     * Plays: Steam Cloud Tick FX.
-     */
     public static void playSteamCloudTick(ServerLevel level, AreaEffectCloud cloud, boolean isHighHeat) {
         float radius = cloud.getRadius();
         if (radius < 0.2f) return;
@@ -267,11 +210,6 @@ public class EffectHelper {
         }
     }
 
-    /**
-     * 播放：蒸汽爆发特效 (Steam Burst FX)。
-     * <p>
-     * Plays: Steam Burst FX.
-     */
     public static void playSteamBurst(ServerLevel level, LivingEntity target, float radius, int intensity, boolean isHighHeat) {
         float volume = isHighHeat ? 0.8F : 0.6F;
         float pitch = isHighHeat ? 1.0F : 1.2F;

@@ -50,6 +50,7 @@ public class ElementalReactionConfig {
     public static final ForgeConfigSpec.IntValue SPORE_MAX_STACKS;
     public static final ForgeConfigSpec.IntValue SPORE_REACTION_THRESHOLD; 
     public static final ForgeConfigSpec.DoubleValue SPORE_POISON_DAMAGE;
+    public static final ForgeConfigSpec.IntValue SPORE_DAMAGE_INTERVAL; // 伤害触发间隔（Tick）
     public static final ForgeConfigSpec.DoubleValue SPORE_SPEED_REDUCTION;
     public static final ForgeConfigSpec.DoubleValue SPORE_PHYS_RESIST;
     public static final ForgeConfigSpec.DoubleValue SPORE_FIRE_VULN_PER_STACK;
@@ -266,9 +267,13 @@ BUILDER.push("spore_system");
                         "Minimum Flammable Spore stacks required to trigger severe reactions (Contagion spread, Toxic Blast explosion).")
                 .defineInRange("spore_reaction_threshold", 3, 1, 100);
         SPORE_POISON_DAMAGE = BUILDER
-                .comment("感染易燃孢子后，每秒造成的无视护甲伤害。",
+                .comment("感染易燃孢子后，每次造成的无视护甲伤害。",
                         "Armor-bypassing damage per second when infected with Flammable Spores.")
                 .defineInRange("spore_poison_damage", 0.5, 0.0, 200.0);
+        SPORE_DAMAGE_INTERVAL = BUILDER
+                .comment("易燃孢子伤害触发的间隔（Tick）。默认100 Tick = 5秒。",
+                        "Interval (Ticks) for Flammable Spores damage ticks. Default 100 Ticks = 5 seconds.")
+                .defineInRange("spore_damage_interval", 100, 1, 12000);
         SPORE_SPEED_REDUCTION = BUILDER
                 .comment("每一层易燃孢子效果造成的减速比例。(0.1 = 10%)",
                         "Percentage of slowness applied per Flammable Spore stack. (0.1 = 10%)")
@@ -726,6 +731,7 @@ STEAM_DAMAGE_FLOOR_RATIO = BUILDER
     public static int sporeMaxStacks;
     public static int sporeReactionThreshold;
     public static double sporePoisonDamage;
+    public static int sporeDamageInterval;
     public static double sporeSpeedReduction;
     public static double sporePhysResist;
     public static double sporeFireVulnPerStack;
@@ -860,6 +866,7 @@ STEAM_DAMAGE_FLOOR_RATIO = BUILDER
         sporeMaxStacks = SPORE_MAX_STACKS.get();
         sporeReactionThreshold = SPORE_REACTION_THRESHOLD.get();
         sporePoisonDamage = SPORE_POISON_DAMAGE.get();
+        sporeDamageInterval = SPORE_DAMAGE_INTERVAL.get();
         sporeSpeedReduction = SPORE_SPEED_REDUCTION.get();
         sporePhysResist = SPORE_PHYS_RESIST.get();
         sporeFireVulnPerStack = SPORE_FIRE_VULN_PER_STACK.get();

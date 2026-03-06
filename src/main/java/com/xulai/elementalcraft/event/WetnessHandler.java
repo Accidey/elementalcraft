@@ -1,4 +1,3 @@
-// src/main/java/com/xulai/elementalcraft/event/WetnessHandler.java
 package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
@@ -33,52 +32,26 @@ import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Objects;
 
-/**
- * WetnessHandler
- * <p>
- * 中文说明：
- * 潮湿状态核心处理类。
- * 负责管理游戏中的潮湿系统生态，包括生物的潮湿状态机维护、环境交互检测以及相关副作用处理。
- * <p>
- * English Description:
- * Core Wetness Handler Class.
- * Responsible for managing the wetness system ecosystem, including maintaining the wetness state machine,
- * environmental interaction detection, and handling related side effects.
- */
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
 public class WetnessHandler {
 
-    // NBT Keys
     public static final String NBT_WETNESS = "EC_WetnessLevel";
     public static final String NBT_RAIN_TIMER = "EC_WetnessRainTimer";
     public static final String NBT_DECAY_TIMER = "EC_WetnessDecayTimer";
     public static final String NBT_LAST_EXHAUSTION = "EC_LastExhaustion";
     public static final String NBT_FIRE_STAND_TIMER = "EC_WetnessFireStandTimer";
 
-    /**
-     * 生物每刻更新事件。
-     * 处理实时副作用（如自动灭火、火中干燥）以及定期运行的潮湿状态逻辑。
-     * 定期逻辑的运行频率现在由配置文件控制，而非硬编码的 20 Tick。
-     * <p>
-     * Living Entity Tick Event.
-     * Handles real-time side effects (e.g., auto-extinguish, fire drying) and periodic wetness state logic.
-     * The frequency of periodic logic is now controlled by configuration instead of a hardcoded 20 ticks.
-     */
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide) return;
 
-        // 实时灭火逻辑：只要有潮湿层数，就强制熄灭身上的火焰
-        // Real-time extinguish logic: Extinguish fire immediately if wetness level exists
         if (entity.getPersistentData().getInt(NBT_WETNESS) > 0) {
             if (entity.isOnFire()) {
                 entity.clearFire();
             }
         }
 
-        // 火中干燥逻辑：检查生物是否处于燃烧的火焰方块中 (普通火/灵魂火)
-        // Fire Drying Logic: Check if the mob is standing in burning fire blocks (Fire / Soul Fire)
         BlockPos pos = entity.blockPosition();
         BlockState state = entity.level().getBlockState(pos);
         
@@ -86,8 +59,6 @@ public class WetnessHandler {
             CompoundTag data = entity.getPersistentData();
             int timer = data.getInt(NBT_FIRE_STAND_TIMER) + 1;
             
-            // 使用配置的时间阈值 (秒转Ticks)
-            // Use configured time threshold (Seconds to Ticks)
             int threshold = ElementalReactionConfig.wetnessFireDryingTime * 20;
 
             if (timer >= threshold) {
@@ -97,28 +68,17 @@ public class WetnessHandler {
             }
             data.putInt(NBT_FIRE_STAND_TIMER, timer);
         } else {
-            // 如果离开火焰，重置计时器
-            // Reset timer if leaving fire
             if (entity.getPersistentData().contains(NBT_FIRE_STAND_TIMER)) {
                 entity.getPersistentData().remove(NBT_FIRE_STAND_TIMER);
             }
         }
 
-        // 根据配置的间隔执行主要逻辑
-        // Execute main logic based on configured interval
         if (entity.tickCount % ElementalReactionConfig.wetnessTickInterval == 0) {
             handleWetnessLogic(entity);
             handleExhaustion(entity);
         }
     }
 
-    /**
-     * 生物受伤事件。
-     * 根据目标的潮湿等级提供对赤焰（Fire）属性伤害的减免保护。
-     * <p>
-     * Living Hurt Event.
-     * Provides damage reduction against Fire attribute damage based on the target's wetness level.
-     */
     @SubscribeEvent
     public static void onLivingHurt(LivingHurtEvent event) {
         LivingEntity entity = event.getEntity();
@@ -132,22 +92,14 @@ public class WetnessHandler {
                 float finalDamage = originalDamage;
                 DamageSource source = event.getSource();
 
-                // 获取攻击者的元素属性
-                // Get Attacker Element
                 ElementType attackerElement = ElementType.NONE;
                 if (source.getEntity() instanceof LivingEntity attacker) {
                     attackerElement = ElementUtils.getConsistentAttackElement(attacker);
                 }
 
-                // 赤焰伤害减免
-                // 判定条件：原版火焰伤害标签 或 攻击者为赤焰属性
-                // Fire Damage Reduction
-                // Condition: Vanilla Fire damage tag OR Attacker is Fire element
                 if (source.is(DamageTypeTags.IS_FIRE) || attackerElement == ElementType.FIRE) {
                     float factor = (float) ElementalReactionConfig.wetnessFireReduction * currentLevel;
                     
-                    // 使用独立的潮湿减伤上限配置，解决与蒸汽配置的耦合
-                    // Use independent wetness damage reduction cap configuration to decouple from steam config
                     float maxReduction = (float) ElementalReactionConfig.wetnessMaxReduction;
                     factor = Math.min(maxReduction, factor);
 
@@ -159,19 +111,7 @@ public class WetnessHandler {
         }
     }
 
-    /**
-     * 核心潮湿状态逻辑。
-     * 扫描环境（水、雨、雪、热源）并更新潮湿层数。
-     * 包含增加层数（水源/降雨）和减少层数（干燥/自然衰减）的逻辑。
-     * <p>
-     * Core Wetness Logic.
-     * Scans the environment (Water, Rain, Snow, Heat Source) and updates the wetness level.
-     * Includes logic for increasing levels (Water/Precipitation) and decreasing levels (Dry/Natural Decay).
-     */
     private static void handleWetnessLogic(LivingEntity entity) {
-        // 第一道关卡：通用免疫检测（含配置的下界免疫）
-        // 如果配置 nether_dimension_immune = false，此处将返回 false，允许后续逻辑执行
-        // First check: General immunity check (includes configured Nether immunity)
         if (isImmune(entity)) {
             clearWetnessData(entity);
             return;
@@ -181,23 +121,15 @@ public class WetnessHandler {
         BlockPos pos = entity.blockPosition();
         CompoundTag data = entity.getPersistentData();
 
-        // 热源检测：如果在熔岩中，或者靠近热源（熔岩/岩浆块）
-        // Heat Check: If in Lava, or near heat source (Lava / Dry Magma)
         boolean inLava = entity.isInLava();
         boolean nearHeatSource = checkHeatSource(level, pos);
 
-        // 如果处于极端热源环境，强制蒸发
-        // Force evaporation if in extreme heat source environment
         if (inLava || nearHeatSource) {
-            // 瞬间蒸发逻辑
-            // Instant evaporation logic
             if (data.getInt(NBT_WETNESS) > 0) {
                 clearWetnessData(entity);
-                // 播放蒸发音效
-                // Play evaporation sound
                 entity.playSound(Objects.requireNonNull(net.minecraft.sounds.SoundEvents.FIRE_EXTINGUISH), 1.0f, 1.0f);
             }
-            return; // 结束逻辑，不再进行后续积累或衰减
+            return;
         }
 
         int currentLevel = data.getInt(NBT_WETNESS);
@@ -212,16 +144,12 @@ public class WetnessHandler {
         boolean inPrecipitation = isRainingHere || isSnowingHere;
 
         if (inWater) {
-            // 在水中：检查水位深度决定最大潮湿等级
-            // In Water: Check water depth to determine max wetness level
             @SuppressWarnings("deprecation")
             double fluidHeight = entity.getFluidHeight(FluidTags.WATER);
             double entityHeight = entity.getBbHeight();
             
             int targetLevel = maxLevel;
             
-            // 浅水限制
-            // Shallow water cap
             if (fluidHeight < entityHeight) {
                 double ratio = ElementalReactionConfig.wetnessShallowWaterCapRatio;
                 targetLevel = (int) Math.floor(maxLevel * ratio);
@@ -233,14 +161,10 @@ public class WetnessHandler {
                 updateWetnessLevel(entity, currentLevel);
             }
             
-            // 重置其他计时器
-            // Reset other timers
             data.putInt(NBT_RAIN_TIMER, 0);
             data.putInt(NBT_DECAY_TIMER, 0);
 
         } else if (inPrecipitation) {
-            // 在雨/雪中：缓慢积累
-            // In Rain/Snow: Accumulate slowly
             data.putInt(NBT_DECAY_TIMER, 0);
 
             if (currentLevel < maxLevel) {
@@ -256,8 +180,6 @@ public class WetnessHandler {
                 }
             }
         } else {
-            // 干燥环境：自然衰减
-            // Dry Environment: Natural decay
             data.putInt(NBT_RAIN_TIMER, 0);
 
             if (currentLevel > 0) {
@@ -274,20 +196,9 @@ public class WetnessHandler {
             }
         }
 
-        // 同步状态到药水效果
-        // Sync status to potion effect
         syncEffect(entity, currentLevel, inWater || inPrecipitation, data.getInt(NBT_DECAY_TIMER));
     }
 
-    /**
-     * 优化后的热源检测。
-     * 检测周围的熔岩或干燥的岩浆块。
-     * 使用配置的搜索半径，并保留熔岩范围大于岩浆块范围的逻辑。
-     * <p>
-     * Optimized Heat Source Detection.
-     * Detects nearby Lava or dry Magma Blocks.
-     * Uses configured search radius, while maintaining the logic that Lava range is greater than Magma range.
-     */
     private static boolean checkHeatSource(Level level, BlockPos center) {
         int cx = center.getX();
         int cy = center.getY();
@@ -296,50 +207,32 @@ public class WetnessHandler {
         BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
         BlockPos.MutableBlockPos checkWaterPos = new BlockPos.MutableBlockPos();
 
-        // 获取配置的基础半径（视为熔岩的检测半径）
-        // Get configured base radius (treated as Lava detection radius)
         double configRadius = ElementalReactionConfig.wetnessHeatSearchRadius;
         
-        // 熔岩使用完整半径
-        // Lava uses full radius
         int lavaRange = (int) Math.ceil(configRadius);
         
-        // 岩浆块使用缩减后的半径（配置值 - 1，最少为 1），保持层级差异
-        // Magma Blocks use reduced radius (config - 1, min 1) to maintain hierarchy
         int magmaRange = Math.max(1, lavaRange - 1);
 
-        // 统一循环范围，取最大值（lavaRange）
-        // Unified loop range, taking the maximum (lavaRange)
         for (int x = -lavaRange; x <= lavaRange; x++) {
             for (int z = -lavaRange; z <= lavaRange; z++) {
                 for (int y = -lavaRange; y <= lavaRange; y++) {
                     
-                    // 计算相对距离（简单盒式距离）
-                    // Calculate relative distances (Simple Box Distance)
                     int absX = Math.abs(x);
                     int absY = Math.abs(y);
                     int absZ = Math.abs(z);
                     
                     mutablePos.set(cx + x, cy + y, cz + z);
                     
-                    // 1. 熔岩检测 (使用 lavaRange)
-                    // 1. Lava Check (Uses lavaRange)
                     if (absX <= lavaRange && absZ <= lavaRange && absY <= lavaRange) {
                         if (level.getFluidState(mutablePos).is(Objects.requireNonNull(FluidTags.LAVA))) {
                             return true;
                         }
                     }
                     
-                    // 2. 岩浆块检测 (使用 magmaRange)
-                    // 2. Magma Block Check (Uses magmaRange)
                     if (absX <= magmaRange && absZ <= magmaRange && absY <= magmaRange) {
                         if (level.getBlockState(mutablePos).is(Objects.requireNonNull(Blocks.MAGMA_BLOCK))) {
-                             // 检查岩浆块周围 1 格范围内（3x3x3 区域）是否有水
-                             // Check if there is water within 1 block radius of the Magma Block
                              boolean hasWaterNearby = false;
                              
-                             // 遍历 3x3x3 区域
-                             // Iterate 3x3x3 area
                              searchWater:
                              for (int dx = -1; dx <= 1; dx++) {
                                  for (int dy = -1; dy <= 1; dy++) {
@@ -353,8 +246,6 @@ public class WetnessHandler {
                                  }
                              }
 
-                             // 只有周围没有水，才视为有效热源
-                             // Only considered a valid heat source if there is no water nearby
                              if (!hasWaterNearby) {
                                  return true;
                              }
@@ -366,13 +257,6 @@ public class WetnessHandler {
         return false;
     }
 
-    /**
-     * 免疫检测。
-     * 根据生物类型（水生生物）、维度（下界）或黑名单判断是否免疫潮湿。
-     * <p>
-     * Immunity Check.
-     * Checks wetness immunity based on mob type (Water Animal), dimension (Nether), or blacklist.
-     */
     private static boolean isImmune(LivingEntity entity) {
         if (ElementalReactionConfig.wetnessWaterAnimalImmune) {
             if (entity instanceof WaterAnimal) {
@@ -396,13 +280,6 @@ public class WetnessHandler {
         return false;
     }
 
-    /**
-     * 清理所有潮湿数据。
-     * 移除NBT标记和药水效果。
-     * <p>
-     * Clear all wetness data.
-     * Removes NBT tags and potion effects.
-     */
     private static void clearWetnessData(LivingEntity entity) {
         CompoundTag data = entity.getPersistentData();
         if (data.contains(NBT_WETNESS)) {
@@ -416,18 +293,26 @@ public class WetnessHandler {
         }
     }
 
-    /**
-     * 同步并应用无粒子药水效果。
-     * 用于在客户端UI上显示潮湿状态。
-     * <p>
-     * Sync and apply particle-free potion effect.
-     * Used to display wetness status on the client UI.
-     */
     private static void syncEffect(LivingEntity entity, int level, boolean isPaused, int decayTimer) {
         if (level <= 0) {
             if (entity.hasEffect(Objects.requireNonNull(ModMobEffects.WETNESS.get()))) {
                 entity.removeEffect(ModMobEffects.WETNESS.get());
             }
+            return;
+        }
+
+        // 检查实体是否有易燃孢子效果
+        if (ModMobEffects.SPORES.isPresent() && entity.hasEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()))) {
+            // 如果有易燃孢子效果，将潮湿层数转换为孢子层数增加
+            // 计算要增加的孢子层数（潮湿层数）
+            int sporesToAdd = level;
+            
+            // 调用ReactionHandler中的stackSporeEffect方法来增加孢子层数
+            // 注意：这里需要传递null作为施加者，因为潮湿效果是环境效果
+            ReactionHandler.stackSporeEffect(entity, sporesToAdd, null);
+            
+            // 清除潮湿数据，因为潮湿层数已经转换为孢子层数
+            clearWetnessData(entity);
             return;
         }
 
@@ -456,22 +341,10 @@ public class WetnessHandler {
         }
     }
 
-    /**
-     * 更新潮湿等级NBT。
-     * <p>
-     * Update Wetness Level NBT.
-     */
     private static void updateWetnessLevel(LivingEntity entity, int level) {
         entity.getPersistentData().putInt(NBT_WETNESS, level);
     }
 
-    /**
-     * 饱食度消耗惩罚。
-     * 潮湿状态下，玩家消耗饱食度时会额外增加消耗量。
-     * <p>
-     * Food Exhaustion Penalty.
-     * Applies extra food exhaustion when a wet player consumes exhaustion.
-     */
     private static void handleExhaustion(LivingEntity entity) {
         if (entity instanceof Player player && !player.isCreative() && !player.isSpectator()) {
             CompoundTag data = player.getPersistentData();
@@ -500,13 +373,6 @@ public class WetnessHandler {
         }
     }
 
-    /**
-     * 投掷物撞击事件。
-     * 检测是否被喷溅药水击中，并增加潮湿层数。
-     * <p>
-     * Projectile Impact Event.
-     * Detects if hit by a splash potion and increases wetness level.
-     */
     @SubscribeEvent
     public static void onProjectileImpact(ProjectileImpactEvent event) {
         if (event.getRayTraceResult().getType() != HitResult.Type.ENTITY) return;
@@ -531,8 +397,6 @@ public class WetnessHandler {
 
             data.putInt(NBT_DECAY_TIMER, 0);
 
-            // 投掷物击中时立即同步一次效果
-            // Sync effect immediately upon impact
             syncEffect(livingTarget, newLevel, livingTarget.isInWater() || livingTarget.level().isRainingAt(Objects.requireNonNull(livingTarget.blockPosition())), 0);
         }
     }

@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 
 /**
@@ -78,6 +79,25 @@ public class ModDamageTypes {
                 level.registryAccess()
                         .registryOrThrow(Registries.DAMAGE_TYPE)
                         .getHolderOrThrow(key)
+        );
+    }
+    
+    /**
+     * 辅助方法：根据资源键、当前世界和攻击者创建一个新的伤害源实例。
+     * <p>
+     * Helper method: Creates a new DamageSource instance based on the ResourceKey, current level, and attacker.
+     *
+     * @param level 当前世界（用于访问注册表） / Current level (used to access registries)
+     * @param key   伤害类型的资源键 / ResourceKey of the damage type
+     * @param attacker 攻击者实体 / Attacker entity
+     * @return 对应的伤害源实例 / Corresponding DamageSource instance
+     */
+    public static DamageSource source(Level level, ResourceKey<DamageType> key, Entity attacker) {
+        return new DamageSource(
+                level.registryAccess()
+                        .registryOrThrow(Registries.DAMAGE_TYPE)
+                        .getHolderOrThrow(key),
+                attacker
         );
     }
 }

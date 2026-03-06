@@ -1,4 +1,3 @@
-// src/main/java/com/xulai/elementalcraft/ElementalCraft.java
 package com.xulai.elementalcraft;
 
 import com.mojang.logging.LogUtils;
@@ -9,7 +8,7 @@ import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.config.ElementalVisualConfig;
 import com.xulai.elementalcraft.config.ForcedItemConfig;
 import com.xulai.elementalcraft.enchantment.ModEnchantments;
-import com.xulai.elementalcraft.event.*;
+import com.xulai.elementalcraft.event.TooltipEvents;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.sound.ModSounds;
 import com.xulai.elementalcraft.util.CustomBiomeBias;
@@ -28,78 +27,36 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 
-/**
- * ElementalCraft
- * <p>
- * 中文说明：
- * ElementalCraft 的主入口类。
- * 负责模组的初始化工作，包括：
- * 1. 注册配置文件 (Common, ForcedItem, Reaction, Visual, ThunderFrostReactions)。
- * 2. 注册延迟注册器 (DeferredRegister)，如附魔、药水效果和音效。
- * 3. 注册事件监听器，包括模组生命周期事件和游戏逻辑事件 (MinecraftForge.EVENT_BUS)。
- * 4. 处理配置文件的加载与热重载逻辑，确保缓存数据与配置文件保持同步。
- * <p>
- * English Description:
- * The main entry class for ElementalCraft.
- * Responsible for mod initialization, including:
- * 1. Registering configuration files (Common, ForcedItem, Reaction, Visual, ThunderFrostReactions).
- * 2. Registering DeferredRegisters, such as Enchantments, Potion Effects and Sounds.
- * 3. Registering event listeners, including mod lifecycle events and game logic events (MinecraftForge.EVENT_BUS).
- * 4. Handling configuration loading and hot-reloading logic to ensure cached data stays in sync with config files.
- */
 @Mod(ElementalCraft.MODID)
 public class ElementalCraft {
     public static final String MODID = "elementalcraft";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    /**
-     * 构造函数，初始化模组组件。
-     * <p>
-     * Constructor, initializes mod components.
-     */
     public ElementalCraft() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        // 注册所有配置文件
-        // Register all configuration files
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ElementalConfig.SPEC, "elementalcraft-common.toml");
         ForcedItemConfig.register();
         ElementalReactionConfig.register();
         ElementalVisualConfig.register();
         ElementalThunderFrostReactionsConfig.register();
 
-        // 注册延迟注册器（附魔、药水效果、音效）
-        // Register deferred registers (Enchantments, Potion Effects, Sounds)
         ModEnchantments.register(modEventBus);
         ModMobEffects.register(modEventBus);
-        ModSounds.register(modEventBus); // 注册自定义音效 / Register custom sound effects
+        ModSounds.register(modEventBus);
 
-        // 注册模组生命周期事件监听器
-        // Register mod lifecycle event listeners
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::onConfigReload);
         modEventBus.addListener(this::onConfigLoad);
 
-        // 注册 Forge 事件总线监听器（游戏逻辑事件）
-        // Register Forge event bus listeners (Game logic events)
-        
         MinecraftForge.EVENT_BUS.register(TooltipEvents.class);
         MinecraftForge.EVENT_BUS.register(ModCommands.class);
 
-        // 注册资源重载监听器 (/reload)
-        // Register resource reload listener (/reload)
         MinecraftForge.EVENT_BUS.addListener(this::onAddReloadListeners);
 
         LOGGER.info("§a[ElementalCraft] Mod Constructed!");
     }
 
-    /**
-     * 通用设置阶段，初始化静态缓存。
-     * <p>
-     * Common setup phase, initializes static caches.
-     *
-     * @param event FML通用设置事件 / FML common setup event
-     */
     private void commonSetup(final FMLCommonSetupEvent event) {
         ElementalConfig.refreshCache();
         ElementalReactionConfig.refreshCache();
@@ -108,15 +65,6 @@ public class ElementalCraft {
         LOGGER.info("[ElementalCraft] Common Setup: Config cache initialized.");
     }
 
-    /**
-     * 配置文件首次加载时的处理逻辑。
-     * 刷新对应的配置缓存。
-     * <p>
-     * Handling logic when the configuration file is loaded for the first time.
-     * Refreshes the corresponding configuration cache.
-     *
-     * @param event 模组配置加载事件 / Mod config loading event
-     */
     public void onConfigLoad(ModConfigEvent.Loading event) {
         if (event.getConfig().getSpec() == ElementalConfig.SPEC) {
             ElementalConfig.refreshCache();
@@ -133,19 +81,8 @@ public class ElementalCraft {
             ElementalThunderFrostReactionsConfig.refreshCache();
             LOGGER.info("[ElementalCraft] Config Loaded: elementalcraft-thunderfrost-reactions.toml");
         }
-        // ForcedItemConfig 通常在需要时懒加载或通过 Reload 触发
-        // ForcedItemConfig is usually lazy-loaded when needed or triggered by Reload
     }
 
-    /**
-     * 配置文件重载时的处理逻辑（通过 GUI 或文件修改触发）。
-     * 刷新配置并清理相关辅助类的缓存。
-     * <p>
-     * Handling logic when the configuration file is reloaded (triggered via GUI or file modification).
-     * Refreshes config and clears caches of related helper classes.
-     *
-     * @param event 模组配置重载事件 / Mod config reloading event
-     */
     public void onConfigReload(ModConfigEvent.Reloading event) {
         if (event.getConfig().getSpec() == ElementalConfig.SPEC) {
             ElementalConfig.refreshCache();
@@ -170,21 +107,10 @@ public class ElementalCraft {
         }
     }
 
-    /**
-     * 注册资源重载监听器（响应 /reload 指令）。
-     * 这确保了即使是数据包重载，缓存也会被刷新，保证数据一致性。
-     * <p>
-     * Registers a resource reload listener (responds to /reload command).
-     * This ensures caches are refreshed even on datapack reloads, guaranteeing data consistency.
-     *
-     * @param event 添加重载监听器事件 / Add reload listener event
-     */
     public void onAddReloadListeners(AddReloadListenerEvent event) {
         event.addListener(new ResourceManagerReloadListener() {
             @Override
             public void onResourceManagerReload(ResourceManager resourceManager) {
-                // 强制刷新所有缓存
-                // Force refresh all caches
                 ElementalConfig.refreshCache();
                 ElementalReactionConfig.refreshCache();
                 ElementalVisualConfig.refreshCache();
