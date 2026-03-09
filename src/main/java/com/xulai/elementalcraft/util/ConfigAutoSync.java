@@ -3,7 +3,7 @@ package com.xulai.elementalcraft.util;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.config.ElementalConfig;
-import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.config.ElementalVisualConfig;
 import com.xulai.elementalcraft.config.ForcedItemConfig;
@@ -49,8 +49,8 @@ public class ConfigAutoSync {
             ElementalCraft.LOGGER.info("[ElementalCraft] Detected change in elementalcraft-forced-items.toml, caches refreshed automatically.");
         });
 
-        checkConfig(ElementalReactionConfig.SPEC, "elementalcraft-reactions.toml", () -> {
-            ElementalReactionConfig.refreshCache();
+        checkConfig(ElementalFireNatureReactionsConfig.SPEC, "elementalcraft-reactions.toml", () -> {
+            ElementalFireNatureReactionsConfig.refreshCache();
 
             ElementalCraft.LOGGER.info("[ElementalCraft] Detected change in elementalcraft-reactions.toml, caches refreshed automatically.");
         });
@@ -81,7 +81,7 @@ public class ConfigAutoSync {
             FILE_TIMESTAMPS.put(fileName, currentModified);
             
             if (fileName.contains("common")) ElementalConfig.refreshCache();
-            if (fileName.contains("reactions")) ElementalReactionConfig.refreshCache();
+            if (fileName.contains("reactions")) ElementalFireNatureReactionsConfig.refreshCache();
             if (fileName.contains("visuals")) ElementalVisualConfig.refreshCache();
             if (fileName.contains("forced-items")) ForcedItemHelper.clearCache();
             if (fileName.contains("thunderfrost-reactions")) ElementalThunderFrostReactionsConfig.refreshCache();

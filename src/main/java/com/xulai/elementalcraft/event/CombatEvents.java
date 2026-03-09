@@ -3,7 +3,7 @@ package com.xulai.elementalcraft.event;
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalConfig;
-import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.EffectHelper;
 import com.xulai.elementalcraft.util.ElementType;
@@ -22,6 +22,7 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -56,7 +57,7 @@ public class CombatEvents {
                         && !source.is(DamageTypeTags.IS_EXPLOSION)
                         && !source.is(DamageTypes.WITHER)) { 
                     
-                    float resistPerStack = (float) ElementalReactionConfig.sporePhysResist;
+                    float resistPerStack = (float) ElementalFireNatureReactionsConfig.sporePhysResist;
                     float totalResist = Math.min(0.9f, stacks * resistPerStack);
                     currentDamage *= (1.0f - totalResist);
                 }
@@ -98,12 +99,15 @@ public class CombatEvents {
             return;
         }
 
+        // Thunder Strike trigger conditions - 现在由 StaticShockHandler.onLivingDamage 处理
+        // 这里不再需要单独触发，因为 StaticShockHandler 会处理所有雷霆攻击
+
         if (attackElement == ElementType.FIRE && target.hasEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()))) {
             MobEffectInstance spore = target.getEffect(ModMobEffects.SPORES.get());
             int stacks = (spore != null) ? (spore.getAmplifier() + 1) : 0;
             
             if (stacks > 0) {
-                double vulnPerStack = ElementalReactionConfig.sporeFireVulnPerStack;
+                double vulnPerStack = ElementalFireNatureReactionsConfig.sporeFireVulnPerStack;
                 float vulnMultiplier = 1.0f + (float)(stacks * vulnPerStack);
                 currentDamage *= vulnMultiplier;
                 event.setAmount(currentDamage);
@@ -120,7 +124,7 @@ public class CombatEvents {
                 
                 if (currentTick != lastDryTick) {
                     int firePower = ElementUtils.getDisplayEnhancement(attacker, ElementType.FIRE);
-                    int threshold = Math.max(1, ElementalReactionConfig.wetnessDryingThreshold);
+                    int threshold = Math.max(1, ElementalFireNatureReactionsConfig.wetnessDryingThreshold);
                     
                     int layersToRemove = firePower / threshold;
                     
@@ -135,7 +139,7 @@ public class CombatEvents {
                             attacker.removeEffect(ModMobEffects.WETNESS.get());
                         }
                         
-                        int maxBurstLevel = ElementalReactionConfig.steamHighHeatMaxLevel;
+                        int maxBurstLevel = ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel;
                         EffectHelper.playSteamBurst((ServerLevel) attacker.level(), attacker, 0.5f, Math.min(layersToRemove, maxBurstLevel), true);
 
                         attacker.addTag(SteamReactionHandler.TAG_SELF_DRYING_PENALTY);
@@ -177,11 +181,11 @@ public class CombatEvents {
         }
 
         float wetnessMultiplier = 1.0f;
-        float maxCap = (float) ElementalReactionConfig.steamMaxReduction;
+        float maxCap = (float) ElementalFireNatureReactionsConfig.steamMaxReduction;
 
         if (wetnessLevel > 0) {
             if (attackElement == ElementType.FIRE) {
-                float reductionPerLevel = (float) ElementalReactionConfig.wetnessFireReduction;
+                float reductionPerLevel = (float) ElementalFireNatureReactionsConfig.wetnessFireReduction;
                 float finalReduction = Math.min(wetnessLevel * reductionPerLevel, maxCap);
                 wetnessMultiplier = 1.0f - finalReduction;
             }
@@ -189,7 +193,7 @@ public class CombatEvents {
 
         if (attacker.getTags().contains(SteamReactionHandler.TAG_SELF_DRYING_PENALTY) 
                 && attackElement == ElementType.FIRE) {
-            float penalty = 1.0f - (float) ElementalReactionConfig.wetnessSelfDryingDamagePenalty;
+            float penalty = 1.0f - (float) ElementalFireNatureReactionsConfig.wetnessSelfDryingDamagePenalty;
             wetnessMultiplier *= penalty;
             
             attacker.removeTag(SteamReactionHandler.TAG_SELF_DRYING_PENALTY);
@@ -259,8 +263,20 @@ public class CombatEvents {
         }
     }
 
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onLivingAttack(LivingAttackEvent event) {
+        if (event.getEntity().level().isClientSide) return;
+        
+        LivingEntity target = event.getEntity();
+        // 检查目标是否有麻痹效果
+        if (target.hasEffect(ModMobEffects.PARALYSIS.get())) {
+            event.setCanceled(true);
+        }
+    }
+
     private static void tryTriggerScorched(LivingEntity attacker, LivingEntity target, int firePower) {
-        if (firePower < ElementalReactionConfig.scorchedTriggerThreshold) return;
+        if (firePower < ElementalFireNatureReactionsConfig.scorchedTriggerThreshold) return;
 
         if (target.hasEffect(Objects.requireNonNull(ModMobEffects.WETNESS.get())) || 
             attacker.hasEffect(Objects.requireNonNull(ModMobEffects.WETNESS.get()))) {
@@ -276,12 +292,12 @@ public class CombatEvents {
             return;
         }
 
-        double baseChance = ElementalReactionConfig.scorchedBaseChance;
-        double growth = firePower * ElementalReactionConfig.scorchedChancePerPoint;
+        double baseChance = ElementalFireNatureReactionsConfig.scorchedBaseChance;
+        double growth = firePower * ElementalFireNatureReactionsConfig.scorchedChancePerPoint;
         double totalChance = Math.min(1.0, baseChance + growth);
 
         if (RANDOM.nextDouble() < totalChance) {
-            int duration = ElementalReactionConfig.scorchedDuration;
+            int duration = ElementalFireNatureReactionsConfig.scorchedDuration;
             ScorchedHandler.applyScorched(target, firePower, duration);
 
             target.level().playSound(null, target.getX(), target.getY(), target.getZ(), 

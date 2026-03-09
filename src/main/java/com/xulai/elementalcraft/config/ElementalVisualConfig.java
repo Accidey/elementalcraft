@@ -110,7 +110,11 @@ public class ElementalVisualConfig {
      * Registers the configuration file.
      */
     public static void register() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, "elementalcraft-visuals.toml");
+        register("elementalcraft-visuals.toml");
+    }
+    
+    public static void register(String configPath) {
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, configPath);
     }
 
     /**

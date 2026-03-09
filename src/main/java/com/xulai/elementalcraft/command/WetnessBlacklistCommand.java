@@ -4,7 +4,7 @@ package com.xulai.elementalcraft.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.xulai.elementalcraft.ElementalCraft;
-import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -97,7 +97,7 @@ public class WetnessBlacklistCommand {
 
         // 获取当前黑名单的可变副本
         // Get a mutable copy of the current blacklist
-        List<String> list = new ArrayList<>(ElementalReactionConfig.WETNESS_ENTITY_BLACKLIST.get());
+        List<String> list = new ArrayList<>(ElementalFireNatureReactionsConfig.WETNESS_ENTITY_BLACKLIST.get());
 
         // 检查是否已存在于黑名单中
         // Check if it already exists in the blacklist
@@ -110,9 +110,9 @@ public class WetnessBlacklistCommand {
         // 添加实体 ID，保存配置并刷新缓存
         // Add entity ID, save config, and refresh cache
         list.add(entityId);
-        ElementalReactionConfig.WETNESS_ENTITY_BLACKLIST.set(list);
-        ElementalReactionConfig.SPEC.save();
-        ElementalReactionConfig.refreshCache();
+        ElementalFireNatureReactionsConfig.WETNESS_ENTITY_BLACKLIST.set(list);
+        ElementalFireNatureReactionsConfig.SPEC.save();
+        ElementalFireNatureReactionsConfig.refreshCache();
 
         // 发送成功反馈
         // Send success feedback
@@ -146,16 +146,16 @@ public class WetnessBlacklistCommand {
             return 0;
         }
 
-        List<String> list = new ArrayList<>(ElementalReactionConfig.WETNESS_ENTITY_BLACKLIST.get());
+        List<String> list = new ArrayList<>(ElementalFireNatureReactionsConfig.WETNESS_ENTITY_BLACKLIST.get());
 
         // 尝试从列表中移除
         // Try to remove from the list
         if (list.remove(entityId)) {
             // 保存更改并刷新缓存
             // Save changes and refresh cache
-            ElementalReactionConfig.WETNESS_ENTITY_BLACKLIST.set(list);
-            ElementalReactionConfig.SPEC.save();
-            ElementalReactionConfig.refreshCache();
+            ElementalFireNatureReactionsConfig.WETNESS_ENTITY_BLACKLIST.set(list);
+            ElementalFireNatureReactionsConfig.SPEC.save();
+            ElementalFireNatureReactionsConfig.refreshCache();
 
             // 发送移除成功反馈
             // Send success feedback
@@ -182,7 +182,7 @@ public class WetnessBlacklistCommand {
      */
     private static int executeList(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack source = ctx.getSource();
-        List<? extends String> list = ElementalReactionConfig.WETNESS_ENTITY_BLACKLIST.get();
+        List<? extends String> list = ElementalFireNatureReactionsConfig.WETNESS_ENTITY_BLACKLIST.get();
 
         if (list.isEmpty()) {
             source.sendSuccess(() -> Component.translatable("command.elementalcraft.wetness.blacklist.empty")

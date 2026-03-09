@@ -4,7 +4,7 @@ package com.xulai.elementalcraft.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -102,7 +102,7 @@ public class SteamBlacklistCommand {
 
         // 3. 读取当前配置列表并检查是否已存在
         // 3. Read current config list and check if it already exists
-        List<String> currentList = new ArrayList<>(ElementalReactionConfig.STEAM_IMMUNITY_BLACKLIST.get());
+        List<String> currentList = new ArrayList<>(ElementalFireNatureReactionsConfig.STEAM_IMMUNITY_BLACKLIST.get());
 
         if (currentList.contains(entityId)) {
             context.getSource().sendFailure(Component.translatable("command.elementalcraft.steam_blacklist.exists", entityId));
@@ -112,9 +112,9 @@ public class SteamBlacklistCommand {
         // 4. 添加到列表、保存配置并刷新缓存
         // 4. Add to list, save config, and refresh cache
         currentList.add(entityId);
-        ElementalReactionConfig.STEAM_IMMUNITY_BLACKLIST.set(currentList);
-        ElementalReactionConfig.SPEC.save();
-        ElementalReactionConfig.refreshCache();
+        ElementalFireNatureReactionsConfig.STEAM_IMMUNITY_BLACKLIST.set(currentList);
+        ElementalFireNatureReactionsConfig.SPEC.save();
+        ElementalFireNatureReactionsConfig.refreshCache();
 
         // 发送成功反馈
         // Send success feedback
@@ -154,7 +154,7 @@ public class SteamBlacklistCommand {
 
         // 3. 读取当前配置列表并检查是否存在
         // 3. Read current config list and check if it exists
-        List<String> currentList = new ArrayList<>(ElementalReactionConfig.STEAM_IMMUNITY_BLACKLIST.get());
+        List<String> currentList = new ArrayList<>(ElementalFireNatureReactionsConfig.STEAM_IMMUNITY_BLACKLIST.get());
 
         if (!currentList.contains(entityId)) {
             context.getSource().sendFailure(Component.translatable("command.elementalcraft.steam_blacklist.not_found", entityId));
@@ -164,9 +164,9 @@ public class SteamBlacklistCommand {
         // 4. 从列表中移除、保存配置并刷新缓存
         // 4. Remove from list, save config, and refresh cache
         currentList.remove(entityId);
-        ElementalReactionConfig.STEAM_IMMUNITY_BLACKLIST.set(currentList);
-        ElementalReactionConfig.SPEC.save();
-        ElementalReactionConfig.refreshCache();
+        ElementalFireNatureReactionsConfig.STEAM_IMMUNITY_BLACKLIST.set(currentList);
+        ElementalFireNatureReactionsConfig.SPEC.save();
+        ElementalFireNatureReactionsConfig.refreshCache();
 
         // 发送成功反馈
         // Send success feedback
@@ -187,7 +187,7 @@ public class SteamBlacklistCommand {
     private static int listEntities(CommandContext<CommandSourceStack> context) {
         // 使用缓存的列表进行展示
         // Use cached list for display
-        List<? extends String> list = ElementalReactionConfig.cachedSteamBlacklist;
+        List<? extends String> list = ElementalFireNatureReactionsConfig.cachedSteamBlacklist;
 
         if (list.isEmpty()) {
             context.getSource().sendSuccess(() -> Component.translatable("command.elementalcraft.steam_blacklist.empty"), false);

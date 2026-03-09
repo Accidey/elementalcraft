@@ -3,7 +3,7 @@ package com.xulai.elementalcraft.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -71,7 +71,7 @@ public class ScorchedBlacklistCommand {
         }
 
         // 获取当前黑名单的可变副本
-        List<String> currentList = new ArrayList<>(ElementalReactionConfig.SCORCHED_ENTITY_BLACKLIST.get());
+        List<String> currentList = new ArrayList<>(ElementalFireNatureReactionsConfig.SCORCHED_ENTITY_BLACKLIST.get());
         
         // 检查是否已存在
         // Check if already exists
@@ -85,9 +85,9 @@ public class ScorchedBlacklistCommand {
 
         // 添加并保存
         currentList.add(entityId);
-        ElementalReactionConfig.SCORCHED_ENTITY_BLACKLIST.set(currentList);
-        ElementalReactionConfig.SPEC.save();
-        ElementalReactionConfig.refreshCache();
+        ElementalFireNatureReactionsConfig.SCORCHED_ENTITY_BLACKLIST.set(currentList);
+        ElementalFireNatureReactionsConfig.SPEC.save();
+        ElementalFireNatureReactionsConfig.refreshCache();
 
         context.getSource().sendSuccess(() -> Component.translatable("command.elementalcraft.scorched.blacklist.added", entityId)
                 .withStyle(ChatFormatting.GREEN), true);
@@ -109,7 +109,7 @@ public class ScorchedBlacklistCommand {
             return 0;
         }
 
-        List<String> currentList = new ArrayList<>(ElementalReactionConfig.SCORCHED_ENTITY_BLACKLIST.get());
+        List<String> currentList = new ArrayList<>(ElementalFireNatureReactionsConfig.SCORCHED_ENTITY_BLACKLIST.get());
 
         if (!currentList.contains(entityId)) {
             context.getSource().sendFailure(Component.translatable("command.elementalcraft.scorched.blacklist.not_found", entityId));
@@ -118,9 +118,9 @@ public class ScorchedBlacklistCommand {
 
         currentList.remove(entityId);
         
-        ElementalReactionConfig.SCORCHED_ENTITY_BLACKLIST.set(currentList);
-        ElementalReactionConfig.SPEC.save();
-        ElementalReactionConfig.refreshCache();
+        ElementalFireNatureReactionsConfig.SCORCHED_ENTITY_BLACKLIST.set(currentList);
+        ElementalFireNatureReactionsConfig.SPEC.save();
+        ElementalFireNatureReactionsConfig.refreshCache();
 
         context.getSource().sendSuccess(() -> Component.translatable("command.elementalcraft.scorched.blacklist.removed", entityId)
                 .withStyle(ChatFormatting.GREEN), true);
@@ -133,7 +133,7 @@ public class ScorchedBlacklistCommand {
      * List current blacklist.
      */
     private static int listEntities(CommandContext<CommandSourceStack> context) {
-        List<? extends String> list = ElementalReactionConfig.cachedScorchedBlacklist;
+        List<? extends String> list = ElementalFireNatureReactionsConfig.cachedScorchedBlacklist;
         CommandSourceStack source = context.getSource();
 
         if (list.isEmpty()) {

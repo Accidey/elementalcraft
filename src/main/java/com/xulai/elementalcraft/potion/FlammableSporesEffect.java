@@ -1,6 +1,6 @@
 package com.xulai.elementalcraft.potion;
 
-import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.LivingEntity;
@@ -27,13 +27,13 @@ public class FlammableSporesEffect extends MobEffect {
     @Override
     public void applyEffectTick(LivingEntity pLivingEntity, int pAmplifier) {
         if (!pLivingEntity.level().isClientSide) {
-            int damageInterval = ElementalReactionConfig.sporeDamageInterval;
+            int damageInterval = ElementalFireNatureReactionsConfig.sporeDamageInterval;
             if (damageInterval <= 0) {
                 damageInterval = 100;
             }
             
             if (pLivingEntity.tickCount % damageInterval == 0) {
-                double damagePerStack = ElementalReactionConfig.sporePoisonDamage;
+                double damagePerStack = ElementalFireNatureReactionsConfig.sporePoisonDamage;
 
                 if (damagePerStack > 0) {
                     float totalDamage = (float) damagePerStack;
@@ -52,7 +52,7 @@ public class FlammableSporesEffect extends MobEffect {
     @Override
     public double getAttributeModifierValue(int pAmplifier, AttributeModifier pModifier) {
         if (pModifier.getId().equals(SPEED_MODIFIER_UUID) || pModifier.getId().equals(ATTACK_SPEED_MODIFIER_UUID)) {
-            double reductionPerStack = ElementalReactionConfig.sporeSpeedReduction;
+            double reductionPerStack = ElementalFireNatureReactionsConfig.sporeSpeedReduction;
 
             double totalReduction = -reductionPerStack * (pAmplifier + 1);
 

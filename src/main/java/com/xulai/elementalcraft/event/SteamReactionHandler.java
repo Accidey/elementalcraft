@@ -2,7 +2,7 @@ package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
-import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.EffectHelper;
@@ -62,7 +62,7 @@ public class SteamReactionHandler {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingHurt(LivingHurtEvent event) {
-        if (!ElementalReactionConfig.steamReactionEnabled) return;
+        if (!ElementalFireNatureReactionsConfig.steamReactionEnabled) return;
 
         if (event.getSource().getEntity() instanceof LivingEntity attacker) {
             processTriggerLogic(event, attacker, event.getEntity());
@@ -85,7 +85,7 @@ public class SteamReactionHandler {
 
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
-        if (!ElementalReactionConfig.steamReactionEnabled) return;
+        if (!ElementalFireNatureReactionsConfig.steamReactionEnabled) return;
         
         LivingEntity entity = event.getEntity();
 
@@ -99,7 +99,7 @@ public class SteamReactionHandler {
             }
         }
 
-        if (entity.tickCount % ElementalReactionConfig.steamCheckInterval != 0) return;
+        if (entity.tickCount % ElementalFireNatureReactionsConfig.steamCheckInterval != 0) return;
         processCloudEffects(entity);
     }
 
@@ -152,7 +152,7 @@ public class SteamReactionHandler {
 
         if (attackElement == ElementType.FIRE) {
             if (targetIsWet || targetElement == ElementType.FROST) {
-                int threshold = ElementalReactionConfig.steamTriggerThresholdFire;
+                int threshold = ElementalFireNatureReactionsConfig.steamTriggerThresholdFire;
 
                 if (firePower >= threshold) {
                     if (isTriggerBlocked(target)) return;
@@ -163,11 +163,11 @@ public class SteamReactionHandler {
                         fuelLevel = targetWetness;
                     } else if (targetElement == ElementType.FROST) {
                         int targetFrostPower = ElementUtils.getDisplayEnhancement(target, ElementType.FROST);
-                        int step = Math.max(1, ElementalReactionConfig.steamCondensationStepFrost);
+                        int step = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFrost);
                         fuelLevel = 1 + (targetFrostPower / step);
                     }
 
-                    int maxLevel = ElementalReactionConfig.steamHighHeatMaxLevel;
+                    int maxLevel = ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel;
                     fuelLevel = Math.min(fuelLevel, maxLevel);
 
                     spawnSteamCloud(target, true, fuelLevel);
@@ -192,16 +192,16 @@ public class SteamReactionHandler {
                     return;
                 }
 
-                int threshold = ElementalReactionConfig.steamTriggerThresholdFrost;
+                int threshold = ElementalFireNatureReactionsConfig.steamTriggerThresholdFrost;
 
                 if (frostPower >= threshold) {
                     if (isTriggerBlocked(target)) return;
 
                     int targetFirePower = ElementUtils.getDisplayEnhancement(target, ElementType.FIRE);
-                    int step = Math.max(1, ElementalReactionConfig.steamCondensationStepFire);
+                    int step = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
 
                     int level = 1 + (targetFirePower / step);
-                    int maxLevel = ElementalReactionConfig.steamLowHeatMaxLevel;
+                    int maxLevel = ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel;
                     level = Math.min(level, maxLevel);
 
                     spawnSteamCloud(target, false, level);
@@ -228,9 +228,9 @@ public class SteamReactionHandler {
         int totalFireProtLevel = getTotalEnchantmentLevel(Enchantments.FIRE_PROTECTION, target);
         int totalProtLevel = getTotalEnchantmentLevel(Enchantments.ALL_DAMAGE_PROTECTION, target);
 
-        double maxFireCap = ElementalReactionConfig.steamMaxFireProtCap;
-        double maxGeneralCap = ElementalReactionConfig.steamMaxGeneralProtCap;
-        double denom = ElementalReactionConfig.enchantmentCalculationDenominator;
+        double maxFireCap = ElementalFireNatureReactionsConfig.steamMaxFireProtCap;
+        double maxGeneralCap = ElementalFireNatureReactionsConfig.steamMaxGeneralProtCap;
+        double denom = ElementalFireNatureReactionsConfig.enchantmentCalculationDenominator;
 
         double fireProtFactor = maxFireCap / denom;
         double protFactor = maxGeneralCap / denom;
@@ -247,7 +247,7 @@ public class SteamReactionHandler {
 
         ElementType type = ElementUtils.getElementType(target);
         if (type == ElementType.FROST || type == ElementType.NATURE) {
-            float floorRatio = (float) ElementalReactionConfig.steamDamageFloorRatio;
+            float floorRatio = (float) ElementalFireNatureReactionsConfig.steamDamageFloorRatio;
             float floorLimit = trueRawDamage * floorRatio;
 
             if (reducedDamage < floorLimit) {
@@ -269,7 +269,7 @@ public class SteamReactionHandler {
     private static void processCloudEffects(LivingEntity entity) {
         if (entity.level().isClientSide) return;
 
-        double searchRadius = ElementalReactionConfig.steamCloudRadius * ElementalReactionConfig.steamScanRadiusMultiplier;
+        double searchRadius = ElementalFireNatureReactionsConfig.steamCloudRadius * ElementalFireNatureReactionsConfig.steamScanRadiusMultiplier;
         AABB box = entity.getBoundingBox().inflate(searchRadius);
         List<AreaEffectCloud> clouds = entity.level().getEntitiesOfClass(AreaEffectCloud.class, box,
                 c -> c.getTags().contains(TAG_STEAM_CLOUD));
@@ -293,9 +293,9 @@ public class SteamReactionHandler {
             double dy = entity.getY() - cloud.getY();
 
             if (dy < -0.5) continue;
-            if (dy > ElementalReactionConfig.steamCloudHeightCeiling) continue;
+            if (dy > ElementalFireNatureReactionsConfig.steamCloudHeightCeiling) continue;
 
-            if (ElementalReactionConfig.steamClearAggro && entity instanceof Mob mob) {
+            if (ElementalFireNatureReactionsConfig.steamClearAggro && entity instanceof Mob mob) {
                 mob.setTarget(null);
                 mob.getNavigation().stop();
             }
@@ -321,19 +321,19 @@ public class SteamReactionHandler {
             }
 
             if (entity.tickCount % 20 == 0) {
-                float baseDamage = (float) ElementalReactionConfig.steamScaldingDamage;
-                float scale = (float) ElementalReactionConfig.steamDamageScalePerLevel;
+                float baseDamage = (float) ElementalFireNatureReactionsConfig.steamScaldingDamage;
+                float scale = (float) ElementalFireNatureReactionsConfig.steamDamageScalePerLevel;
                 float levelMultiplier = 1.0f + (cloudLevel * scale);
                 float damage = baseDamage * levelMultiplier;
 
                 ElementType type = ElementUtils.getElementType(entity);
                 if (type == ElementType.FROST || type == ElementType.NATURE) {
-                    double weaknessMult = ElementalReactionConfig.steamScaldingMultiplierWeakness;
+                    double weaknessMult = ElementalFireNatureReactionsConfig.steamScaldingMultiplierWeakness;
                     damage *= (float) weaknessMult;
                 }
 
                 if (entity.hasEffect(ModMobEffects.SPORES.get())) {
-                    damage *= (float) ElementalReactionConfig.steamScaldingMultiplierSpore;
+                    damage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierSpore;
                 }
 
                 if (damage > 0) {
@@ -361,13 +361,13 @@ public class SteamReactionHandler {
         } 
         else if (isCondensing) {
             int currentTimer = entity.getPersistentData().getInt(NBT_CONDENSATION_TIMER);
-            currentTimer += ElementalReactionConfig.steamCheckInterval;
+            currentTimer += ElementalFireNatureReactionsConfig.steamCheckInterval;
 
-            int delayThreshold = Math.max(10, ElementalReactionConfig.steamCondensationDelay);
+            int delayThreshold = Math.max(10, ElementalFireNatureReactionsConfig.steamCondensationDelay);
 
             if (currentTimer >= delayThreshold) {
                 int currentWet = entity.getPersistentData().getInt(WetnessHandler.NBT_WETNESS);
-                int max = ElementalReactionConfig.wetnessMaxLevel;
+                int max = ElementalFireNatureReactionsConfig.wetnessMaxLevel;
 
                 if (currentWet < max) {
                     entity.getPersistentData().putInt(WetnessHandler.NBT_WETNESS, currentWet + 1);
@@ -381,14 +381,14 @@ public class SteamReactionHandler {
 
             if (entity.hasEffect(ModMobEffects.SPORES.get())) {
                 int sporeTimer = entity.getPersistentData().getInt(NBT_SPORE_GROWTH_TIMER);
-                sporeTimer += ElementalReactionConfig.steamCheckInterval;
+                sporeTimer += ElementalFireNatureReactionsConfig.steamCheckInterval;
                 
-                int growthRate = Math.max(10, ElementalReactionConfig.steamSporeGrowthRate);
+                int growthRate = Math.max(10, ElementalFireNatureReactionsConfig.steamSporeGrowthRate);
                 
                 if (sporeTimer >= growthRate) {
                     MobEffectInstance effect = entity.getEffect(ModMobEffects.SPORES.get());
                     int amp = effect.getAmplifier();
-                    int maxStacks = ElementalReactionConfig.sporeMaxStacks;
+                    int maxStacks = ElementalFireNatureReactionsConfig.sporeMaxStacks;
                     
                     if (amp + 1 < maxStacks) {
                         entity.addEffect(new MobEffectInstance(ModMobEffects.SPORES.get(), 200, amp + 1));
@@ -406,7 +406,7 @@ public class SteamReactionHandler {
 
         if (entity.level().isClientSide) return false;
 
-        double searchRadius = ElementalReactionConfig.steamCloudRadius * 2.0; 
+        double searchRadius = ElementalFireNatureReactionsConfig.steamCloudRadius * 2.0; 
         AABB box = entity.getBoundingBox().inflate(searchRadius);
         List<AreaEffectCloud> clouds = entity.level().getEntitiesOfClass(AreaEffectCloud.class, box,
                 c -> c.getTags().contains(TAG_STEAM_CLOUD));
@@ -419,7 +419,7 @@ public class SteamReactionHandler {
             
             if (distSqr < radius * radius) {
                 double dy = entity.getY() - cloud.getY();
-                if (dy > -0.5 && dy < ElementalReactionConfig.steamCloudHeightCeiling) {
+                if (dy > -0.5 && dy < ElementalFireNatureReactionsConfig.steamCloudHeightCeiling) {
                     return true; 
                 }
             }
@@ -428,7 +428,7 @@ public class SteamReactionHandler {
     }
 
     private static void setTriggerCooldown(LivingEntity entity) {
-        entity.getPersistentData().putInt(NBT_STEAM_TRIGGER_COOLDOWN, ElementalReactionConfig.steamTriggerCooldown);
+        entity.getPersistentData().putInt(NBT_STEAM_TRIGGER_COOLDOWN, ElementalFireNatureReactionsConfig.steamTriggerCooldown);
     }
 
     private static void removeWetness(LivingEntity entity) {
@@ -442,32 +442,32 @@ public class SteamReactionHandler {
         if (entity.fireImmune() || entity.hasEffect(MobEffects.FIRE_RESISTANCE)) return true;
 
         String id = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()).toString();
-        if (ElementalReactionConfig.cachedSteamBlacklist.contains(id)) return true;
+        if (ElementalFireNatureReactionsConfig.cachedSteamBlacklist.contains(id)) return true;
 
         int resist = ElementUtils.getDisplayResistance(entity, ElementType.FIRE);
-        int threshold = ElementalReactionConfig.steamImmunityThreshold;
+        int threshold = ElementalFireNatureReactionsConfig.steamImmunityThreshold;
         return resist >= threshold;
     }
 
     private static void spawnSteamCloud(LivingEntity target, boolean isHighHeat, int fuelLevel) {
         if (!(target.level() instanceof ServerLevel serverLevel)) return;
 
-        int maxLevel = isHighHeat ? ElementalReactionConfig.steamHighHeatMaxLevel : ElementalReactionConfig.steamLowHeatMaxLevel;
+        int maxLevel = isHighHeat ? ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel : ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel;
         int level = Math.max(1, Math.min(fuelLevel, maxLevel));
 
-        float baseRadius = (float) ElementalReactionConfig.steamCloudRadius;
-        float radiusInc = (float) ElementalReactionConfig.steamRadiusPerLevel;
+        float baseRadius = (float) ElementalFireNatureReactionsConfig.steamCloudRadius;
+        float radiusInc = (float) ElementalFireNatureReactionsConfig.steamRadiusPerLevel;
         float radius = isHighHeat ? baseRadius + (level - 1.0f) * radiusInc : baseRadius;
 
         int baseDuration;
         int durationInc;
 
         if (isHighHeat) {
-            baseDuration = ElementalReactionConfig.steamCloudDuration;
-            durationInc = ElementalReactionConfig.steamDurationPerLevel;
+            baseDuration = ElementalFireNatureReactionsConfig.steamCloudDuration;
+            durationInc = ElementalFireNatureReactionsConfig.steamDurationPerLevel;
         } else {
-            baseDuration = ElementalReactionConfig.steamCondensationDurationBase;
-            durationInc = ElementalReactionConfig.steamCondensationDurationPerLevel;
+            baseDuration = ElementalFireNatureReactionsConfig.steamCondensationDurationBase;
+            durationInc = ElementalFireNatureReactionsConfig.steamCondensationDurationPerLevel;
         }
 
         int duration = baseDuration + (level * durationInc);
@@ -480,7 +480,7 @@ public class SteamReactionHandler {
 
         cloud.setParticle(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.AIR.defaultBlockState()));
 
-        cloud.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, ElementalReactionConfig.steamBlindnessDuration));
+        cloud.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, ElementalFireNatureReactionsConfig.steamBlindnessDuration));
 
         cloud.addTag(TAG_STEAM_CLOUD);
         cloud.addTag(TAG_LEVEL_PREFIX + level);

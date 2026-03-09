@@ -21,6 +21,9 @@ public final class ModMobEffects {
     public static final RegistryObject<MobEffect> STATIC_SHOCK =
             MOB_EFFECTS.register("static_shock", StaticShockEffect::new);
 
+    public static final RegistryObject<MobEffect> PARALYSIS =
+            MOB_EFFECTS.register("paralysis", ParalysisEffect::new);
+
     public static void register(IEventBus eventBus) {
         MOB_EFFECTS.register(eventBus);
     }

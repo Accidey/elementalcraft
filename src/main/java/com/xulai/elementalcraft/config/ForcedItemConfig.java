@@ -88,6 +88,10 @@ public final class ForcedItemConfig {
      * Registers this configuration file to the mod loading context.
      */
     public static void register() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, "elementalcraft-forced-items.toml");
+        register("elementalcraft-forced-items.toml");
+    }
+    
+    public static void register(String configPath) {
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, configPath);
     }
 }

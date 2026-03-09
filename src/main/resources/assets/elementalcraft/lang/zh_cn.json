@@ -179,10 +179,15 @@
   "effect.elementalcraft.static_shock": "静电",
   "effect.elementalcraft.static_shock.description": "你被静电缠绕，每过一段时间会受到随机伤害。",
 
+  "effect.elementalcraft.paralysis": "麻痹",
+  "effect.elementalcraft.paralysis.description": "你被麻痹了！无法做出任何动作。",
+
   "debug.elementalcraft.reaction.nature_siphon.header": "[寄生吸取]",
   "debug.elementalcraft.reaction.nature_siphon.message": "%s 从 %s 身上吸取了 %s 层潮湿，并恢复了 %s 点生命值！",
   "debug.elementalcraft.reaction.toxic_blast.header": "[毒火爆燃]",
   "debug.elementalcraft.reaction.toxic_blast.message": "%s 引爆了 %s 身上的 %s 层孢子！半径: %s, 影响实体: %s",
   "debug.elementalcraft.reaction.wildfire.header": "[野火喷射]",
-  "debug.elementalcraft.reaction.wildfire.message": "%s 触发了野火喷射反制！排斥半径: %s, 击退敌人: %s"
+  "debug.elementalcraft.reaction.wildfire.message": "%s 触发了野火喷射反制！排斥半径: %s, 击退敌人: %s",
+  "debug.elementalcraft.reaction.paralysis.header": "[麻痹]",
+  "debug.elementalcraft.reaction.paralysis.message": "%s 对 %s 触发了 %s 层数麻痹！ "
 }

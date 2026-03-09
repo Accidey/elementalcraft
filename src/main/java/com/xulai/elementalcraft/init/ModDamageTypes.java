@@ -36,6 +36,10 @@ public class ModDamageTypes {
             Registries.DAMAGE_TYPE,
             new ResourceLocation(ElementalCraft.MODID, "steam_scalding")
     );
+    public static final ResourceKey<DamageType> STEAM_SPORE_COMBUSTION = ResourceKey.create(
+            Registries.DAMAGE_TYPE,
+            new ResourceLocation(ElementalCraft.MODID, "steam_spore_combustion")
+    );
 
     /**
      * 熔岩魔法伤害类型的资源键。

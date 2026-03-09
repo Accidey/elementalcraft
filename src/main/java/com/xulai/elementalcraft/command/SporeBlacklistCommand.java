@@ -3,7 +3,7 @@ package com.xulai.elementalcraft.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -71,7 +71,7 @@ public class SporeBlacklistCommand {
 
         // 获取当前黑名单的可变副本
         // Get a mutable copy of the current blacklist
-        List<String> currentList = new ArrayList<>(ElementalReactionConfig.SPORE_ENTITY_BLACKLIST.get());
+        List<String> currentList = new ArrayList<>(ElementalFireNatureReactionsConfig.SPORE_ENTITY_BLACKLIST.get());
         
         // 检查是否已存在
         // Check if already exists
@@ -88,9 +88,9 @@ public class SporeBlacklistCommand {
         // 添加并保存
         // Add and save
         currentList.add(entityId);
-        ElementalReactionConfig.SPORE_ENTITY_BLACKLIST.set(currentList);
-        ElementalReactionConfig.SPEC.save();
-        ElementalReactionConfig.refreshCache();
+        ElementalFireNatureReactionsConfig.SPORE_ENTITY_BLACKLIST.set(currentList);
+        ElementalFireNatureReactionsConfig.SPEC.save();
+        ElementalFireNatureReactionsConfig.refreshCache();
 
         context.getSource().sendSuccess(() -> Component.translatable("command.elementalcraft.spore.blacklist.added", entityId)
                 .withStyle(ChatFormatting.GREEN), true);
@@ -112,7 +112,7 @@ public class SporeBlacklistCommand {
             return 0;
         }
 
-        List<String> currentList = new ArrayList<>(ElementalReactionConfig.SPORE_ENTITY_BLACKLIST.get());
+        List<String> currentList = new ArrayList<>(ElementalFireNatureReactionsConfig.SPORE_ENTITY_BLACKLIST.get());
 
         if (!currentList.contains(entityId)) {
             context.getSource().sendFailure(Component.translatable("command.elementalcraft.spore.blacklist.not_found", entityId));
@@ -121,9 +121,9 @@ public class SporeBlacklistCommand {
 
         currentList.remove(entityId);
         
-        ElementalReactionConfig.SPORE_ENTITY_BLACKLIST.set(currentList);
-        ElementalReactionConfig.SPEC.save();
-        ElementalReactionConfig.refreshCache();
+        ElementalFireNatureReactionsConfig.SPORE_ENTITY_BLACKLIST.set(currentList);
+        ElementalFireNatureReactionsConfig.SPEC.save();
+        ElementalFireNatureReactionsConfig.refreshCache();
 
         context.getSource().sendSuccess(() -> Component.translatable("command.elementalcraft.spore.blacklist.removed", entityId)
                 .withStyle(ChatFormatting.GREEN), true);
@@ -136,7 +136,7 @@ public class SporeBlacklistCommand {
      * List current blacklist.
      */
     private static int listEntities(CommandContext<CommandSourceStack> context) {
-        List<? extends String> list = ElementalReactionConfig.cachedSporeBlacklist;
+        List<? extends String> list = ElementalFireNatureReactionsConfig.cachedSporeBlacklist;
         CommandSourceStack source = context.getSource();
 
         if (list.isEmpty()) {

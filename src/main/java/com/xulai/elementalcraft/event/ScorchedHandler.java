@@ -1,7 +1,7 @@
 package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
-import com.xulai.elementalcraft.config.ElementalReactionConfig;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.ElementType;
@@ -36,7 +36,7 @@ public class ScorchedHandler {
         if (target.level().isClientSide) return;
 
         String entityId = ForgeRegistries.ENTITY_TYPES.getKey(target.getType()).toString();
-        if (ElementalReactionConfig.cachedScorchedBlacklist.contains(entityId)) {
+        if (ElementalFireNatureReactionsConfig.cachedScorchedBlacklist.contains(entityId)) {
             return;
         }
 
@@ -56,9 +56,9 @@ public class ScorchedHandler {
         data.putInt(NBT_SCORCHED_TICKS, duration);
         data.putInt(NBT_SCORCHED_STRENGTH, fireStrength);
         
-        data.putLong(NBT_SCORCHED_COOLDOWN, gameTime + duration + ElementalReactionConfig.scorchedCooldown);
+        data.putLong(NBT_SCORCHED_COOLDOWN, gameTime + duration + ElementalFireNatureReactionsConfig.scorchedCooldown);
 
-        target.setSecondsOnFire((int) ElementalReactionConfig.scorchedBurningLockDuration);
+        target.setSecondsOnFire((int) ElementalFireNatureReactionsConfig.scorchedBurningLockDuration);
 
         if (target.level() instanceof ServerLevel serverLevel) {
             serverLevel.sendParticles(ParticleTypes.LAVA,
@@ -92,9 +92,9 @@ public class ScorchedHandler {
             return;
         }
 
-        int lockTicks = (int) (ElementalReactionConfig.scorchedBurningLockDuration * 20);
+        int lockTicks = (int) (ElementalFireNatureReactionsConfig.scorchedBurningLockDuration * 20);
         if (entity.getRemainingFireTicks() < lockTicks) {
-            entity.setSecondsOnFire((int) ElementalReactionConfig.scorchedBurningLockDuration);
+            entity.setSecondsOnFire((int) ElementalFireNatureReactionsConfig.scorchedBurningLockDuration);
         }
 
         if (entity.tickCount % 20 == 0) {
@@ -140,7 +140,7 @@ public class ScorchedHandler {
         float dps = calculateScorchedDamage(fireStrength, entity);
         float totalRemainingDamage = (float) (remainingSeconds * dps);
         
-        float ratio = (float) ElementalReactionConfig.scorchedShockDamageRatio;
+        float ratio = (float) ElementalFireNatureReactionsConfig.scorchedShockDamageRatio;
         float shockDamage = totalRemainingDamage * ratio;
 
         if (shockDamage > 0.5f) {
@@ -163,22 +163,22 @@ public class ScorchedHandler {
     private static float calculateScorchedDamage(int fireStrength, LivingEntity target) {
         int resistPoints = ElementUtils.getDisplayResistance(target, ElementType.FIRE);
 
-        if (resistPoints >= ElementalReactionConfig.scorchedResistThreshold) {
+        if (resistPoints >= ElementalFireNatureReactionsConfig.scorchedResistThreshold) {
             return 0.0f;
         }
 
-        double base = ElementalReactionConfig.scorchedDamageBase;
-        int step = Math.max(1, ElementalReactionConfig.scorchedDamageScalingStep);
+        double base = ElementalFireNatureReactionsConfig.scorchedDamageBase;
+        int step = Math.max(1, ElementalFireNatureReactionsConfig.scorchedDamageScalingStep);
         double bonus = (double) fireStrength / step * 0.5;
         double rawDamage = base + bonus;
 
         if (target.fireImmune()) {
-            rawDamage *= ElementalReactionConfig.scorchedImmuneModifier;
+            rawDamage *= ElementalFireNatureReactionsConfig.scorchedImmuneModifier;
         }
 
         if (ElementUtils.getDisplayEnhancement(target, ElementType.NATURE) > 0 ||
                 ElementUtils.getDisplayResistance(target, ElementType.NATURE) > 0) {
-            rawDamage *= ElementalReactionConfig.scorchedNatureMultiplier;
+            rawDamage *= ElementalFireNatureReactionsConfig.scorchedNatureMultiplier;
         }
 
         int fireProtLevel = 0;
@@ -189,10 +189,10 @@ public class ScorchedHandler {
             genProtLevel += EnchantmentHelper.getItemEnchantmentLevel(Enchantments.ALL_DAMAGE_PROTECTION, stack);
         }
 
-        double denom = ElementalReactionConfig.enchantmentCalculationDenominator;
+        double denom = ElementalFireNatureReactionsConfig.enchantmentCalculationDenominator;
         
-        double fireProtReduction = (Math.min(fireProtLevel, denom) / denom) * ElementalReactionConfig.scorchedFireProtReduction;
-        double genProtReduction = (Math.min(genProtLevel, denom) / denom) * ElementalReactionConfig.scorchedGenProtReduction;
+        double fireProtReduction = (Math.min(fireProtLevel, denom) / denom) * ElementalFireNatureReactionsConfig.scorchedFireProtReduction;
+        double genProtReduction = (Math.min(genProtLevel, denom) / denom) * ElementalFireNatureReactionsConfig.scorchedGenProtReduction;
 
         rawDamage *= (1.0 - fireProtReduction);
         rawDamage *= (1.0 - genProtReduction);
