@@ -2,12 +2,14 @@ package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
+import net.minecraft.world.entity.LightningBolt;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.sound.ModSounds;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
+import com.xulai.elementalcraft.event.WetnessHandler;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
@@ -22,15 +24,22 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Vector3f;
 import java.util.Random;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.InputEvent;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import org.lwjgl.glfw.GLFW;
 
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
 public class StaticShockHandler {
     private static final Random RANDOM = new Random();
-    private static final String NBT_STATIC_STACKS = "EC_StaticStacks";
-    private static final String NBT_STATIC_TIMER = "EC_StaticTimer";
-    private static final String NBT_STATIC_DAMAGE_TIMER = "EC_StaticDamageTimer";
-    private static final String NBT_PARALYSIS_STACKS = "EC_ParalysisStacks";
-    private static final String NBT_PARALYSIS_TIMER = "EC_ParalysisTimer";
+
+    private static final String NBT_STATIC_STACKS = "ec_static_stacks";
+    private static final String NBT_STATIC_TIMER = "ec_static_timer";
+    private static final String NBT_STATIC_DAMAGE_TIMER = "ec_static_damage_timer";
+    private static final String NBT_PARALYSIS_STACKS = "ec_paralysis_stacks";
+    private static final String NBT_PARALYSIS_TIMER = "ec_paralysis_timer";
 
     @SubscribeEvent
     public static void onLivingDamage(LivingDamageEvent event) {
@@ -43,9 +52,10 @@ public class StaticShockHandler {
             clearStaticShock(target);
             return;
         }
-        // 检查攻击属性一致性：手上的物品必须有雷霆属性攻击附魔，且身上的装备有雷霆属性强化点数
         ElementType consistentElement = ElementUtils.getConsistentAttackElement(attacker);
-        if (consistentElement != ElementType.THUNDER) return;
+        if (consistentElement != ElementType.THUNDER) {
+            return;
+        }
         
         int thunderStrength = ElementUtils.getDisplayEnhancement(attacker, ElementType.THUNDER);
         int threshold = ElementalThunderFrostReactionsConfig.thunderStrengthThreshold;
@@ -87,11 +97,12 @@ public class StaticShockHandler {
         int addStacks = ElementalThunderFrostReactionsConfig.staticMaxStacksPerAttack;
         int newStacks = Math.min(maxStacks, currentStacks + addStacks);
         int durationPerStack = ElementalThunderFrostReactionsConfig.staticDurationPerStackTicks;
-        int adjustedDurationPerStack = Math.max(durationPerStack, 20);
-        int newTotalTicks = newStacks * adjustedDurationPerStack;
+        int addTicks = addStacks * durationPerStack;
+        int currentTimer = data.getInt(NBT_STATIC_TIMER);
+        int newTotalTicks = currentTimer + addTicks;
         data.putInt(NBT_STATIC_STACKS, newStacks);
         data.putInt(NBT_STATIC_TIMER, newTotalTicks);
-        data.putInt(NBT_STATIC_DAMAGE_TIMER, 0);
+        data.putInt(NBT_STATIC_DAMAGE_TIMER, data.getInt(NBT_STATIC_DAMAGE_TIMER));
         updateEffect(target, newStacks, newTotalTicks);
     }
 
@@ -99,12 +110,6 @@ public class StaticShockHandler {
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide) return;
-
-        if (entity.hasEffect(ModMobEffects.PARALYSIS.get())) {
-            entity.setJumping(false);
-            entity.setShiftKeyDown(false);
-            entity.setDeltaMovement(0, entity.getDeltaMovement().y, 0);
-        }
 
         int targetThunderResist = ElementUtils.getDisplayResistance(entity, ElementType.THUNDER);
         int immunityThreshold = ElementalThunderFrostReactionsConfig.staticResistImmunityThreshold;
@@ -121,12 +126,11 @@ public class StaticShockHandler {
             int remainingTicks = effectInstance.getDuration();
             int stacks = amplifier + 1;
             int durationPerStack = ElementalThunderFrostReactionsConfig.staticDurationPerStackTicks;
-            int adjustedDurationPerStack = Math.max(durationPerStack, 20);
             int maxStacks = ElementalThunderFrostReactionsConfig.staticMaxTotalStacks;
             stacks = Math.min(stacks, maxStacks);
-            int minRequiredTicks = stacks * adjustedDurationPerStack;
+            int minRequiredTicks = stacks * durationPerStack;
             if (remainingTicks < minRequiredTicks) {
-                stacks = Math.max(1, remainingTicks / adjustedDurationPerStack);
+                stacks = Math.max(1, remainingTicks / durationPerStack);
                 amplifier = stacks - 1;
             }
             data.putInt(NBT_STATIC_STACKS, stacks);
@@ -206,25 +210,14 @@ public class StaticShockHandler {
         updateEffect(entity, newStacks, totalTimer);
 
         if (entity.hasEffect(ModMobEffects.STATIC_SHOCK.get())) {
-            if (entity.tickCount % 2 == 0) {
+            if (entity.tickCount % 10 == 0) {
                 spawnStaticShockParticles(entity);
             }
         }
     }
 
     private static void triggerStaticDamage(LivingEntity entity) {
-        double minDmg = ElementalThunderFrostReactionsConfig.staticDamageMin;
-        double maxDmg = ElementalThunderFrostReactionsConfig.staticDamageMax;
-        if (maxDmg < minDmg) maxDmg = minDmg;
-        float damage = (float) (minDmg + RANDOM.nextDouble() * (maxDmg - minDmg));
-
-        ElementType element = ElementUtils.getElementType(entity);
-        if (element == ElementType.NATURE) {
-            damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageNatureMultiplier;
-        } else if (element == ElementType.FROST) {
-            damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageFrostMultiplier;
-        }
-
+        float damage = getRandomStaticDamage(entity);
         DamageSource damageSource = ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK);
         entity.hurt(damageSource, damage);
 
@@ -236,6 +229,21 @@ public class StaticShockHandler {
         if (entity.level() instanceof ServerLevel serverLevel) {
             spawnBurstParticles(serverLevel, entity);
         }
+    }
+
+    private static float getRandomStaticDamage(LivingEntity entity) {
+        double minDmg = ElementalThunderFrostReactionsConfig.staticDamageMin;
+        double maxDmg = ElementalThunderFrostReactionsConfig.staticDamageMax;
+        if (maxDmg < minDmg) maxDmg = minDmg;
+        float damage = (float) (minDmg + RANDOM.nextDouble() * (maxDmg - minDmg));
+
+        ElementType element = ElementUtils.getElementType(entity);
+        if (element == ElementType.NATURE) {
+            damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageNatureMultiplier;
+        } else if (element == ElementType.FROST) {
+            damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageFrostMultiplier;
+        }
+        return damage;
     }
 
     private static void spawnBurstParticles(ServerLevel level, LivingEntity entity) {
@@ -262,13 +270,11 @@ public class StaticShockHandler {
         int extraSteps = extraStrength / scalingStep;
         double totalChance = baseChance + (extraSteps * scalingChance);
         
-        // 添加潮湿效果加成
         if (wetnessLevel > 0) {
             double wetnessBonusChance = ElementalThunderFrostReactionsConfig.staticWetnessBonusChancePerLevel;
             totalChance += wetnessLevel * wetnessBonusChance;
         }
         
-        // 添加目标已有静电效果的叠加概率加成
         if (target.hasEffect(ModMobEffects.STATIC_SHOCK.get())) {
             totalChance += ElementalThunderFrostReactionsConfig.staticStackingBonusChance;
         }
@@ -329,17 +335,13 @@ public class StaticShockHandler {
         int interval = ElementalThunderFrostReactionsConfig.staticDamageIntervalTicks;
         if (interval < 1) interval = 1;
         int remainingTicks = totalTimer;
-        int remainingHits = (remainingTicks + interval - 1) / interval;
+        int remainingHits = (remainingTicks + interval - 1) / interval; 
 
         double totalDamage = 0;
-        double minDmg = ElementalThunderFrostReactionsConfig.staticDamageMin;
-        double maxDmg = ElementalThunderFrostReactionsConfig.staticDamageMax;
-        if (maxDmg < minDmg) maxDmg = minDmg;
         for (int i = 0; i < remainingHits; i++) {
-            double damage = minDmg + RANDOM.nextDouble() * (maxDmg - minDmg);
-            totalDamage += damage;
+            totalDamage += getRandomStaticDamage(entity);
         }
-        totalDamage *= 0.5;
+        totalDamage *= ElementalThunderFrostReactionsConfig.paralysisDamagePercentage;
 
         if (totalDamage > 0) {
             DamageSource damageSource = ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK);
@@ -350,9 +352,9 @@ public class StaticShockHandler {
         if (entity.hasEffect(ModMobEffects.WETNESS.get())) {
             entity.removeEffect(ModMobEffects.WETNESS.get());
         }
-        data.remove("EC_WetnessLevel");
-        data.remove("EC_WetnessRainTimer");
-        data.remove("EC_WetnessDecayTimer");
+        WetnessHandler.updateWetnessLevel(entity, 0);
+        data.remove(WetnessHandler.NBT_RAIN_TIMER);
+        data.remove(WetnessHandler.NBT_DECAY_TIMER);
 
         int paralysisDuration = ElementalThunderFrostReactionsConfig.paralysisDurationPerStackTicks * paralysisStacks;
         entity.addEffect(new MobEffectInstance(
@@ -388,6 +390,22 @@ public class StaticShockHandler {
             } else {
                 serverLevel.sendParticles(new DustParticleOptions(STATIC_PURPLE_BLUE, 1.2f),
                         x, y, z, 1, 0, 0, 0, 0);
+            }
+        }
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    @SubscribeEvent
+    public static void onKeyPress(InputEvent.Key event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && mc.player.hasEffect(ModMobEffects.PARALYSIS.get())) {
+            if (event.getKey() != GLFW.GLFW_KEY_ESCAPE) {
+                for (KeyMapping key : mc.options.keyMappings) {
+                    if (key.matches(event.getKey(), 0)) {
+                        key.setDown(false);
+                        break;
+                    }
+                }
             }
         }
     }

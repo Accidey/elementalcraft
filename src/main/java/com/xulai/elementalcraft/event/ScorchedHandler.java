@@ -31,12 +31,14 @@ public class ScorchedHandler {
     public static final String NBT_SCORCHED_TICKS = "ec_scorched_ticks";
     public static final String NBT_SCORCHED_STRENGTH = "ec_scorched_str";
     public static final String NBT_SCORCHED_COOLDOWN = "ec_scorched_cd";
+    public static final String NBT_SCORCHED_SOURCE_FIRE_POWER = "EC_ScorchedSourceFirePower";
 
-    public static void applyScorched(LivingEntity target, int fireStrength, int duration) {
+    public static void applyScorched(LivingEntity target, int fireStrength, int duration, int sourceFirePower) {
         if (target.level().isClientSide) return;
 
         String entityId = ForgeRegistries.ENTITY_TYPES.getKey(target.getType()).toString();
-        if (ElementalFireNatureReactionsConfig.cachedScorchedBlacklist.contains(entityId)) {
+        var blacklist = ElementalFireNatureReactionsConfig.cachedScorchedBlacklist;
+        if (blacklist != null && blacklist.contains(entityId)) {
             return;
         }
 
@@ -55,10 +57,11 @@ public class ScorchedHandler {
 
         data.putInt(NBT_SCORCHED_TICKS, duration);
         data.putInt(NBT_SCORCHED_STRENGTH, fireStrength);
-        
+        data.putInt(NBT_SCORCHED_SOURCE_FIRE_POWER, sourceFirePower);
         data.putLong(NBT_SCORCHED_COOLDOWN, gameTime + duration + ElementalFireNatureReactionsConfig.scorchedCooldown);
 
-        target.setSecondsOnFire((int) ElementalFireNatureReactionsConfig.scorchedBurningLockDuration);
+        int lockTicks = (int) (ElementalFireNatureReactionsConfig.scorchedBurningLockDuration * 20);
+        target.setRemainingFireTicks(lockTicks);
 
         if (target.level() instanceof ServerLevel serverLevel) {
             serverLevel.sendParticles(ParticleTypes.LAVA,
@@ -80,6 +83,8 @@ public class ScorchedHandler {
         if (ticks <= 0) {
             data.remove(NBT_SCORCHED_TICKS);
             data.remove(NBT_SCORCHED_STRENGTH);
+            data.remove(NBT_SCORCHED_SOURCE_FIRE_POWER);
+            data.remove(NBT_SCORCHED_COOLDOWN);
             return;
         }
 
@@ -87,14 +92,14 @@ public class ScorchedHandler {
         int fireStrength = data.getInt(NBT_SCORCHED_STRENGTH);
         ServerLevel level = (ServerLevel) entity.level();
 
-        if (entity.isInWater() && entity.isEyeInFluidType(net.minecraftforge.common.ForgeMod.WATER_TYPE.get())) {
+        if (entity.isInWater()) {
             triggerThermalShock(entity, level, ticks, fireStrength);
             return;
         }
 
         int lockTicks = (int) (ElementalFireNatureReactionsConfig.scorchedBurningLockDuration * 20);
         if (entity.getRemainingFireTicks() < lockTicks) {
-            entity.setSecondsOnFire((int) ElementalFireNatureReactionsConfig.scorchedBurningLockDuration);
+            entity.setRemainingFireTicks(lockTicks);
         }
 
         if (entity.tickCount % 20 == 0) {
@@ -144,13 +149,15 @@ public class ScorchedHandler {
         float shockDamage = totalRemainingDamage * ratio;
 
         if (shockDamage > 0.5f) {
-            entity.hurt(entity.damageSources().generic(), shockDamage);
+            entity.hurt(ModDamageTypes.source(level, ModDamageTypes.LAVA_MAGIC), shockDamage);
         }
 
         entity.clearFire();
         CompoundTag data = entity.getPersistentData();
         data.remove(NBT_SCORCHED_TICKS);
         data.remove(NBT_SCORCHED_STRENGTH);
+        data.remove(NBT_SCORCHED_SOURCE_FIRE_POWER);
+        data.remove(NBT_SCORCHED_COOLDOWN);
 
         level.playSound(null, entity.getX(), entity.getY(), entity.getZ(),
                 SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.5f, 2.0f);

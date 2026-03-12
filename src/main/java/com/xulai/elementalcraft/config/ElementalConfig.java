@@ -1,4 +1,3 @@
-// src/main/java/com/xulai/elementalcraft/config/ElementalConfig.java
 package com.xulai.elementalcraft.config;
 
 import com.xulai.elementalcraft.util.ElementType;
@@ -6,66 +5,41 @@ import net.minecraftforge.common.ForgeConfigSpec;
 import java.util.List;
 import java.util.Random;
 
-/**
- * ElementalConfig
- * <p>
- * 中文说明：
- * 属性锻造模组的核心配置文件类。
- * 定义了所有通用的模组配置项，包括怪物属性生成概率、伤害计算公式参数、
- * 属性克制关系、维度默认配置以及生物群系偏好等。
- * 包含静态缓存机制以优化频繁访问时的性能，支持热重载。
- * <p>
- * English Description:
- * Core configuration class for ElementalCraft.
- * Defines all general mod configurations, including mob attribute generation probabilities,
- * damage calculation parameters, elemental restraint relations, dimension defaults, and biome biases.
- * Includes a static caching mechanism to optimize performance during frequent access, supporting hot-reloading.
- */
 public final class ElementalConfig {
     public static final ForgeConfigSpec SPEC;
 
-    // ======================== Config Specs (ForgeConfigSpec Values) / 配置项定义 ========================
-
-    // Mob Generation Chances / 怪物生成概率配置
     public static final ForgeConfigSpec.DoubleValue MOB_ATTRIBUTE_CHANCE_HOSTILE;
     public static final ForgeConfigSpec.DoubleValue MOB_ATTRIBUTE_CHANCE_NEUTRAL;
     public static final ForgeConfigSpec.DoubleValue ATTACK_ATTRIBUTE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue COUNTER_RESIST_CHANCE;
 
-    // Attribute Value Distribution / 属性数值分布概率配置
     public static final ForgeConfigSpec.DoubleValue CHANCE_0_20;
     public static final ForgeConfigSpec.DoubleValue CHANCE_30_50;
     public static final ForgeConfigSpec.DoubleValue CHANCE_60_80;
     public static final ForgeConfigSpec.DoubleValue CHANCE_90_100;
 
-    // Values Per Level / 每级数值配置
     public static final ForgeConfigSpec.IntValue STRENGTH_PER_LEVEL;
     public static final ForgeConfigSpec.IntValue RESIST_PER_LEVEL;
 
-    // Damage & Scaling / 伤害与数值换算配置
     public static final ForgeConfigSpec.IntValue STRENGTH_PER_HALF_DAMAGE;
     public static final ForgeConfigSpec.IntValue RESIST_PER_HALF_REDUCTION;
     public static final ForgeConfigSpec.DoubleValue ELEMENTAL_DAMAGE_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue ELEMENTAL_RESISTANCE_MULTIPLIER;
     public static final ForgeConfigSpec.IntValue MAX_STAT_CAP;
 
-    // Restraints / 克制系统配置
     public static final ForgeConfigSpec.DoubleValue RESTRAINT_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue WEAK_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue RESTRAINT_MIN_DAMAGE_PERCENT;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> ELEMENT_RESTRAINTS;
 
-    // Forced & Blacklist / 强制与黑名单配置
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> FORCED_ENTITIES;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLACKLISTED_ENTITIES;
 
-    // Dimension Defaults / 维度默认配置
     public static final ForgeConfigSpec.BooleanValue NETHER_DIMENSION_FORCED_FIRE;
     public static final ForgeConfigSpec.IntValue NETHER_FIRE_POINTS;
     public static final ForgeConfigSpec.BooleanValue END_DIMENSION_FORCED_THUNDER;
     public static final ForgeConfigSpec.IntValue END_THUNDER_POINTS;
 
-    // Biome Bias / 群系偏好配置
     public static final ForgeConfigSpec.DoubleValue HOT_FIRE_BIAS;
     public static final ForgeConfigSpec.DoubleValue COLD_FROST_BIAS;
     public static final ForgeConfigSpec.DoubleValue FOREST_NATURE_BIAS;
@@ -77,7 +51,6 @@ public final class ElementalConfig {
     static {
         ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
-        // ======================== Mob Attribute Generation System / 怪物属性生成系统 ========================
         BUILDER.comment("Mob Attribute Generation System", "怪物属性生成系统")
                 .push("mob_attribute_generation");
 
@@ -110,7 +83,6 @@ public final class ElementalConfig {
 
         BUILDER.pop();
 
-        // ======================== Attribute Value System / 属性数值系统 ========================
         BUILDER.comment("Attribute Value System", "属性数值系统")
                 .push("attribute_values");
 
@@ -126,7 +98,6 @@ public final class ElementalConfig {
 
         BUILDER.pop();
 
-        // ======================== Elemental Damage System / 属性伤害系统 ========================
         BUILDER.comment("Elemental Damage System", "属性伤害系统")
                 .push("elemental_damage");
 

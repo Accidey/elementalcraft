@@ -1,6 +1,7 @@
 package com.xulai.elementalcraft.potion;
 
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.util.EffectHelper;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.LivingEntity;
@@ -25,40 +26,38 @@ public class FlammableSporesEffect extends MobEffect {
     }
 
     @Override
-    public void applyEffectTick(LivingEntity pLivingEntity, int pAmplifier) {
-        if (!pLivingEntity.level().isClientSide) {
+    public void applyEffectTick(LivingEntity entity, int amplifier) {
+        if (!entity.level().isClientSide) {
             int damageInterval = ElementalFireNatureReactionsConfig.sporeDamageInterval;
             if (damageInterval <= 0) {
                 damageInterval = 100;
             }
-            
-            if (pLivingEntity.tickCount % damageInterval == 0) {
+            if (entity.tickCount % damageInterval == 0) {
                 double damagePerStack = ElementalFireNatureReactionsConfig.sporePoisonDamage;
-
                 if (damagePerStack > 0) {
                     float totalDamage = (float) damagePerStack;
-
-                    pLivingEntity.hurt(pLivingEntity.damageSources().wither(), totalDamage);
+                    entity.hurt(entity.damageSources().wither(), totalDamage);
                 }
+            }
+
+            if (entity.tickCount % 2 == 0) {
+                EffectHelper.playSporeAmbient(entity);
             }
         }
     }
 
     @Override
     public boolean isDurationEffectTick(int pDuration, int pAmplifier) {
-        return true;
+        return true; 
     }
 
     @Override
     public double getAttributeModifierValue(int pAmplifier, AttributeModifier pModifier) {
         if (pModifier.getId().equals(SPEED_MODIFIER_UUID) || pModifier.getId().equals(ATTACK_SPEED_MODIFIER_UUID)) {
             double reductionPerStack = ElementalFireNatureReactionsConfig.sporeSpeedReduction;
-
             double totalReduction = -reductionPerStack * (pAmplifier + 1);
-
             return Math.max(totalReduction, -0.95);
         }
-
         return super.getAttributeModifierValue(pAmplifier, pModifier);
     }
 }

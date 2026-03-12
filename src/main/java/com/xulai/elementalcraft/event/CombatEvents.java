@@ -4,6 +4,7 @@ import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalConfig;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.EffectHelper;
 import com.xulai.elementalcraft.util.ElementType;
@@ -17,6 +18,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrownTrident;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.sounds.SoundEvents;
@@ -35,10 +37,11 @@ public class CombatEvents {
 
     private static final String NBT_WETNESS = "EC_WetnessLevel";
     private static final String NBT_LAST_DRY_TICK = "EC_LastSelfDryTick"; 
+    private static final String NBT_NATURE_ATTACK_COOLDOWN = "EC_NatureAttackCooldown";
     
     private static final Random RANDOM = new Random();
 
-    @SubscribeEvent(priority = EventPriority.HIGH)
+    @SubscribeEvent(priority = EventPriority.NORMAL)
     public static void onLivingDamage(LivingDamageEvent event) {
         if (event.getEntity().level().isClientSide) return;
 
@@ -99,8 +102,7 @@ public class CombatEvents {
             return;
         }
 
-        // Thunder Strike trigger conditions - 现在由 StaticShockHandler.onLivingDamage 处理
-        // 这里不再需要单独触发，因为 StaticShockHandler 会处理所有雷霆攻击
+        float fireVulnMultiplier = 1.0f;
 
         if (attackElement == ElementType.FIRE && target.hasEffect(Objects.requireNonNull(ModMobEffects.SPORES.get()))) {
             MobEffectInstance spore = target.getEffect(ModMobEffects.SPORES.get());
@@ -108,9 +110,7 @@ public class CombatEvents {
             
             if (stacks > 0) {
                 double vulnPerStack = ElementalFireNatureReactionsConfig.sporeFireVulnPerStack;
-                float vulnMultiplier = 1.0f + (float)(stacks * vulnPerStack);
-                currentDamage *= vulnMultiplier;
-                event.setAmount(currentDamage);
+                fireVulnMultiplier = 1.0f + (float)(stacks * vulnPerStack);
             }
         }
 
@@ -181,7 +181,7 @@ public class CombatEvents {
         }
 
         float wetnessMultiplier = 1.0f;
-        float maxCap = (float) ElementalFireNatureReactionsConfig.steamMaxReduction;
+        float maxCap = (float) ElementalFireNatureReactionsConfig.wetnessMaxReduction;
 
         if (wetnessLevel > 0) {
             if (attackElement == ElementType.FIRE) {
@@ -220,7 +220,8 @@ public class CombatEvents {
         float attackPart = rawElementalDamage
                 * (float) ElementalConfig.elementalDamageMultiplier
                 * wetnessMultiplier
-                * restraintMultiplier;
+                * restraintMultiplier
+                * fireVulnMultiplier;
 
         float finalElementalDmg;
         boolean isFloored = false;
@@ -260,16 +261,70 @@ public class CombatEvents {
 
         if (attackElement == ElementType.FIRE) {
             tryTriggerScorched(attacker, target, enhancementPoints);
+        } else if (attackElement == ElementType.NATURE) {
+            if (ElementUtils.getDisplayEnhancement(target, ElementType.THUNDER) > 0) {
+                long currentGameTime = attacker.level().getGameTime();
+                long cooldownEndTime = attacker.getPersistentData().getLong(NBT_NATURE_ATTACK_COOLDOWN);
+                if (currentGameTime < cooldownEndTime) {
+                    return;
+                }
+                
+                double baseChance = ElementalThunderFrostReactionsConfig.natureAttackTriggerBaseChance;
+                int thunderEnhance = ElementUtils.getDisplayEnhancement(target, ElementType.THUNDER);
+                int threshold = ElementalThunderFrostReactionsConfig.thunderEnhanceThreshold;
+                int steps = Math.max(0, (thunderEnhance - threshold) / threshold);
+                double bonusChance = steps * ElementalThunderFrostReactionsConfig.thunderEnhanceChancePerStep;
+                double totalChance = Math.min(1.0, baseChance + bonusChance);
+                
+                if (RANDOM.nextDouble() < totalChance) {
+                    LivingEntity reactionTarget = attacker;
+                    boolean attackerHasWetness = reactionTarget.hasEffect(ModMobEffects.WETNESS.get());
+                    
+                    if (reactionTarget.level() instanceof ServerLevel serverLevel) {
+                        LightningBolt lightning = net.minecraft.world.entity.EntityType.LIGHTNING_BOLT.create(serverLevel);
+                        if (lightning != null) {
+                            lightning.moveTo(reactionTarget.getX(), reactionTarget.getY(), reactionTarget.getZ());
+                            lightning.setDamage((float)ElementalThunderFrostReactionsConfig.counterLightningDamage);
+                            serverLevel.addFreshEntity(lightning);
+                        }
+                    }
+
+                    if (attackerHasWetness) {
+                        MobEffectInstance wetnessEffect = reactionTarget.getEffect(ModMobEffects.WETNESS.get());
+                        int wetnessStacks = wetnessEffect != null ? (wetnessEffect.getAmplifier() + 1) : 1;
+                        
+                        int maxParalysisStacks = ElementalThunderFrostReactionsConfig.paralysisMaxStacks;
+                        int paralysisStacks = Math.min(wetnessStacks, maxParalysisStacks);
+                        
+                        reactionTarget.addEffect(new MobEffectInstance(
+                            ModMobEffects.PARALYSIS.get(),
+                            ElementalThunderFrostReactionsConfig.paralysisDurationPerStackTicks * paralysisStacks,
+                            paralysisStacks - 1));
+                            
+                        reactionTarget.removeEffect(ModMobEffects.WETNESS.get());
+                    } else {
+                        int staticStacks = ElementalThunderFrostReactionsConfig.staticStacksWhenNoWetness;
+                        reactionTarget.addEffect(new MobEffectInstance(
+                            ModMobEffects.STATIC_SHOCK.get(),
+                            ElementalThunderFrostReactionsConfig.staticDurationPerStackTicks * staticStacks,
+                            staticStacks - 1));
+                    }
+                    
+                    reactionTarget.level().playSound(null, reactionTarget.getX(), reactionTarget.getY(), reactionTarget.getZ(),
+                            SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 1.0f, 1.0f);
+                    
+                    reactionTarget.getPersistentData().putLong(NBT_NATURE_ATTACK_COOLDOWN, 
+                            reactionTarget.level().getGameTime() + ElementalThunderFrostReactionsConfig.natureAttackCooldownTicks);
+                }
+            }
         }
     }
-
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onLivingAttack(LivingAttackEvent event) {
         if (event.getEntity().level().isClientSide) return;
         
         LivingEntity target = event.getEntity();
-        // 检查目标是否有麻痹效果
         if (target.hasEffect(ModMobEffects.PARALYSIS.get())) {
             event.setCanceled(true);
         }
@@ -298,7 +353,7 @@ public class CombatEvents {
 
         if (RANDOM.nextDouble() < totalChance) {
             int duration = ElementalFireNatureReactionsConfig.scorchedDuration;
-            ScorchedHandler.applyScorched(target, firePower, duration);
+            ScorchedHandler.applyScorched(target, firePower, duration, firePower);
 
             target.level().playSound(null, target.getX(), target.getY(), target.getZ(), 
                     SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0f, 0.8f);

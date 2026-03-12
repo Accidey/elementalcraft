@@ -32,17 +32,20 @@ public class ParalysisEffect extends MobEffect {
 
     public ParalysisEffect() {
         super(MobEffectCategory.HARMFUL, 0x808080);
-        this.addAttributeModifier(Attributes.MOVEMENT_SPEED, "7107DE5E-7CE8-4030-940E-514C1F160890", -0.99, AttributeModifier.Operation.MULTIPLY_TOTAL);
-        this.addAttributeModifier(Attributes.ATTACK_SPEED, "AF8B6E3F-3328-42ED-97BC-FBE9D9B99A20", -0.99, AttributeModifier.Operation.MULTIPLY_TOTAL);
+        this.addAttributeModifier(Attributes.MOVEMENT_SPEED, "7107DE5E-7CE8-4030-940E-514C1F160890", -1.0, AttributeModifier.Operation.MULTIPLY_TOTAL);
+        this.addAttributeModifier(Attributes.ATTACK_SPEED, "AF8B6E3F-3328-42ED-97BC-FBE9D9B99A20", -1.0, AttributeModifier.Operation.MULTIPLY_TOTAL);
     }
 
     @Override
     public void applyEffectTick(LivingEntity pLivingEntity, int pAmplifier) {
         if (!pLivingEntity.level().isClientSide) {
+            if (pLivingEntity.hasEffect(ModMobEffects.WETNESS.get())) {
+                pLivingEntity.removeEffect(ModMobEffects.WETNESS.get());
+            }
+            
             pLivingEntity.setJumping(false);
             pLivingEntity.setShiftKeyDown(false);
             pLivingEntity.setDeltaMovement(0, pLivingEntity.getDeltaMovement().y, 0);
-            // 取消游泳状态
             if (pLivingEntity.isSwimming()) {
                 pLivingEntity.setSwimming(false);
             }
@@ -180,12 +183,11 @@ public class ParalysisEffect extends MobEffect {
             paralysisStacks = maxParalysisStacks;
         }
 
-        // 计算剩余时间内能触发的静电伤害次数
         int durationPerStack = ElementalThunderFrostReactionsConfig.staticDurationPerStackTicks;
         int totalTimer = staticStacks * durationPerStack;
         int interval = ElementalThunderFrostReactionsConfig.staticDamageIntervalTicks;
         if (interval < 1) interval = 1;
-        int remainingHits = (totalTimer + interval - 1) / interval; // 向上取整
+        int remainingHits = (totalTimer + interval - 1) / interval; 
 
         double minDmg = ElementalThunderFrostReactionsConfig.staticDamageMin;
         double maxDmg = ElementalThunderFrostReactionsConfig.staticDamageMax;
@@ -194,7 +196,6 @@ public class ParalysisEffect extends MobEffect {
         double totalDamage = 0;
         for (int i = 0; i < remainingHits; i++) {
             double damage = minDmg + RANDOM.nextDouble() * (maxDmg - minDmg);
-            // 应用元素属性伤害修正
             ElementType element = ElementUtils.getElementType(target);
             if (element == ElementType.NATURE) {
                 damage *= ElementalThunderFrostReactionsConfig.staticDamageNatureMultiplier;
@@ -203,7 +204,7 @@ public class ParalysisEffect extends MobEffect {
             }
             totalDamage += damage;
         }
-        totalDamage *= 0.5; 
+        totalDamage *= ElementalThunderFrostReactionsConfig.paralysisDamagePercentage;
 
         if (totalDamage > 0) {
             target.hurt(target.damageSources().magic(), (float) totalDamage);
