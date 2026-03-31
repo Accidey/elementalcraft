@@ -1,0 +1,347 @@
+package com.xulai.elementalcraft.util;
+
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.AreaEffectCloud;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
+
+import java.util.List;
+import java.util.Random;
+
+@SuppressWarnings("null")
+public class EffectHelper {
+    private static final Random RANDOM = new Random();
+
+    // 常用颜色常量
+    private static final Vector3f SMOG_COLOR = new Vector3f(0.1f, 0.8f, 0.2f);
+    private static final Vector3f STATIC_PURPLE_BLUE = new Vector3f(0.5f, 0.2f, 1.0f);
+    private static final Vector3f DEEP_PURPLE = new Vector3f(0.3f, 0.0f, 0.6f);
+    private static final Vector3f LIGHT_PURPLE = new Vector3f(0.6f, 0.2f, 1.0f);
+    private static final Vector3f TOXIC_GREEN = new Vector3f(0.1f, 0.8f, 0.2f);
+
+    // ==================== 孢子相关特效 ====================
+
+    public static void playSporeContagion(Entity source, List<LivingEntity> targets, double radius) {
+        if (!(source.level() instanceof ServerLevel level)) return;
+        double circumference = 2 * Math.PI * radius;
+        int ringPoints = (int) (circumference * 10);
+        double angleStep = (Math.PI * 2) / ringPoints;
+        double baseY = source.getY();
+        for (int i = 0; i < ringPoints; i++) {
+            double angle = angleStep * i;
+            double x = source.getX() + Math.cos(angle) * radius;
+            double z = source.getZ() + Math.sin(angle) * radius;
+            if (RANDOM.nextFloat() < 0.5f) {
+                Vector3f deepColor = new Vector3f(0.05f, 0.5f, 0.1f);
+                double ox = (RANDOM.nextDouble() - 0.5) * 0.3;
+                double oz = (RANDOM.nextDouble() - 0.5) * 0.3;
+                level.sendParticles(new DustParticleOptions(deepColor, 2.0f),
+                        x + ox, baseY + 0.1, z + oz, 1, 0, 0, 0, 0);
+            }
+            if (RANDOM.nextFloat() < 0.3f) {
+                level.sendParticles(ParticleTypes.ENTITY_EFFECT,
+                        x, baseY + 0.2, z, 0, 0.2, 0.9, 0.2, 1.0);
+            }
+            if (RANDOM.nextFloat() < 0.2f) {
+                double sporeY = baseY + RANDOM.nextDouble() * 1.5;
+                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR,
+                        x, sporeY, z, 1, 0, 0, 0, 0.02);
+            }
+        }
+        for (LivingEntity target : targets) {
+            Vec3 start = source.position().add(0, source.getBbHeight() * 0.5, 0);
+            Vec3 end = target.position().add(0, target.getBbHeight() * 0.5, 0);
+            double dist = start.distanceTo(end);
+            int linePoints = (int) (dist * 4);
+            for (int j = 0; j <= linePoints; j++) {
+                double t = (double) j / linePoints;
+                double lx = Mth.lerp(t, start.x, end.x);
+                double ly = Mth.lerp(t, start.y, end.y);
+                double lz = Mth.lerp(t, start.z, end.z);
+                if (j % 2 == 0) {
+                    level.sendParticles(new DustParticleOptions(SMOG_COLOR, 0.8f), lx, ly, lz, 1, 0, 0, 0, 0);
+                } else {
+                    if (RANDOM.nextFloat() < 0.1f) {
+                        level.sendParticles(ParticleTypes.ENTITY_EFFECT, lx, ly, lz, 0, 0.2, 0.9, 0.2, 1.0);
+                    }
+                }
+            }
+        }
+    }
+
+    public static void playParalysisSpread(Entity source, List<LivingEntity> targets, double radius) {
+        if (!(source.level() instanceof ServerLevel level)) return;
+        double circumference = 2 * Math.PI * radius;
+        int ringPoints = (int) (circumference * 10);
+        double angleStep = (Math.PI * 2) / ringPoints;
+        double baseY = source.getY();
+        for (int i = 0; i < ringPoints; i++) {
+            double angle = angleStep * i;
+            double x = source.getX() + Math.cos(angle) * radius;
+            double z = source.getZ() + Math.sin(angle) * radius;
+            if (RANDOM.nextFloat() < 0.5f) {
+                double ox = (RANDOM.nextDouble() - 0.5) * 0.3;
+                double oz = (RANDOM.nextDouble() - 0.5) * 0.3;
+                level.sendParticles(new DustParticleOptions(DEEP_PURPLE, 2.0f),
+                        x + ox, baseY + 0.1, z + oz, 1, 0, 0, 0, 0);
+            }
+            if (RANDOM.nextFloat() < 0.3f) {
+                level.sendParticles(ParticleTypes.END_ROD,
+                        x, baseY + 0.2, z, 0, 0.2, 0.9, 0.2, 1.0);
+            }
+            if (RANDOM.nextFloat() < 0.2f) {
+                double sporeY = baseY + RANDOM.nextDouble() * 1.5;
+                level.sendParticles(ParticleTypes.END_ROD,
+                        x, sporeY, z, 1, 0, 0, 0, 0.02);
+            }
+        }
+        for (LivingEntity target : targets) {
+            Vec3 start = source.position().add(0, source.getBbHeight() * 0.5, 0);
+            Vec3 end = target.position().add(0, target.getBbHeight() * 0.5, 0);
+            double dist = start.distanceTo(end);
+            int linePoints = (int) (dist * 4);
+            for (int j = 0; j <= linePoints; j++) {
+                double t = (double) j / linePoints;
+                double lx = Mth.lerp(t, start.x, end.x);
+                double ly = Mth.lerp(t, start.y, end.y);
+                double lz = Mth.lerp(t, start.z, end.z);
+                if (j % 2 == 0) {
+                    level.sendParticles(new DustParticleOptions(LIGHT_PURPLE, 0.8f), lx, ly, lz, 1, 0, 0, 0, 0);
+                } else {
+                    if (RANDOM.nextFloat() < 0.1f) {
+                        level.sendParticles(ParticleTypes.END_ROD, lx, ly, lz, 0, 0.2, 0.9, 0.2, 1.0);
+                    }
+                }
+            }
+        }
+    }
+
+    public static void playSporeAmbient(Entity entity) {
+        if (!(entity.level() instanceof ServerLevel level)) return;
+        if (RANDOM.nextFloat() < 0.4f) {
+            double x = entity.getX() + (RANDOM.nextDouble() - 0.5) * entity.getBbWidth() * 1.2;
+            double y = entity.getY() + RANDOM.nextDouble() * entity.getBbHeight();
+            double z = entity.getZ() + (RANDOM.nextDouble() - 0.5) * entity.getBbWidth() * 1.2;
+            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR,
+                    x, y, z, 1, 0, 0, 0, 0.01);
+            if (RANDOM.nextFloat() < 0.05f) {
+                level.sendParticles(ParticleTypes.ENTITY_EFFECT,
+                        x, y, z, 0, 0.2, 0.9, 0.2, 1.0);
+            }
+        }
+    }
+
+    // ==================== 吸取效果 ====================
+
+    public static void playDrainEffect(Entity attacker, Entity target) {
+        if (!(attacker.level() instanceof ServerLevel level)) return;
+        Vec3 start = target.position().add(0, target.getBbHeight() * 0.5, 0);
+        Vec3 end = attacker.position().add(0, attacker.getBbHeight() * 0.5, 0);
+        Vec3 diff = end.subtract(start);
+        int points = (int) (diff.length() * 5);
+        for (int i = 0; i <= points; i++) {
+            double t = (double) i / points;
+            double x = Mth.lerp(t, start.x, end.x) + (RANDOM.nextGaussian() * 0.05);
+            double y = Mth.lerp(t, start.y, end.y) + (RANDOM.nextGaussian() * 0.05);
+            double z = Mth.lerp(t, start.z, end.z) + (RANDOM.nextGaussian() * 0.05);
+            level.sendParticles(ParticleTypes.COMPOSTER, x, y, z, 1, 0, 0, 0, 0);
+            if (i % 3 == 0) level.sendParticles(ParticleTypes.BUBBLE, x, y, z, 1, 0, 0.05, 0, 0);
+        }
+    }
+
+    // ==================== 爆炸与冲击波 ====================
+
+    public static void playToxicBlast(Level level, Vec3 pos, double radius) {
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        serverLevel.sendParticles(ParticleTypes.FLASH, pos.x, pos.y, pos.z, 1, 0, 0, 0, 0);
+        int particleCount = (int) (radius * 40);
+        for (int i = 0; i < particleCount; i++) {
+            double dx = (RANDOM.nextDouble() - 0.5) * 2.0 * radius;
+            double dy = (RANDOM.nextDouble() - 0.5) * 2.0 * radius;
+            double dz = (RANDOM.nextDouble() - 0.5) * 2.0 * radius;
+            if (dx * dx + dy * dy + dz * dz > radius * radius) continue;
+            double pX = pos.x + dx;
+            double pY = pos.y + dy;
+            double pZ = pos.z + dz;
+            double vX = dx * 0.2;
+            double vY = dy * 0.2;
+            double vZ = dz * 0.2;
+            float scale = 2.0f + RANDOM.nextFloat();
+            serverLevel.sendParticles(new DustParticleOptions(TOXIC_GREEN, scale),
+                    pX, pY, pZ, 0, vX, vY, vZ, 1.0);
+            if (RANDOM.nextFloat() < 0.4f) {
+                serverLevel.sendParticles(ParticleTypes.FLAME,
+                        pX, pY, pZ, 0, vX * 1.5, vY * 1.5, vZ * 1.5, 0.5);
+            }
+        }
+        serverLevel.sendParticles(ParticleTypes.LAVA, pos.x, pos.y + 0.5, pos.z, 8, 0.5, 0.5, 0.5, 0.2);
+    }
+
+    public static void playWildfireEjection(Entity center, double radius) {
+        if (!(center.level() instanceof ServerLevel level)) return;
+        level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.BONE_MEAL_USE, SoundSource.HOSTILE, 2.5F, 1.2F);
+        level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.BONE_MEAL_USE, SoundSource.HOSTILE, 2.5F, 1.3F);
+        level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.BONE_MEAL_USE, SoundSource.HOSTILE, 2.5F, 1.4F);
+        level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.CAMPFIRE_CRACKLE, SoundSource.HOSTILE, 1.5F, 1.0F);
+        level.playSound(null, center.getX(), center.getY(), center.getZ(), SoundEvents.LAVA_POP, SoundSource.HOSTILE, 1.0F, 1.2F);
+        playShockwave(center, radius);
+    }
+
+    public static void playShockwave(Entity center, double radius) {
+        if (!(center.level() instanceof ServerLevel level)) return;
+        int points = (int) (radius * 16);
+        double step = (Math.PI * 2) / points;
+        for (int i = 0; i < points; i++) {
+            double angle = step * i;
+            double x = center.getX() + Math.cos(angle) * radius;
+            double z = center.getZ() + Math.sin(angle) * radius;
+            double y = center.getY() + 0.2;
+            double vx = Math.cos(angle) * 0.25;
+            double vz = Math.sin(angle) * 0.25;
+            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, x, y + RANDOM.nextDouble() * 0.8, z, 2, vx * 0.5, 0.05, vz * 0.5, 0.02);
+            level.sendParticles(new DustParticleOptions(SMOG_COLOR, 1.5f + RANDOM.nextFloat()), x, y, z, 1, vx, 0.1, vz, 0.0);
+            if (RANDOM.nextFloat() < 0.4f) {
+                level.sendParticles(ParticleTypes.ENTITY_EFFECT, x, y, z, 0, vx * 1.2, 0.8, vz * 1.2, 1.0);
+            }
+            if (RANDOM.nextFloat() < 0.3f) {
+                level.sendParticles(ParticleTypes.FLAME, x, y, z, 1, vx * 1.5, 0.1, vz * 1.5, 0.05);
+            }
+        }
+    }
+
+    // ==================== 简单音效封装 ====================
+
+    public static void playSound(Level level, Entity pos, SoundEvent sound, float volume, float pitch) {
+        level.playSound(null, pos.getX(), pos.getY(), pos.getZ(), sound, SoundSource.PLAYERS, volume, pitch);
+    }
+
+    // ==================== 蒸汽效果 ====================
+
+    public static void playSteamCloudTick(ServerLevel level, AreaEffectCloud cloud, boolean isHighHeat) {
+        float radius = cloud.getRadius();
+        if (radius < 0.2f) return;
+        int count = Math.max(1, (int) (radius * 10.0));
+        for (int i = 0; i < count; i++) {
+            double angle = RANDOM.nextDouble() * Math.PI * 2;
+            double dist = Math.sqrt(RANDOM.nextDouble()) * radius;
+            double x = cloud.getX() + Math.cos(angle) * dist;
+            double z = cloud.getZ() + Math.sin(angle) * dist;
+            double y = cloud.getY();
+            double upSpeed = 0.05 + RANDOM.nextDouble() * 0.08;
+            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x, y, z, 0, 0, upSpeed, 0, 1.0);
+            if (isHighHeat) {
+                if (RANDOM.nextFloat() < 0.1f) level.sendParticles(ParticleTypes.FLAME, x, y, z, 0, 0, upSpeed * 0.8, 0, 0.5);
+                if (RANDOM.nextFloat() < 0.05f) level.sendParticles(ParticleTypes.LAVA, x, y, z, 0, 0, 0, 0, 0);
+            }
+        }
+    }
+
+    public static void playSteamBurst(ServerLevel level, LivingEntity target, float radius, int intensity, boolean isHighHeat) {
+        float volume = isHighHeat ? 0.8F : 0.6F;
+        float pitch = isHighHeat ? 1.0F : 1.2F;
+        if (isHighHeat && intensity >= 3) {
+            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, volume, 0.8F);
+        } else {
+            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, volume, pitch);
+        }
+        int count = (int) (Math.max(1.0, radius) * (isHighHeat ? 20 : 10) * intensity);
+        double speed = isHighHeat ? (0.05 + intensity * 0.02) : 0.05;
+        for (int i = 0; i < count; i++) {
+            double angle = RANDOM.nextDouble() * Math.PI * 2;
+            double dist = Math.sqrt(RANDOM.nextDouble()) * radius;
+            double x = target.getX() + Math.cos(angle) * dist;
+            double z = target.getZ() + Math.sin(angle) * dist;
+            double y = target.getY() + RANDOM.nextDouble() * target.getBbHeight() + 0.2;
+            if (isHighHeat) {
+                if (RANDOM.nextFloat() < 0.2f) level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x, y, z, 0, 0, 0.1, 0, speed);
+                if (RANDOM.nextFloat() < 0.3f) level.sendParticles(ParticleTypes.FLAME, x, y, z, 0, 0, 0.05, 0, speed * 0.5);
+                if (RANDOM.nextFloat() < 0.1f) level.sendParticles(ParticleTypes.LAVA, x, y, z, 0, 0, 0, 0, 0);
+                if (intensity >= 3 && RANDOM.nextFloat() < 0.1f) level.sendParticles(ParticleTypes.POOF, x, y, z, 0, 0, 0, 0, speed * 1.5);
+            } else {
+                if (RANDOM.nextBoolean()) level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x, y, z, 0, 0, 0.05, 0, speed * 0.5);
+            }
+        }
+    }
+
+    // ==================== 静电相关粒子效果（从 StaticShockHandler 移植） ====================
+
+    /**
+     * 生成静电爆发粒子（静电伤害时调用）
+     * @param level 服务端世界
+     * @param entity 目标实体
+     */
+    public static void playStaticBurst(ServerLevel level, LivingEntity entity) {
+        double x = entity.getX();
+        double y = entity.getY() + entity.getBbHeight() * 0.5;
+        double z = entity.getZ();
+        for (int i = 0; i < 8; i++) {
+            double offsetX = (RANDOM.nextDouble() - 0.5) * 0.5;
+            double offsetY = (RANDOM.nextDouble() - 0.5) * 0.5;
+            double offsetZ = (RANDOM.nextDouble() - 0.5) * 0.5;
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                    x + offsetX, y + offsetY, z + offsetZ,
+                    1, 0, 0, 0, 0);
+        }
+    }
+
+    /**
+     * 生成静电持续粒子（每10刻调用）
+     * @param level 服务端世界
+     * @param entity 目标实体
+     */
+    public static void playStaticShockParticles(ServerLevel level, LivingEntity entity) {
+        double radius = entity.getBbWidth() * 0.8 + 0.5;
+        for (int i = 0; i < 2 + RANDOM.nextInt(2); i++) {
+            double angle = RANDOM.nextDouble() * Math.PI * 2;
+            double heightOffset = (RANDOM.nextDouble() - 0.5) * entity.getBbHeight() * 1.2;
+            double x = entity.getX() + Math.cos(angle) * radius;
+            double z = entity.getZ() + Math.sin(angle) * radius;
+            double y = entity.getY() + entity.getBbHeight() / 2 + heightOffset;
+            if (RANDOM.nextBoolean()) {
+                level.sendParticles(ParticleTypes.END_ROD, x, y, z, 1, 0, 0, 0, 0.02);
+            } else {
+                level.sendParticles(new DustParticleOptions(STATIC_PURPLE_BLUE, 1.2f),
+                        x, y, z, 1, 0, 0, 0, 0);
+            }
+        }
+    }
+
+    public static void playStaticSplashParticles(ServerLevel level, LivingEntity entity) {
+        for (int i = 0; i < 5; i++) {
+            double x = entity.getX() + (RANDOM.nextDouble() - 0.5) * 0.6;
+            double y = entity.getY() + entity.getBbHeight() * 0.5 + (RANDOM.nextDouble() - 0.5) * 0.5;
+            double z = entity.getZ() + (RANDOM.nextDouble() - 0.5) * 0.6;
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y, z, 1, 0, 0, 0, 0);
+        }
+    }
+
+    public static void playStaticSplashParticles(ServerLevel level, LivingEntity source, LivingEntity target) {
+        Vec3 start = source.position().add(0, source.getBbHeight() * 0.5, 0);
+        Vec3 end = target.position().add(0, target.getBbHeight() * 0.5, 0);
+        double dist = start.distanceTo(end);
+        int linePoints = (int) (dist * 8); 
+        if (linePoints < 2) linePoints = 2;
+        for (int j = 0; j <= linePoints; j++) {
+            double t = (double) j / linePoints;
+            double lx = Mth.lerp(t, start.x, end.x);
+            double ly = Mth.lerp(t, start.y, end.y);
+            double lz = Mth.lerp(t, start.z, end.z);
+            if (j % 2 == 0) {
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, lx, ly, lz, 1, 0, 0, 0, 0.02);
+            } else {
+                if (RANDOM.nextFloat() < 0.3f) {
+                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, lx, ly, lz, 0, 0, 0, 0, 0.05);
+                }
+            }
+        }
+    }
+}
