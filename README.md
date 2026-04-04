@@ -196,8 +196,8 @@ Configuration files are located in `config/ElementalCraft/`:
 |------|---------|
 | **elementalcraft-common.toml** | Elemental weaknesses, damage multipliers, biome biases, enchantment bonuses, forced entities/blacklists, dimension attributes, etc. |
 | **elementalcraft-forced-items.toml** | Forced item attribute configuration (can be added via commands). |
-| **...-fire-nature-reactions.toml** | Fire and Nature reaction parameters. |
-| **...-thunder-frost-reactions.toml** | Thunder and Frost reaction parameters. |
+| **elementalcraft-fire-nature-reactions.toml** | Fire and Nature reaction parameters. |
+| **elementalcraft-thunder-frost-reactions.toml** | Thunder and Frost reaction parameters. |
 | **elementalcraft-visuals.toml** | Particle effect toggles, density, angles, speeds, etc. |
 
 Supports hot-loading: modifications are automatically refreshed after saving.
@@ -214,5 +214,3 @@ Supports hot-loading: modifications are automatically refreshed after saving.
 ✨ **Recommended Mods**:
 - **Improve Mobs**: It's recommended to disable "Mobs Can Get Enchantments" to avoid conflicts.
 - **Enchanting Infuser**: Change weapon/equipment attribute enchantments, flexibly adjust elemental configurations.
-
-Embrace the power of elements and forge your legendary gear!
