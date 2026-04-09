@@ -1,6 +1,7 @@
 package com.xulai.elementalcraft;
 
 import com.mojang.logging.LogUtils;
+import com.xulai.elementalcraft.client.ModParticles;
 import com.xulai.elementalcraft.command.ModCommands;
 import com.xulai.elementalcraft.config.ElementalConfig;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
@@ -51,6 +52,7 @@ public class ElementalCraft {
         ModEnchantments.register(modEventBus);
         ModMobEffects.register(modEventBus);
         ModSounds.register(modEventBus);
+        ModParticles.PARTICLE_TYPES.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::onConfigReload);

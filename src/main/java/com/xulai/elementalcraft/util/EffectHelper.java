@@ -21,14 +21,11 @@ import java.util.Random;
 public class EffectHelper {
     private static final Random RANDOM = new Random();
 
-    // 常用颜色常量
     private static final Vector3f SMOG_COLOR = new Vector3f(0.1f, 0.8f, 0.2f);
     private static final Vector3f STATIC_PURPLE_BLUE = new Vector3f(0.5f, 0.2f, 1.0f);
     private static final Vector3f DEEP_PURPLE = new Vector3f(0.3f, 0.0f, 0.6f);
     private static final Vector3f LIGHT_PURPLE = new Vector3f(0.6f, 0.2f, 1.0f);
     private static final Vector3f TOXIC_GREEN = new Vector3f(0.1f, 0.8f, 0.2f);
-
-    // ==================== 孢子相关特效 ====================
 
     public static void playSporeContagion(Entity source, List<LivingEntity> targets, double radius) {
         if (!(source.level() instanceof ServerLevel level)) return;
@@ -140,25 +137,39 @@ public class EffectHelper {
         }
     }
 
-    // ==================== 吸取效果 ====================
+public static void playDrainEffect(Entity attacker, Entity target) {
+    if (!(attacker.level() instanceof ServerLevel level)) return;
+    Vec3 start = target.position().add(0, target.getBbHeight() * 0.5, 0);
+    Vec3 end = attacker.position().add(0, attacker.getBbHeight() * 0.5, 0);
+    Vec3 diff = end.subtract(start);
+    Vec3 up = new Vec3(0, 1, 0); 
+    Vec3 perp = diff.cross(up).normalize(); 
+    double curvature = 1.2; 
+    Vec3 offset = up.scale(curvature).add(perp.scale(curvature * 0.5)); 
+    Vec3 control = start.add(diff.scale(0.5)).add(offset);
+    int points = (int) (diff.length() * 8);
+    points = Math.min(points, 120);
 
-    public static void playDrainEffect(Entity attacker, Entity target) {
-        if (!(attacker.level() instanceof ServerLevel level)) return;
-        Vec3 start = target.position().add(0, target.getBbHeight() * 0.5, 0);
-        Vec3 end = attacker.position().add(0, attacker.getBbHeight() * 0.5, 0);
-        Vec3 diff = end.subtract(start);
-        int points = (int) (diff.length() * 5);
-        for (int i = 0; i <= points; i++) {
-            double t = (double) i / points;
-            double x = Mth.lerp(t, start.x, end.x) + (RANDOM.nextGaussian() * 0.05);
-            double y = Mth.lerp(t, start.y, end.y) + (RANDOM.nextGaussian() * 0.05);
-            double z = Mth.lerp(t, start.z, end.z) + (RANDOM.nextGaussian() * 0.05);
-            level.sendParticles(ParticleTypes.COMPOSTER, x, y, z, 1, 0, 0, 0, 0);
-            if (i % 3 == 0) level.sendParticles(ParticleTypes.BUBBLE, x, y, z, 1, 0, 0.05, 0, 0);
+    for (int i = 0; i <= points; i++) {
+        double t = (double) i / points;
+        double x = Math.pow(1 - t, 2) * start.x + 2 * (1 - t) * t * control.x + Math.pow(t, 2) * end.x;
+        double y = Math.pow(1 - t, 2) * start.y + 2 * (1 - t) * t * control.y + Math.pow(t, 2) * end.y;
+        double z = Math.pow(1 - t, 2) * start.z + 2 * (1 - t) * t * control.z + Math.pow(t, 2) * end.z;
+
+        x += (RANDOM.nextGaussian() * 0.05);
+        y += (RANDOM.nextGaussian() * 0.05);
+        z += (RANDOM.nextGaussian() * 0.05);
+
+        if (i % 2 == 0) {
+            level.sendParticles(ParticleTypes.SPLASH, x, y, z, 1, 0, 0, 0, 0.2);
+        } else {
+            level.sendParticles(ParticleTypes.BUBBLE, x, y, z, 1, 0, 0, 0, 0.1);
+        }
+        if (i % 3 == 0) {
+            level.sendParticles(ParticleTypes.BUBBLE_POP, x, y, z, 1, 0, 0.02, 0, 0);
         }
     }
-
-    // ==================== 爆炸与冲击波 ====================
+}
 
     public static void playToxicBlast(Level level, Vec3 pos, double radius) {
         if (!(level instanceof ServerLevel serverLevel)) return;
@@ -218,13 +229,9 @@ public class EffectHelper {
         }
     }
 
-    // ==================== 简单音效封装 ====================
-
     public static void playSound(Level level, Entity pos, SoundEvent sound, float volume, float pitch) {
         level.playSound(null, pos.getX(), pos.getY(), pos.getZ(), sound, SoundSource.PLAYERS, volume, pitch);
     }
-
-    // ==================== 蒸汽效果 ====================
 
     public static void playSteamCloudTick(ServerLevel level, AreaEffectCloud cloud, boolean isHighHeat) {
         float radius = cloud.getRadius();
@@ -246,39 +253,20 @@ public class EffectHelper {
     }
 
     public static void playSteamBurst(ServerLevel level, LivingEntity target, float radius, int intensity, boolean isHighHeat) {
-        float volume = isHighHeat ? 0.8F : 0.6F;
-        float pitch = isHighHeat ? 1.0F : 1.2F;
-        if (isHighHeat && intensity >= 3) {
-            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, volume, 0.8F);
-        } else {
-            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, volume, pitch);
-        }
-        int count = (int) (Math.max(1.0, radius) * (isHighHeat ? 20 : 10) * intensity);
-        double speed = isHighHeat ? (0.05 + intensity * 0.02) : 0.05;
+        level.playSound(null, target.getX(), target.getY(), target.getZ(),
+                SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.6F, 1.2F);
+        int count = Math.max(1, (int) (Math.max(1.0, radius) * 5 * intensity));
+        double speed = 0.05;
         for (int i = 0; i < count; i++) {
             double angle = RANDOM.nextDouble() * Math.PI * 2;
             double dist = Math.sqrt(RANDOM.nextDouble()) * radius;
             double x = target.getX() + Math.cos(angle) * dist;
             double z = target.getZ() + Math.sin(angle) * dist;
             double y = target.getY() + RANDOM.nextDouble() * target.getBbHeight() + 0.2;
-            if (isHighHeat) {
-                if (RANDOM.nextFloat() < 0.2f) level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x, y, z, 0, 0, 0.1, 0, speed);
-                if (RANDOM.nextFloat() < 0.3f) level.sendParticles(ParticleTypes.FLAME, x, y, z, 0, 0, 0.05, 0, speed * 0.5);
-                if (RANDOM.nextFloat() < 0.1f) level.sendParticles(ParticleTypes.LAVA, x, y, z, 0, 0, 0, 0, 0);
-                if (intensity >= 3 && RANDOM.nextFloat() < 0.1f) level.sendParticles(ParticleTypes.POOF, x, y, z, 0, 0, 0, 0, speed * 1.5);
-            } else {
-                if (RANDOM.nextBoolean()) level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x, y, z, 0, 0, 0.05, 0, speed * 0.5);
-            }
+            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x, y, z, 0, 0, 0.05, 0, speed * 0.5);
         }
     }
 
-    // ==================== 静电相关粒子效果（从 StaticShockHandler 移植） ====================
-
-    /**
-     * 生成静电爆发粒子（静电伤害时调用）
-     * @param level 服务端世界
-     * @param entity 目标实体
-     */
     public static void playStaticBurst(ServerLevel level, LivingEntity entity) {
         double x = entity.getX();
         double y = entity.getY() + entity.getBbHeight() * 0.5;
@@ -293,11 +281,6 @@ public class EffectHelper {
         }
     }
 
-    /**
-     * 生成静电持续粒子（每10刻调用）
-     * @param level 服务端世界
-     * @param entity 目标实体
-     */
     public static void playStaticShockParticles(ServerLevel level, LivingEntity entity) {
         double radius = entity.getBbWidth() * 0.8 + 0.5;
         for (int i = 0; i < 2 + RANDOM.nextInt(2); i++) {
@@ -328,7 +311,7 @@ public class EffectHelper {
         Vec3 start = source.position().add(0, source.getBbHeight() * 0.5, 0);
         Vec3 end = target.position().add(0, target.getBbHeight() * 0.5, 0);
         double dist = start.distanceTo(end);
-        int linePoints = (int) (dist * 8); 
+        int linePoints = (int) (dist * 8);
         if (linePoints < 2) linePoints = 2;
         for (int j = 0; j <= linePoints; j++) {
             double t = (double) j / linePoints;

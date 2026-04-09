@@ -5,6 +5,7 @@ import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
+import com.xulai.elementalcraft.sound.ModSounds; 
 import com.xulai.elementalcraft.util.EffectHelper;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
@@ -34,6 +35,7 @@ import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
+import java.util.Objects;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -129,7 +131,11 @@ public class ReactionHandler {
             if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null && target.hasEffect(ModMobEffects.SPORES.get())
                     && !event.getSource().is(DamageTypeTags.IS_EXPLOSION)) {
 
-                if (firePower >= ElementalFireNatureReactionsConfig.blastTriggerThreshold) {
+                // 如果目标有潮湿效果且为自然属性生物，则跳过毒火爆燃，交由蒸汽反应处理
+                if (WetnessHandler.getWetnessLevel(target) > 0 && ElementUtils.getConsistentAttackElement(target) == ElementType.NATURE) {
+                    Debug.logToxicBlastSkippedForWetNature(target);
+                    // 不执行毒火爆燃，蒸汽反应会在 SteamReactionHandler 中触发
+                } else if (firePower >= ElementalFireNatureReactionsConfig.blastTriggerThreshold) {
                     triggerToxicBlast(level, attacker, target, firePower);
                 } else {
                     Debug.logBlastThresholdFailed(attacker, target, firePower);
@@ -148,6 +154,19 @@ public class ReactionHandler {
                 triggerWildfireEjection(target, attacker);
             }
         }
+    }
+
+    public static boolean isSporeImmune(LivingEntity target) {
+        String entityId = ForgeRegistries.ENTITY_TYPES.getKey(target.getType()).toString();
+        if (ElementalFireNatureReactionsConfig.cachedSporeBlacklist != null &&
+            ElementalFireNatureReactionsConfig.cachedSporeBlacklist.contains(entityId)) {
+            return true;
+        }
+        double natureResistance = ElementUtils.getDisplayResistance(target, ElementType.NATURE);
+        if (natureResistance >= ElementalFireNatureReactionsConfig.natureImmunityThreshold) {
+            return true;
+        }
+        return false;
     }
 
     public static void stackSporeEffect(LivingEntity target, int layersToAdd) {
@@ -172,6 +191,8 @@ public class ReactionHandler {
         MobEffectInstance currentEffect = target.getEffect(ModMobEffects.SPORES.get());
         int currentAmp = (currentEffect != null) ? currentEffect.getAmplifier() : -1;
         int currentStacks = currentAmp + 1;
+
+        boolean isNewEffect = (currentEffect == null);
 
         int maxStacks = ElementalFireNatureReactionsConfig.sporeMaxStacks;
 
@@ -199,6 +220,12 @@ public class ReactionHandler {
 
         if (newStacks > 0) {
             target.addEffect(new MobEffectInstance(ModMobEffects.SPORES.get(), durationTicks, newStacks - 1));
+
+            if (isNewEffect && !target.level().isClientSide) {
+                target.level().playSound(null, target.getX(), target.getY(), target.getZ(),
+                        ModSounds.SPORE_GAIN.get(), net.minecraft.sounds.SoundSource.PLAYERS,
+                        1.0F, 1.0F);
+            }
 
             if (target.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
                 int sourceFirePower = target.getPersistentData().getInt(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
@@ -301,7 +328,8 @@ public class ReactionHandler {
         setCooldown(attacker, NBT_DRAIN_COOLDOWN, ElementalFireNatureReactionsConfig.natureDrainCooldown);
 
         EffectHelper.playDrainEffect(attacker, target);
-        EffectHelper.playSound(target.level(), attacker, SoundEvents.ZOMBIE_VILLAGER_CONVERTED, 0.5f, 1.5f);
+
+        EffectHelper.playSound(target.level(), attacker, Objects.requireNonNull(SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT), 2.0f, 1.2f);
     }
 
     private static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower) {
@@ -322,7 +350,7 @@ public class ReactionHandler {
             int scorchDuration = (int) (ElementalFireNatureReactionsConfig.blastScorchBase * 20);
             int damageStrength = (int) (firePower * ElementalFireNatureReactionsConfig.blastWeakIgniteMult);
 
-            ScorchedHandler.applyScorched(target, damageStrength, scorchDuration, (int) firePower);
+            ScorchedHandler.applyScorched(target, attacker, damageStrength, scorchDuration, (int) firePower);
             EffectHelper.playSound(level, target, SoundEvents.FIRECHARGE_USE, 1.0f, 1.2f);
             Debug.logToxicBlastWeak(target, scorchDuration, damageStrength);
         } else {
@@ -394,7 +422,7 @@ public class ReactionHandler {
 
                         entity.hurt(ModDamageTypes.source(level, ModDamageTypes.LAVA_MAGIC, killCredit), finalDamage);
 
-                        ScorchedHandler.applyScorched(entity, (int) firePower, scorchDuration, (int) firePower);
+                        ScorchedHandler.applyScorched(entity, killCredit, (int) firePower, scorchDuration, (int) firePower);
                         affectedCount++;
                     }
 
@@ -554,6 +582,12 @@ public class ReactionHandler {
                     String.format("%s 未达到引爆阈值：赤焰强化 %.1f < %d",
                             attacker.getName().getString(), firePower,
                             ElementalFireNatureReactionsConfig.blastTriggerThreshold));
+        }
+
+        private static void logToxicBlastSkippedForWetNature(LivingEntity target) {
+            GlobalDebugLogger.log(target.level(), "毒火爆燃",
+                    String.format("由于目标 %s 有潮湿效果且为自然属性，跳过毒火爆燃，转由蒸汽反应处理",
+                            target.getName().getString()));
         }
 
         private static void logWildfireCheck(LivingEntity target, double naturePower, boolean isNature, boolean hasScorched, boolean cooldownOk, boolean powerOk) {

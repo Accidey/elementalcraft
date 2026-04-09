@@ -112,7 +112,6 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue SCORCHED_CHANCE_PER_POINT;
     public static final ForgeConfigSpec.IntValue SCORCHED_DURATION;
     public static final ForgeConfigSpec.IntValue SCORCHED_COOLDOWN;
-    public static final ForgeConfigSpec.DoubleValue SCORCHED_BURNING_LOCK_DURATION;
     public static final ForgeConfigSpec.DoubleValue SCORCHED_DAMAGE_BASE;
     public static final ForgeConfigSpec.IntValue SCORCHED_DAMAGE_SCALING_STEP;
     public static final ForgeConfigSpec.IntValue SCORCHED_RESIST_THRESHOLD;
@@ -120,7 +119,8 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue SCORCHED_FIRE_PROT_REDUCTION;
     public static final ForgeConfigSpec.DoubleValue SCORCHED_SHOCK_DAMAGE_RATIO;
     public static final ForgeConfigSpec.DoubleValue SCORCHED_GEN_PROT_REDUCTION;
-    public static final ForgeConfigSpec.DoubleValue SCORCHED_NATURE_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue SCORCHED_NATURE_DURATION_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue SCORCHED_FROST_DURATION_MULTIPLIER;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SCORCHED_ENTITY_BLACKLIST;
 
     static {
@@ -163,7 +163,7 @@ public class ElementalFireNatureReactionsConfig {
                 .defineInRange("wetness_potion_add_level", 1, 1, 100);
         WETNESS_DRYING_THRESHOLD = BUILDER
                 .comment("瞬间蒸发1层潮湿所需的赤焰属性强化点数阈值。",
-                        "Threshold of Fire Attribute points required to instantly evaporate 1 layer of Wetness.")
+                        "Threshold of Fire  points required to instantly evaporate 1 layer of Wetness.")
                 .defineInRange("wetness_drying_threshold", 20, 1, 1000);
         WETNESS_SELF_DRYING_DAMAGE_PENALTY = BUILDER
                 .comment("赤焰生物自我蒸干潮湿时，造成的伤害降低比例。(0.3 = 降低30%)",
@@ -197,19 +197,22 @@ public class ElementalFireNatureReactionsConfig {
         BUILDER.pop();
         BUILDER.pop();
 
+        // ========== 蒸汽反应区块 ==========
         BUILDER.push("steam_reaction");
         STEAM_REACTION_ENABLED = BUILDER
-                .comment("是否开启蒸汽反应机制（水火相遇产生蒸汽）？",
-                        "Whether to enable the Steam Reaction mechanism (Water meets Fire).")
+                .comment("是否开启蒸汽反应机制（赤焰属性与冰霜属性或潮湿目标相遇产生蒸汽）？",
+                        "Whether to enable the Steam Reaction mechanism (Fire meets Frost or Wetness).")
                 .define("steam_reaction_enabled", true);
         STEAM_HIGH_HEAT_MAX_LEVEL = BUILDER
-                .comment("高温蒸汽云（火攻水）的最高等级。",
-                        "Maximum level for High-Heat Steam clouds (Fire attacks Water).")
+                .comment("高温蒸汽云（赤焰属性攻击潮湿目标）的最高等级。",
+                        "Maximum level for High-Heat Steam clouds (Fire  attacks Wetness).")
                 .defineInRange("steam_high_heat_max_level", 5, 1, 10000);
         STEAM_LOW_HEAT_MAX_LEVEL = BUILDER
-                .comment("低温蒸汽云（冰攻火）的最高等级。",
-                        "Maximum level for Low-Heat Steam clouds (Frost attacks Fire).")
+                .comment("低温蒸汽云（冰霜属性攻击赤焰属性目标）的最高等级。",
+                        "Maximum level for Low-Heat Steam clouds (Frost  attacks Fire ).")
                 .defineInRange("steam_low_heat_max_level", 5, 1, 10000);
+
+        // 云属性子区块
         BUILDER.push("cloud_properties");
         STEAM_CLOUD_RADIUS = BUILDER
                 .comment("蒸汽云的基础半径（格）。",
@@ -241,14 +244,21 @@ public class ElementalFireNatureReactionsConfig {
                 .defineInRange("steam_cloud_height_ceiling", 3.0, 0.0, 16.0);
         BUILDER.pop();
 
+        // 冷凝逻辑子区块
         BUILDER.push("condensation_logic");
         STEAM_CONDENSATION_STEP_FROST = BUILDER
-                .comment("产生低温蒸汽时，提升一级蒸汽等级所需的冰霜属性强化点数。",
-                        "Frost attribute points required to increase Low-Heat Steam level by one.")
+                .comment("冰霜属性强化点数对蒸汽等级的影响步长。",
+                        "在低温蒸汽中，攻击者每拥有这么多冰霜属性强化点数，蒸汽等级增加1。",
+                        "Frost  points required to increase steam level by one.",
+                        "In Low-Heat Steam : each multiple of this value adds 1 level.")
                 .defineInRange("steam_condensation_step_frost", 20, 1, 10000);
         STEAM_CONDENSATION_STEP_FIRE = BUILDER
-                .comment("产生高温蒸汽时，提升一级蒸汽等级所需的赤焰属性强化点数。",
-                        "Fire attribute points required to increase High-Heat Steam level by one.")
+                .comment("赤焰属性强化点数对蒸汽等级的影响步长。",
+                        "在高温蒸汽云中，攻击者每拥有这么多赤焰属性强化点数，蒸汽等级增加1。",
+                        "在低温蒸汽云中，目标每拥有这么多赤焰属性强化点数，蒸汽等级增加1（目标为赤焰属性时）。",
+                        "Fire  points required to increase steam level by one.",
+                        "In High-Heat Steam : each multiple of this value adds 1 level.",
+                        "In Low-Heat Steam: each multiple of this value adds 1 level (when target is Fire).")
                 .defineInRange("steam_condensation_step_fire", 20, 1, 10000);
         STEAM_CONDENSATION_DELAY = BUILDER
                 .comment("在低温蒸汽里待多久（Tick）才会获得潮湿效果？",
@@ -268,23 +278,33 @@ public class ElementalFireNatureReactionsConfig {
                 .defineInRange("steam_spore_growth_rate", 20, 1, 6000);
         BUILDER.pop();
 
+        // 烫伤伤害子区块
         BUILDER.push("scalding_damage");
         STEAM_SCALDING_DAMAGE = BUILDER
                 .comment("高温蒸汽每秒造成的基础烫伤伤害。",
                         "Base scalding damage per second from High-Heat Steam.")
                 .defineInRange("steam_scalding_damage", 1.0, 0.0, 10000.0);
         STEAM_DAMAGE_SCALE_PER_LEVEL = BUILDER
-                .comment("蒸汽等级每升一级，烫伤伤害增加的比例。(0.2 = +20%)",
-                        "Percentage increase in scalding damage per steam level. (0.2 = +20%)")
+               .comment("蒸汽等级每升一级，烫伤伤害增加的比例（1级无加成）。例如：0.2 = 每升一级+20%，2级为120%，3级为140%",
+                        "Percentage increase per steam level (level 1 has no bonus). e.g., 0.2 = +20% per level, level 2 = 120%, level 3 = 140%")
                 .defineInRange("steam_damage_scale_per_level", 0.2, 0.0, 10.0);
         STEAM_SCALDING_MULTIPLIER_WEAKNESS = BUILDER
-                .comment("冰霜/自然属性生物受到高温蒸汽伤害的倍率。",
-                        "Damage multiplier for Frost/Nature attribute entities in High-Heat Steam.")
+                .comment("冰霜/自然属性生物受到高温蒸汽伤害的**乘法倍率**。"
+                                + "该倍率作用于计算完蒸汽等级加成后的烫伤伤害（最终伤害再乘以此值）。"
+                                + "例：1.5 = 造成 150% 的蒸汽烫伤伤害。与孢子倍率乘算叠加。",
+                                "Multiplicative damage multiplier for Frost/Nature entities. "
+                                + "Applied after steam level scaling (multiplies the final scalding damage). "
+                                + "e.g., 1.5 = 150% scalding damage. Stacks multiplicatively with spore multiplier.")
                 .defineInRange("steam_scalding_multiplier_weakness", 1.5, 1.0, 1000.0);
+
         STEAM_SCALDING_MULTIPLIER_SPORE = BUILDER
-                .comment("携带易燃孢子的生物受到蒸汽烫伤伤害的倍率。",
-                        "Damage multiplier for Flammable Spore infected entities in steam.")
-                .defineInRange("steam_scalding_multiplier_spore", 1.5, 1.0, 1000.0);
+                .comment("携带易燃孢子的生物受到蒸汽烫伤伤害的**乘法倍率**。"
+                                + "该倍率作用于计算完蒸汽等级加成后的烫伤伤害（最终伤害再乘以此值）。"
+                                + "例：1.5 = 造成 150% 的蒸汽烫伤伤害。与弱点倍率乘算叠加。",
+                                "Multiplicative damage multiplier for entities with Flammable Spores. "
+                                + "Applied after steam level scaling. "
+                                + "e.g., 1.5 = 150% scalding damage. Stacks multiplicatively with weakness multiplier.")
+        .defineInRange("steam_scalding_multiplier_spore", 1.5, 1.0, 1000.0);
         STEAM_IMMUNITY_THRESHOLD = BUILDER
                 .comment("完全免疫蒸汽烫伤所需的赤焰抗性点数。",
                         "Fire Resistance points required to be completely immune to steam scalding.")
@@ -293,20 +313,17 @@ public class ElementalFireNatureReactionsConfig {
                 .comment("蒸汽烫伤免疫黑名单（填入实体ID）。",
                         "Steam scalding immunity blacklist (Entity IDs).")
                 .defineListAllowEmpty("steam_immunity_blacklist", List.of(), o -> o instanceof String);
-        STEAM_MAX_REDUCTION = BUILDER
-                .comment("全局伤害修正（增伤或减伤）的上限比例。(0.9 = 90%)",
-                        "Global cap for damage modification (increase or reduction). (0.9 = 90%)")
-                .defineInRange("steam_max_reduction", 0.9, 0.0, 1.0);
         BUILDER.pop();
 
+        // 触发逻辑子区块
         BUILDER.push("trigger_logic");
         STEAM_TRIGGER_THRESHOLD_FIRE = BUILDER
                 .comment("攻击时，触发高温蒸汽所需的最小赤焰属性强化点数。",
-                        "Minimum Fire attribute points required to trigger High-Heat Steam (evaporate water/ice).")
+                        "Minimum Fire  points required to trigger High-Heat Steam (evaporate water/ice).")
                 .defineInRange("fire_trigger_threshold", 20, 0, 1000);
         STEAM_TRIGGER_THRESHOLD_FROST = BUILDER
                 .comment("攻击时，触发低温蒸汽所需的最小冰霜属性强化点数。",
-                        "Minimum Frost attribute points required to trigger Low-Heat Steam (cool down fire).")
+                        "Minimum Frost  points required to trigger Low-Heat Steam (cool down fire).")
                 .defineInRange("frost_trigger_threshold", 20, 0, 1000);
         STEAM_TRIGGER_COOLDOWN = BUILDER
                 .comment("触发蒸汽反应后的冷却时间（Tick）。",
@@ -325,8 +342,13 @@ public class ElementalFireNatureReactionsConfig {
                         "无论附魔提供多少减伤，它们至少要承受原始伤害的这一比例。（0.1 = 10%）",
                         "Minimum damage floor ratio for vulnerable entities (Frost/Nature), regardless of resistance. (0.1 = 10%)")
                 .defineInRange("damage_floor_ratio", 0.1, 0.0, 1.0);
+                        STEAM_MAX_REDUCTION = BUILDER
+                .comment("蒸汽烫伤减伤上限比例。(0.9 = 90%)",
+                        "Maximum damage reduction for steam scalding. (0.9 = 90%)")
+                .defineInRange("steam_max_reduction", 0.9, 0.0, 1.0);
         BUILDER.pop();
-        BUILDER.pop();
+
+        BUILDER.pop(); // 退出 steam_reaction
 
         BUILDER.comment("Scorched Mechanic Configuration",
                 "灼烧机制配置 - 一种无法轻易熄灭的强力燃烧。",
@@ -334,16 +356,22 @@ public class ElementalFireNatureReactionsConfig {
                 .push("scorched_mechanic");
         SCORCHED_TRIGGER_THRESHOLD = BUILDER
                 .comment("攻击触发“灼烧”效果所需的最小赤焰属性强化点数。",
-                        "Minimum Fire attribute points required to trigger 'Scorched' effect on attack.")
+                        "Minimum Fire  points required to trigger 'Scorched' effect on attack.")
                 .defineInRange("scorched_trigger_threshold", 20, 1, 10000);
         SCORCHED_BASE_CHANCE = BUILDER
                 .comment("触发灼烧的基础概率。(0.2 = 20%)",
                         "Base chance to trigger Scorched effect. (0.2 = 20%)")
                 .defineInRange("scorched_base_chance", 0.2, 0.0, 1.0);
         SCORCHED_CHANCE_PER_POINT = BUILDER
-                .comment("每点赤焰属性增加的触发概率。(0.001 = 0.1%)",
-                        "Chance increase per Fire attribute point. (0.001 = 0.1%)")
-                .defineInRange("scorched_chance_per_point", 0.001, 0.0, 0.1);
+                .comment("每点赤焰属性额外增加的灼烧触发概率（加法叠加）。",
+                                                         "总概率 = scorched_base_chance + (赤焰属性点数 × scorched_chance_per_point)。",
+                                                         "最终概率不会超过 1.0（100%）。",
+                                                         "例如：基础概率 0.2，每点加成 0.001，则拥有 100 点赤焰属性时总概率为 0.2 + 0.1 = 0.3（30%）。",
+                                                         "Chance increase per Fire point (additive).",
+                                                         "Total chance = scorched_base_chance + (Fire points × scorched_chance_per_point).",
+                                                         "Capped at 1.0 (100%)."
+    )
+    .defineInRange("scorched_chance_per_point", 0.001, 0.0, 0.1);
         SCORCHED_DURATION = BUILDER
                 .comment("灼烧状态的持续时间（Tick）。(100 Tick = 5秒)",
                         "Duration (Ticks) of the Scorched effect. (100 Ticks = 5 seconds)")
@@ -352,17 +380,13 @@ public class ElementalFireNatureReactionsConfig {
                 .comment("灼烧效果触发后的冷却时间（Tick）。",
                         "Cooldown (Ticks) after triggering the Scorched effect.")
                 .defineInRange("scorched_cooldown", 200, 0, 6000);
-        SCORCHED_BURNING_LOCK_DURATION = BUILDER
-                .comment("灼烧生效时，强制显示火焰特效的时间（秒）。",
-                        "Duration (seconds) to force render fire visuals when Scorched is active.")
-                .defineInRange("scorched_burning_lock_duration", 3.0, 1.0, 60.0);
         SCORCHED_DAMAGE_BASE = BUILDER
                 .comment("灼烧每秒造成的基础伤害。",
                         "Base damage per second from Scorched effect.")
                 .defineInRange("scorched_damage_base", 1.0, 0.1, 10000.0);
         SCORCHED_DAMAGE_SCALING_STEP = BUILDER
                 .comment("灼烧伤害增加0.5点所需的赤焰属性增量。",
-                        "Fire attribute increment required to increase Scorched damage by 0.5.")
+                        "Fire  increment required to increase Scorched damage by 0.5.")
                 .defineInRange("scorched_damage_scaling_step", 20, 1, 10000);
         SCORCHED_RESIST_THRESHOLD = BUILDER
                 .comment("完全免疫灼烧伤害所需的赤焰抗性点数。",
@@ -376,18 +400,23 @@ public class ElementalFireNatureReactionsConfig {
                 .comment("火焰保护附魔最多能抵消的灼烧伤害比例。",
                         "Maximum Scorched damage mitigation provided by 'Fire Protection' enchantment.")
                 .defineInRange("scorched_fire_prot_reduction", 0.5, 0.0, 1.0);
-        SCORCHED_SHOCK_DAMAGE_RATIO = BUILDER
-                .comment("热休克（灼烧遇水）时，剩余持续伤害瞬间结算的比例。(0.5 = 50%)",
-                        "Ratio of remaining DOT damage dealt instantly during Thermal Shock. (0.5 = 50%)")
-                .defineInRange("scorched_shock_damage_ratio", 0.5, 0.0, 10.0);
         SCORCHED_GEN_PROT_REDUCTION = BUILDER
                 .comment("普通保护附魔最多能抵消的灼烧伤害比例。",
                         "Maximum Scorched damage mitigation provided by general 'Protection' enchantment.")
                 .defineInRange("scorched_gen_prot_reduction", 0.25, 0.0, 1.0);
-        SCORCHED_NATURE_MULTIPLIER = BUILDER
-                .comment("自然属性生物受到灼烧伤害的倍率。",
-                        "Damage multiplier for Nature attribute entities when Scorched.")
-                .defineInRange("scorched_nature_multiplier", 1.5, 1.0, 10.0);
+        SCORCHED_SHOCK_DAMAGE_RATIO = BUILDER
+                .comment("热休克（灼烧遇水）时，剩余持续伤害瞬间结算的比例。(0.5 = 50%)",
+                        "Ratio of remaining DOT damage dealt instantly during Thermal Shock. (0.5 = 50%)")
+                .defineInRange("scorched_shock_damage_ratio", 0.5, 0.0, 10.0);
+        SCORCHED_NATURE_DURATION_MULTIPLIER = BUILDER
+                .comment("自然属性生物获得灼烧时，持续时间的倍率（1.5 表示增加 50% 时长）。",
+                        "Duration multiplier for Scorched effect on Nature entities (1.5 = +50% duration).")
+                .defineInRange("scorched_nature_duration_multiplier", 1.5, 0.1, 100.0);
+        // 新增：冰霜属性时长倍率
+        SCORCHED_FROST_DURATION_MULTIPLIER = BUILDER
+                .comment("冰霜属性生物获得灼烧时，持续时间的倍率（0.5 表示减少 50% 时长）。",
+                        "Duration multiplier for Scorched effect on Frost entities (0.5 = -50% duration).")
+                .defineInRange("scorched_frost_duration_multiplier", 0.5, 0.1, 100.0);
         SCORCHED_ENTITY_BLACKLIST = BUILDER
                 .comment("灼烧效果免疫黑名单。",
                         "Scorched effect immunity blacklist.")
@@ -429,11 +458,11 @@ public class ElementalFireNatureReactionsConfig {
                 .defineInRange("spore_duration_per_stack", 5, 1, 6000);
         SPORE_THUNDER_MULTIPLIER = BUILDER
                 .comment("雷霆属性宿主的持续时间倍率。(2.0 = 时间翻倍)",
-                        "Duration multiplier for Thunder attribute hosts. (2.0 = Doubled duration)")
+                        "Duration multiplier for Thunder  hosts. (2.0 = Doubled duration)")
                 .defineInRange("spore_thunder_multiplier", 2.0, 1.0, 5.0);
         SPORE_FIRE_DURATION_REDUCTION = BUILDER
                 .comment("赤焰属性宿主的持续时间缩减比例。(0.5 = 时间减半)",
-                        "Duration reduction multiplier for Fire attribute hosts. (0.5 = Halved duration)")
+                        "Duration reduction multiplier for Fire  hosts. (0.5 = Halved duration)")
                 .defineInRange("spore_fire_duration_reduction", 0.5, 0.0, 1.0);
         SPORE_ENTITY_BLACKLIST = BUILDER
                 .comment("易燃孢子效果免疫黑名单（填入实体ID，例如：minecraft:creeper）。",
@@ -484,7 +513,7 @@ public class ElementalFireNatureReactionsConfig {
         BUILDER.push("dynamic_parasitism");
         NATURE_PARASITE_BASE_THRESHOLD = BUILDER
                 .comment("攻击触发易燃孢子效果所需的最小自然属性强化点数。",
-                        "Minimum Nature attribute points required to trigger Flammable Spores effect on attack.")
+                        "Minimum Nature  points required to trigger Flammable Spores effect on attack.")
                 .defineInRange("base_threshold", 5.0, 0.0, 10000.0);
         NATURE_PARASITE_BASE_CHANCE = BUILDER
                 .comment("触发易燃孢子效果的基础概率。(0.05 = 5%)",
@@ -492,7 +521,7 @@ public class ElementalFireNatureReactionsConfig {
                 .defineInRange("base_chance", 0.05, 0.0, 1.0);
         NATURE_PARASITE_SCALING_STEP = BUILDER
                 .comment("易燃孢子概率成长的属性阶梯值。例如设为20时，自然属性强化点数达到20/40/60点都会触发概率提升。",
-                        "The attribute step size for Flammable Spores chance scaling. E.g., if set to 20, chance increases at 20, 40, 60 points.")
+                        "The  step size for Flammable Spores chance scaling. E.g., if set to 20, chance increases at 20, 40, 60 points.")
                 .defineInRange("scaling_step", 20.0, 1.0, 10000.0);
         NATURE_PARASITE_SCALING_CHANCE = BUILDER
                 .comment("每个阶梯（等级）额外增加的易燃孢子触发概率。",
@@ -515,11 +544,11 @@ public class ElementalFireNatureReactionsConfig {
         BUILDER.push("parasitic_drain");
         NATURE_SIPHON_THRESHOLD = BUILDER
                 .comment("触发寄生吸取（吸取目标潮湿效果到自身，然后恢复自身血量）所需的最小自然属性强化点数。",
-                        "Minimum Nature attribute points required to trigger Parasitic Drain (absorb target's Wetness to restore health).")
+                        "Minimum Nature  points required to trigger Parasitic Drain (absorb target's Wetness to restore health).")
                 .defineInRange("nature_drain_threshold", 20, 1, 10000);
         NATURE_DRAIN_POWER_STEP = BUILDER
                 .comment("每增加一级吸取目标潮湿等级所需的自然属性强化点数。",
-                        "Nature attribute points required to increase Wetness drain amount by one level.")
+                        "Nature  points required to increase Wetness drain amount by one level.")
                 .defineInRange("nature_drain_power_step", 20.0, 1.0, 10000.0);
         NATURE_DRAIN_AMOUNT = BUILDER
                 .comment("吸取目标潮湿效果基础层数。",
@@ -538,7 +567,7 @@ public class ElementalFireNatureReactionsConfig {
         BUILDER.push("wildfire_ejection");
         WILDFIRE_TRIGGER_THRESHOLD = BUILDER
                 .comment("触发野火喷射（反击）所需的最小自然属性强化点数。",
-                        "Minimum Nature attribute points required to trigger Wildfire Ejection (counter-attack).")
+                        "Minimum Nature  points required to trigger Wildfire Ejection (counter-attack).")
                 .defineInRange("wildfire_trigger_threshold", 20.0, 0.0, 10000.0);
         WILDFIRE_COOLDOWN = BUILDER
                 .comment("野火喷射的冷却时间（Tick）。",
@@ -571,7 +600,7 @@ public class ElementalFireNatureReactionsConfig {
         BUILDER.push("toxic_blast");
         BLAST_TRIGGER_THRESHOLD = BUILDER
                 .comment("触发毒火爆燃（引爆易燃孢子）所需的最小赤焰属性强化点数。",
-                        "Minimum Fire attribute points required to trigger Toxic Blast (detonate Flammable Spores).")
+                        "Minimum Fire  points required to trigger Toxic Blast (detonate Flammable Spores).")
                 .defineInRange("blast_trigger_threshold", 50.0, 0.0, 10000.0);
         BLAST_WEAK_IGNITE_MULT = BUILDER
                 .comment("低层数（低于反应阈值）时的引燃伤害倍率。",
@@ -583,7 +612,7 @@ public class ElementalFireNatureReactionsConfig {
                 .defineInRange("blast_base_damage", 5.0, 0.0, 1000.0);
         BLAST_DMG_STEP = BUILDER
                 .comment("爆炸伤害提升一级所需的赤焰属性强化点数。",
-                        "Fire attribute points required to increase explosion damage tier.")
+                        "Fire  points required to increase explosion damage tier.")
                 .defineInRange("blast_dmg_step", 20.0, 1.0, 10000.0);
         BLAST_DMG_AMOUNT = BUILDER
                 .comment("每一级提升增加的爆炸伤害点数。",
@@ -634,7 +663,6 @@ public class ElementalFireNatureReactionsConfig {
         BUILDER.pop();
         BUILDER.pop();
 
-        
         SPEC = BUILDER.build();
     }
 
@@ -716,10 +744,8 @@ public class ElementalFireNatureReactionsConfig {
     public static double steamRadiusPerLevel;
     public static int steamCloudDuration;
     public static int steamDurationPerLevel;
-    public static int steamBlindnessDuration;
     public static boolean steamClearAggro;
     public static int steamCheckInterval;
-    public static double steamScanRadiusMultiplier;
     public static double steamCloudHeightCeiling;
     public static int steamCondensationStepFire;
     public static int steamCondensationStepFrost;
@@ -744,7 +770,6 @@ public class ElementalFireNatureReactionsConfig {
     public static double scorchedChancePerPoint;
     public static int scorchedDuration;
     public static int scorchedCooldown;
-    public static double scorchedBurningLockDuration;
     public static double scorchedDamageBase;
     public static int scorchedDamageScalingStep;
     public static int scorchedResistThreshold;
@@ -753,6 +778,8 @@ public class ElementalFireNatureReactionsConfig {
     public static double scorchedShockDamageRatio;
     public static double scorchedGenProtReduction;
     public static double scorchedNatureMultiplier;
+    public static double scorchedNatureDurationMultiplier;
+    public static double scorchedFrostDurationMultiplier;
     public static List<? extends String> cachedScorchedBlacklist;
 
     public static void refreshCache() {
@@ -860,7 +887,6 @@ public class ElementalFireNatureReactionsConfig {
         scorchedChancePerPoint = SCORCHED_CHANCE_PER_POINT.get();
         scorchedDuration = SCORCHED_DURATION.get();
         scorchedCooldown = SCORCHED_COOLDOWN.get();
-        scorchedBurningLockDuration = SCORCHED_BURNING_LOCK_DURATION.get();
         scorchedDamageBase = SCORCHED_DAMAGE_BASE.get();
         scorchedDamageScalingStep = SCORCHED_DAMAGE_SCALING_STEP.get();
         scorchedResistThreshold = SCORCHED_RESIST_THRESHOLD.get();
@@ -868,7 +894,8 @@ public class ElementalFireNatureReactionsConfig {
         scorchedFireProtReduction = SCORCHED_FIRE_PROT_REDUCTION.get();
         scorchedShockDamageRatio = SCORCHED_SHOCK_DAMAGE_RATIO.get();
         scorchedGenProtReduction = SCORCHED_GEN_PROT_REDUCTION.get();
-        scorchedNatureMultiplier = SCORCHED_NATURE_MULTIPLIER.get();
+        scorchedNatureDurationMultiplier = SCORCHED_NATURE_DURATION_MULTIPLIER.get();
+        scorchedFrostDurationMultiplier = SCORCHED_FROST_DURATION_MULTIPLIER.get();
         cachedScorchedBlacklist = SCORCHED_ENTITY_BLACKLIST.get();
     }
 

@@ -17,6 +17,10 @@ public final class ModSounds {
             SOUND_EVENTS.register("electric_zap",
                     () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ElementalCraft.MODID, "electric_zap")));
 
+    public static final RegistryObject<SoundEvent> SPORE_GAIN =
+            SOUND_EVENTS.register("spore_gain",
+                    () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ElementalCraft.MODID, "spore_gain")));
+
     public static void register(IEventBus eventBus) {
         SOUND_EVENTS.register(eventBus);
     }

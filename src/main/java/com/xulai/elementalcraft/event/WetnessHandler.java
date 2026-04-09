@@ -38,7 +38,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.util.Objects;
 import java.util.Random;
 
-import com.xulai.elementalcraft.event.ScorchedHandler; // 导入灼烧处理器以使用其常量
+import com.xulai.elementalcraft.event.ScorchedHandler;
 import com.xulai.elementalcraft.event.SteamReactionHandler;
 
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
@@ -82,15 +82,19 @@ public class WetnessHandler {
         
         if (state.is(Objects.requireNonNull(Blocks.FIRE)) || state.is(Objects.requireNonNull(Blocks.SOUL_FIRE))) {
             CompoundTag data = entity.getPersistentData();
-            int timer = data.getInt(NBT_FIRE_STAND_TIMER) + 1;
-            int threshold = ElementalFireNatureReactionsConfig.wetnessFireDryingTime * 20;
-
-            if (timer >= threshold) {
-                clearWetnessData(entity);
-                entity.playSound(Objects.requireNonNull(net.minecraft.sounds.SoundEvents.FIRE_EXTINGUISH), 1.0f, 1.0f);
-                timer = 0;
+            int wetness = getWetnessLevel(entity);
+            if (wetness > 0) {
+                int timer = data.getInt(NBT_FIRE_STAND_TIMER) + 1;
+                int threshold = ElementalFireNatureReactionsConfig.wetnessFireDryingTime * 20;
+                if (timer >= threshold) {
+                    clearWetnessData(entity);
+                    entity.playSound(Objects.requireNonNull(net.minecraft.sounds.SoundEvents.FIRE_EXTINGUISH), 1.0f, 1.0f);
+                    timer = 0;
+                }
+                data.putInt(NBT_FIRE_STAND_TIMER, timer);
+            } else {
+                data.remove(NBT_FIRE_STAND_TIMER);
             }
-            data.putInt(NBT_FIRE_STAND_TIMER, timer);
         } else {
             entity.getPersistentData().remove(NBT_FIRE_STAND_TIMER);
         }
@@ -109,7 +113,7 @@ public class WetnessHandler {
 
         int wetnessLevel = getWetnessLevel(entity);
         if (wetnessLevel > 0 && entity.tickCount % 40 == 0) {
-            if (!(entity.isInWater() || entity.level().isRainingAt(entity.blockPosition()))) {
+            if (!(entity.isInWater() || entity.level().isRainingAt(entity.blockPosition()) || isSnowingHere(entity))) {
                 entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
                         net.minecraft.sounds.SoundEvents.POINTED_DRIPSTONE_DRIP_WATER,
                         net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.0f);
@@ -121,7 +125,7 @@ public class WetnessHandler {
         int wetnessLevel = getWetnessLevel(entity);
         if (wetnessLevel <= 0) return;
         if (!(entity.level() instanceof ServerLevel serverLevel)) return;
-        if (entity.isInWater() || entity.level().isRainingAt(entity.blockPosition())) return;
+        if (entity.isInWater() || entity.level().isRainingAt(entity.blockPosition()) || isSnowingHere(entity)) return;
         if (entity.tickCount % 10 != 0) return;
 
         double width = entity.getBbWidth();
@@ -152,30 +156,7 @@ public class WetnessHandler {
         }
     }
 
-    @SubscribeEvent
-    public static void onLivingHurt(LivingHurtEvent event) {
-        LivingEntity entity = event.getEntity();
-        int currentLevel = getWetnessLevel(entity);
-        if (currentLevel <= 0) return;
-
-        float originalDamage = event.getAmount();
-        DamageSource source = event.getSource();
-        ElementType attackerElement = ElementType.NONE;
-        if (source.getEntity() instanceof LivingEntity attacker) {
-            attackerElement = ElementUtils.getConsistentAttackElement(attacker);
-        }
-
-        if (source.is(DamageTypeTags.IS_FIRE) || attackerElement == ElementType.FIRE) {
-            float factor = (float) ElementalFireNatureReactionsConfig.wetnessFireReduction * currentLevel;
-            float maxReduction = (float) ElementalFireNatureReactionsConfig.wetnessMaxReduction;
-            factor = Math.min(maxReduction, factor);
-            // 实际伤害减免计算尚未实现，此处仅记录日志
-            Debug.logFireDamageReduction(entity, currentLevel, factor, originalDamage, originalDamage);
-        }
-    }
-
     private static void handleWetnessLogic(LivingEntity entity) {
-        // 如果实体处于灼烧状态，直接清除潮湿数据并返回
         if (entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
             clearWetnessData(entity);
             return;
@@ -183,7 +164,6 @@ public class WetnessHandler {
 
         if (isImmune(entity)) {
             clearWetnessData(entity);
-            //Debug.logImmuneCleared(entity);
             return;
         }
 
@@ -239,7 +219,8 @@ public class WetnessHandler {
             if (currentLevel < maxLevel) {
                 int rainTimer = data.getInt(NBT_RAIN_TIMER) + 1;
                 int rainGainIntervalTicks = ElementalFireNatureReactionsConfig.wetnessRainGainInterval * 20;
-                int requiredRainCount = (int) Math.ceil((double) rainGainIntervalTicks / ElementalFireNatureReactionsConfig.wetnessTickInterval);
+                int safeInterval = Math.max(1, ElementalFireNatureReactionsConfig.wetnessTickInterval);
+                int requiredRainCount = (int) Math.ceil((double) rainGainIntervalTicks / safeInterval);
                 if (rainTimer >= requiredRainCount) {
                     currentLevel++;
                     updateWetnessLevel(entity, currentLevel);
@@ -259,7 +240,8 @@ public class WetnessHandler {
             if (currentLevel > 0) {
                 int decayTimer = data.getInt(NBT_DECAY_TIMER) + 1;
                 int maxDurationTicks = currentLevel * ElementalFireNatureReactionsConfig.wetnessDecayBaseTime * 20;
-                int requiredDecayCount = (int) Math.ceil((double) maxDurationTicks / ElementalFireNatureReactionsConfig.wetnessTickInterval);
+                int safeInterval = Math.max(1, ElementalFireNatureReactionsConfig.wetnessTickInterval);
+                int requiredDecayCount = (int) Math.ceil((double) maxDurationTicks / safeInterval);
                 if (decayTimer >= requiredDecayCount) {
                     currentLevel--;
                     updateWetnessLevel(entity, currentLevel);
@@ -272,6 +254,13 @@ public class WetnessHandler {
         }
 
         syncEffect(entity, currentLevel, inWater || inPrecipitation || inCondensingCloud);
+    }
+
+    private static boolean isSnowingHere(LivingEntity entity) {
+        BlockPos pos = entity.blockPosition();
+        Level level = entity.level();
+        return level.isRaining() && level.canSeeSky(pos)
+                && Objects.requireNonNull(level.getBiome(pos).value()).getPrecipitationAt(pos) == Biome.Precipitation.SNOW;
     }
 
     private static boolean checkHeatSource(Level level, BlockPos center) {
@@ -339,6 +328,7 @@ public class WetnessHandler {
             data.remove(NBT_WETNESS);
             data.remove(NBT_RAIN_TIMER);
             data.remove(NBT_DECAY_TIMER);
+            data.remove(NBT_FIRE_STAND_TIMER);
         }
         if (entity.hasEffect(Objects.requireNonNull(ModMobEffects.WETNESS.get()))) {
             entity.removeEffect(ModMobEffects.WETNESS.get());
@@ -354,9 +344,13 @@ public class WetnessHandler {
         }
 
         if (ModMobEffects.SPORES.isPresent() && entity.hasEffect(ModMobEffects.SPORES.get())) {
-            ReactionHandler.stackSporeEffect(entity, level, null);
-            clearWetnessData(entity);
-            Debug.logConvertToSpores(entity, level);
+            if (!ReactionHandler.isSporeImmune(entity)) {
+                ReactionHandler.stackSporeEffect(entity, level, null);
+                clearWetnessData(entity);
+                Debug.logConvertToSpores(entity, level);
+            } else {
+                Debug.logSporeImmune(entity, "无法转换，保持潮湿");
+            }
             return;
         }
 
@@ -369,8 +363,9 @@ public class WetnessHandler {
         } else {
             int decayTimer = entity.getPersistentData().getInt(NBT_DECAY_TIMER);
             int maxDurationSeconds = level * baseTime;
-            int elapsedSeconds = (int) (decayTimer * ElementalFireNatureReactionsConfig.wetnessTickInterval / 20.0);
-            int remainingSeconds = Math.max(0, maxDurationSeconds - elapsedSeconds);
+            int safeInterval = Math.max(1, ElementalFireNatureReactionsConfig.wetnessTickInterval);
+            double elapsedSeconds = (double) decayTimer * safeInterval / 20.0;
+            int remainingSeconds = (int) Math.max(0, Math.round(maxDurationSeconds - elapsedSeconds));
             durationTicks = remainingSeconds * 20;
         }
 
@@ -426,7 +421,6 @@ public class WetnessHandler {
         Entity target = ((EntityHitResult) event.getRayTraceResult()).getEntity();
         if (!(target instanceof LivingEntity livingTarget)) return;
 
-        // 如果目标处于灼烧状态，直接返回，不增加潮湿等级
         if (livingTarget.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
             return;
         }
@@ -445,23 +439,11 @@ public class WetnessHandler {
         }
     }
 
-    // ==================== 调试内部类（所有调试代码集中于此，便于删除） ====================
     private static final class Debug {
         private static void logWetnessChange(LivingEntity entity, int before, int after) {
             if (!DebugMode.hasAnyDebugEnabled()) return;
             GlobalDebugLogger.log(entity.level(), "潮湿", String.format("%s 潮湿变化：%d → %d", entity.getName().getString(), before, after));
         }
-
-        private static void logFireDamageReduction(LivingEntity entity, int level, float factor, float original, float finalDamage) {
-            if (!DebugMode.hasAnyDebugEnabled()) return;
-            GlobalDebugLogger.log(entity.level(), "潮湿", String.format("%s 火焰减免：潮湿 %d，减免 %.1f%%，伤害 %.2f → %.2f",
-                    entity.getName().getString(), level, factor * 100, original, finalDamage));
-        }
-
-       /* private static void logImmuneCleared(LivingEntity entity) {
-            if (!DebugMode.hasAnyDebugEnabled()) return;
-            GlobalDebugLogger.log(entity.level(), "潮湿", String.format("%s 免疫潮湿，已清除", entity.getName().getString()));
-        }*/
 
         private static void logHeatCleared(LivingEntity entity, boolean inLava, boolean nearHeat) {
             if (!DebugMode.hasAnyDebugEnabled()) return;
@@ -489,6 +471,11 @@ public class WetnessHandler {
         private static void logConvertToSpores(LivingEntity entity, int level) {
             if (!DebugMode.hasAnyDebugEnabled()) return;
             GlobalDebugLogger.log(entity.level(), "潮湿", String.format("%s 潮湿 %d 层转化为孢子", entity.getName().getString(), level));
+        }
+
+        private static void logSporeImmune(LivingEntity entity, String reason) {
+            if (!DebugMode.hasAnyDebugEnabled()) return;
+            GlobalDebugLogger.log(entity.level(), "潮湿", String.format("%s 免疫孢子，%s", entity.getName().getString(), reason));
         }
 
         private static void logEffectApplied(LivingEntity entity, int level, boolean isPaused, int duration) {

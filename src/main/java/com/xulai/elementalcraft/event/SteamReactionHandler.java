@@ -55,7 +55,7 @@ public class SteamReactionHandler {
 
     private static final String NBT_CONDENSATION_TIMER = "EC_SteamCondensationTimer";
     private static final String NBT_SPORE_GROWTH_TIMER = "EC_SporeGrowthTimer";
-    private static final String NBT_STEAM_TRIGGER_COOLDOWN = "EC_SteamTriggerCooldown";
+    private static final String NBT_STEAM_ATTACKER_COOLDOWN = "EC_SteamAttackerCooldown";
     private static final String NBT_STEAM_BLINDNESS = "EC_SteamBlindness";
 
     private static final double STEAM_SCAN_RADIUS_MULTIPLIER = 3.0;
@@ -91,14 +91,25 @@ public class SteamReactionHandler {
         if (!ElementalFireNatureReactionsConfig.steamReactionEnabled) return;
 
         LivingEntity entity = event.getEntity();
-
         CompoundTag data = entity.getPersistentData();
-        if (data.contains(NBT_STEAM_TRIGGER_COOLDOWN)) {
-            int cooldown = data.getInt(NBT_STEAM_TRIGGER_COOLDOWN);
+
+        if (data.contains(NBT_STEAM_ATTACKER_COOLDOWN)) {
+            int cooldown = data.getInt(NBT_STEAM_ATTACKER_COOLDOWN);
             if (cooldown > 0) {
-                data.putInt(NBT_STEAM_TRIGGER_COOLDOWN, cooldown - 1);
+                int newCooldown = cooldown - 1;
+                data.putInt(NBT_STEAM_ATTACKER_COOLDOWN, newCooldown);
+                if (DebugMode.hasAnyDebugEnabled() && entity.tickCount % 20 == 0) {
+                    GlobalDebugLogger.log(entity.level(), "蒸汽冷却",
+                            String.format("%s 攻击者冷却剩余 %d tick", entity.getName().getString(), newCooldown));
+                }
+                if (newCooldown == 0) {
+                    if (DebugMode.hasAnyDebugEnabled()) {
+                        GlobalDebugLogger.log(entity.level(), "蒸汽冷却",
+                                String.format("%s 攻击者冷却结束", entity.getName().getString()));
+                    }
+                }
             } else {
-                data.remove(NBT_STEAM_TRIGGER_COOLDOWN);
+                data.remove(NBT_STEAM_ATTACKER_COOLDOWN);
             }
         }
 
@@ -149,6 +160,11 @@ public class SteamReactionHandler {
     }
 
     private static void processTriggerLogic(LivingDamageEvent event, LivingEntity attacker, LivingEntity target) {
+        if (attacker.getPersistentData().contains(NBT_STEAM_ATTACKER_COOLDOWN)) {
+            Debug.logTriggerBlocked(attacker, "攻击者冷却中");
+            return;
+        }
+
         ElementType attackElement = ElementUtils.getConsistentAttackElement(attacker);
         Debug.logTriggerStart(attacker, target, attackElement);
 
@@ -160,7 +176,7 @@ public class SteamReactionHandler {
 
         boolean targetIsWet = target.getPersistentData().getInt(WetnessHandler.NBT_WETNESS) > 0;
         int targetWetness = target.getPersistentData().getInt(WetnessHandler.NBT_WETNESS);
-        ElementType targetElement = ElementUtils.getElementType(target);
+        ElementType targetElement = ElementUtils.getConsistentAttackElement(target);
 
         Debug.logTriggerValues(attacker, target, attackElement, firePower, frostPower, targetIsWet, targetWetness, targetElement);
 
@@ -171,42 +187,32 @@ public class SteamReactionHandler {
                 return;
             }
 
-            if (targetIsWet || targetElement == ElementType.FROST) {
+            if (targetIsWet) {
                 int threshold = ElementalFireNatureReactionsConfig.steamTriggerThresholdFire;
 
                 if (firePower >= threshold) {
                     if (isTriggerBlocked(target)) {
-                        Debug.logTriggerBlocked(target);
+                        Debug.logTriggerBlocked(target, "已在蒸汽云中");
                         return;
                     }
 
-                    int fuelLevel = 1;
+                    int fireStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
+                    int fireBonus = firePower / fireStep;
 
-                    if (targetIsWet) {
-                        fuelLevel = targetWetness;
-                    } else if (targetElement == ElementType.FROST) {
-                        int targetFrostPower = ElementUtils.getDisplayEnhancement(target, ElementType.FROST);
-                        int step = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFrost);
-                        fuelLevel = 1 + (targetFrostPower / step);
-                    }
+                    int fuelLevel = fireBonus + targetWetness;
 
                     int maxLevel = ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel;
-                    fuelLevel = Math.min(fuelLevel, maxLevel);
+                    fuelLevel = Math.max(1, Math.min(fuelLevel, maxLevel));
 
                     Debug.logFuelLevel(attacker, fuelLevel, true);
                     spawnSteamCloud(target, true, fuelLevel);
-                    setTriggerCooldown(target);
+                    setAttackerCooldown(attacker);
 
                     DebugCommand.sendSteamTriggerLog(attacker, true, fuelLevel);
 
-                    if (targetIsWet) {
-                        removeWetness(target);
-                    }
+                    removeWetness(target);
                 } else {
                     Debug.logThresholdNotMet(attacker, firePower, threshold, true);
-                    if (targetIsWet) {
-                        removeWetness(target);
-                    }
                 }
             }
         }
@@ -221,20 +227,22 @@ public class SteamReactionHandler {
 
                 if (frostPower >= threshold) {
                     if (isTriggerBlocked(target)) {
-                        Debug.logTriggerBlocked(target);
+                        Debug.logTriggerBlocked(target, "已在蒸汽云中");
                         return;
                     }
 
                     int targetFirePower = ElementUtils.getDisplayEnhancement(target, ElementType.FIRE);
-                    int step = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
+                    int fireStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
+                    int frostStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFrost);
+                    int frostBonus = frostPower / frostStep;
 
-                    int level = 1 + (targetFirePower / step);
+                    int level = 1 + (targetFirePower / fireStep) + frostBonus;
                     int maxLevel = ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel;
-                    level = Math.min(level, maxLevel);
+                    level = Math.max(1, Math.min(level, maxLevel));
 
                     Debug.logFuelLevel(attacker, level, false);
                     spawnSteamCloud(target, false, level);
-                    setTriggerCooldown(target);
+                    setAttackerCooldown(attacker);
 
                     DebugCommand.sendSteamTriggerLog(attacker, false, level);
                 } else {
@@ -280,7 +288,7 @@ public class SteamReactionHandler {
 
         float reducedDamage = trueRawDamage * (float) (1.0 - totalReduction);
 
-        ElementType type = ElementUtils.getElementType(target);
+        ElementType type = ElementUtils.getConsistentAttackElement(target);
         if (type == ElementType.FROST || type == ElementType.NATURE) {
             float floorRatio = (float) ElementalFireNatureReactionsConfig.steamDamageFloorRatio;
             float floorLimit = trueRawDamage * floorRatio;
@@ -382,10 +390,10 @@ public class SteamReactionHandler {
             if (entity.tickCount % 20 == 0 && !aboveCeiling) {
                 float baseDamage = (float) ElementalFireNatureReactionsConfig.steamScaldingDamage;
                 float scale = (float) ElementalFireNatureReactionsConfig.steamDamageScalePerLevel;
-                float levelMultiplier = 1.0f + (cloudLevel * scale);
+                float levelMultiplier = 1.0f + ((cloudLevel - 1) * scale);
                 float damage = baseDamage * levelMultiplier;
 
-                ElementType type = ElementUtils.getElementType(entity);
+                ElementType type = ElementUtils.getConsistentAttackElement(entity);
                 if (type == ElementType.FROST || type == ElementType.NATURE) {
                     double weaknessMult = ElementalFireNatureReactionsConfig.steamScaldingMultiplierWeakness;
                     damage *= (float) weaknessMult;
@@ -398,18 +406,22 @@ public class SteamReactionHandler {
                 Debug.logScaldingDamage(entity, baseDamage, cloudLevel, levelMultiplier, damage, type);
 
                 if (damage > 0) {
-                    entity.invulnerableTime = 0;
-                    boolean hurtSuccess = entity.hurt(ModDamageTypes.source(entity.level(), ModDamageTypes.STEAM_SCALDING), damage);
+                    if (checkImmunity(entity)) {
+                        Debug.logImmunity(entity);
+                    } else {
+                        entity.invulnerableTime = 0;
+                        boolean hurtSuccess = entity.hurt(ModDamageTypes.source(entity.level(), ModDamageTypes.STEAM_SCALDING), damage);
 
-                    if (hurtSuccess) {
-                        if (entity instanceof PathfinderMob mob && heatSource != null) {
-                            mob.setTarget(null);
+                        if (hurtSuccess) {
+                            if (entity instanceof PathfinderMob mob && heatSource != null) {
+                                mob.setTarget(null);
 
-                            int fleeDist = (int) (heatSource.getRadius() + 2);
+                                int fleeDist = (int) (heatSource.getRadius() + 2);
 
-                            Vec3 escapePos = DefaultRandomPos.getPosAway(mob, fleeDist, 4, heatSource.position());
-                            if (escapePos != null) {
-                                mob.getNavigation().moveTo(escapePos.x, escapePos.y, escapePos.z, 1.5);
+                                Vec3 escapePos = DefaultRandomPos.getPosAway(mob, fleeDist, 4, heatSource.position());
+                                if (escapePos != null) {
+                                    mob.getNavigation().moveTo(escapePos.x, escapePos.y, escapePos.z, 1.5);
+                                }
                             }
                         }
                     }
@@ -466,13 +478,11 @@ public class SteamReactionHandler {
         }
     }
 
-    // 修复：蒸汽云使用有效高度判断碰撞，不再受限于 AreaEffectCloud 的 0.5 格高度
     private static boolean isEntityInCloud(LivingEntity entity, AreaEffectCloud cloud) {
         if (cloud.getBoundingBox().inflate(0.1).intersects(entity.getBoundingBox())) {
             return true;
         }
 
-        // 标准碰撞检测失败，检查是否为蒸汽云且在有效高度范围内
         if (cloud.getTags().contains(TAG_STEAM_CLOUD)) {
             double heightCeiling = ElementalFireNatureReactionsConfig.steamCloudHeightCeiling;
             double dx = entity.getX() - cloud.getX();
@@ -489,8 +499,6 @@ public class SteamReactionHandler {
     }
 
     private static boolean isTriggerBlocked(LivingEntity entity) {
-        if (entity.getPersistentData().getInt(NBT_STEAM_TRIGGER_COOLDOWN) > 0) return true;
-
         if (entity.level().isClientSide) return false;
 
         double searchRadius = ElementalFireNatureReactionsConfig.steamCloudRadius * 2.0;
@@ -506,8 +514,13 @@ public class SteamReactionHandler {
         return false;
     }
 
-    private static void setTriggerCooldown(LivingEntity entity) {
-        entity.getPersistentData().putInt(NBT_STEAM_TRIGGER_COOLDOWN, ElementalFireNatureReactionsConfig.steamTriggerCooldown);
+    private static void setAttackerCooldown(LivingEntity attacker) {
+        int cooldownTicks = ElementalFireNatureReactionsConfig.steamTriggerCooldown;
+        attacker.getPersistentData().putInt(NBT_STEAM_ATTACKER_COOLDOWN, cooldownTicks);
+        if (DebugMode.hasAnyDebugEnabled()) {
+            GlobalDebugLogger.log(attacker.level(), "蒸汽冷却",
+                    String.format("%s 设置攻击者冷却 %d tick", attacker.getName().getString(), cooldownTicks));
+        }
     }
 
     private static void removeWetness(LivingEntity entity) {
@@ -588,10 +601,10 @@ public class SteamReactionHandler {
                             attackElement, firePower, frostPower, targetIsWet, targetWetness, targetElement));
         }
 
-        private static void logTriggerBlocked(LivingEntity target) {
+        private static void logTriggerBlocked(LivingEntity entity, String reason) {
             if (!DebugMode.hasAnyDebugEnabled()) return;
-            GlobalDebugLogger.log(target.level(), "蒸汽触发",
-                    String.format("%s 触发被阻止（冷却或已在云中）", target.getName().getString()));
+            GlobalDebugLogger.log(entity.level(), "蒸汽触发",
+                    String.format("%s 触发被阻止：%s", entity.getName().getString(), reason));
         }
 
         private static void logFuelLevel(LivingEntity attacker, int fuelLevel, boolean isHighHeat) {
@@ -604,7 +617,7 @@ public class SteamReactionHandler {
             if (!DebugMode.hasAnyDebugEnabled()) return;
             GlobalDebugLogger.log(attacker.level(), "蒸汽触发",
                     String.format("%s 点数 %d 未达到阈值 %d，%s", attacker.getName().getString(), power, threshold,
-                            isFire ? "清除潮湿" : "无反应"));
+                            isFire ? "不触发任何蒸汽云" : "无反应"));
         }
 
         private static void logNetherPrevent(LivingEntity target) {

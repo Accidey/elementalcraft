@@ -28,7 +28,7 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.*;
 
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
-public class NatureVisuals {
+public class ThunderVisuals {
 
     private static final String TAG_ELEMENTAL_PROJECTILE = "EC_ElementalType";
     private static final String TAG_PROJECTILE_TIER = "EC_VisualTier";
@@ -39,7 +39,7 @@ public class NatureVisuals {
     private static final Set<Projectile> ACTIVE_PROJECTILES = Collections.synchronizedSet(new HashSet<>());
 
     public static int calculateVisualTier(LivingEntity entity, ElementType type) {
-        if (type == ElementType.NONE) return 0;
+        if (type != ElementType.THUNDER) return 0;
         int totalPoints = ElementUtils.getDisplayEnhancement(entity, type);
         int cap = ElementalConfig.getMaxStatCap();
         if (cap <= 0) cap = 100;
@@ -50,15 +50,14 @@ public class NatureVisuals {
         return 4;
     }
 
-    // ======================== 客户端近战特效 ========================
     @Mod.EventBusSubscriber(modid = ElementalCraft.MODID, value = Dist.CLIENT)
-    public static class NatureClientEvents {
+    public static class ThunderClientEvents {
 
         @SubscribeEvent
         public static void onLivingTick(LivingEvent.LivingTickEvent event) {
             LivingEntity entity = event.getEntity();
             if (!entity.level().isClientSide) return;
-            if (!ElementalVisualConfig.natureMeleeEnabled) return;
+            if (!ElementalVisualConfig.thunderMeleeEnabled) return;
 
             if (entity.swinging && entity.swingTime == 1) {
                 ItemStack stack = entity.getMainHandItem();
@@ -66,17 +65,18 @@ public class NatureVisuals {
                     return;
                 }
                 ElementType type = ElementUtils.getAttackElement(stack);
-                if (type == ElementType.NATURE) {
+                if (type == ElementType.THUNDER) {
                     int tier = calculateVisualTier(entity, type);
                     if (tier > 0) {
-                        playBlossomMeleeSwing(entity, tier);
+                        playArcMeleeSwing(entity, tier);
                     }
                 }
             }
         }
 
-        private static void playBlossomMeleeSwing(LivingEntity entity, int tier) {
+        private static void playArcMeleeSwing(LivingEntity entity, int tier) {
             Level level = entity.level();
+
             Vec3 look = entity.getLookAngle();
             Vec3 up = new Vec3(0, 1, 0);
             if (Math.abs(look.y) > 0.95) {
@@ -85,67 +85,71 @@ public class NatureVisuals {
             Vec3 right = look.cross(up).normalize();
             if (right.lengthSqr() < 0.001) right = new Vec3(1, 0, 0);
 
-            double radius = ElementalVisualConfig.natureMeleeRadius;
+            double radius = ElementalVisualConfig.thunderMeleeRadius;
             Vec3 centerPos = entity.getEyePosition();
 
-            double baseTotalAngle = Math.toRadians(ElementalVisualConfig.natureMeleeBaseAngleDegrees);
-            double angleMultiplier = ElementalVisualConfig.natureMeleeAngleMultiplierBase
-                    + tier * ElementalVisualConfig.natureMeleeAngleMultiplierPerTier;
+            double baseTotalAngle = Math.toRadians(ElementalVisualConfig.thunderMeleeBaseAngleDegrees);
+            double angleMultiplier = ElementalVisualConfig.thunderMeleeAngleMultiplierBase
+                    + tier * ElementalVisualConfig.thunderMeleeAngleMultiplierPerTier;
             double actualAngle = baseTotalAngle * angleMultiplier;
             double startAngle = actualAngle / 2.0;
             double endAngle = -actualAngle / 2.0;
 
-            int particleCount = (int) (ElementalVisualConfig.natureMeleeParticleCountBase * angleMultiplier)
-                    + ElementalVisualConfig.natureMeleeParticleCountOffset;
+            int particleCount = (int) (ElementalVisualConfig.thunderMeleeParticleCountBase * angleMultiplier)
+                    + ElementalVisualConfig.thunderMeleeParticleCountOffset;
 
             for (int i = 0; i <= particleCount; i++) {
                 double progress = (double) i / particleCount;
                 double angle = startAngle + (endAngle - startAngle) * progress;
 
-                double waveOffset = Math.sin(progress * Math.PI * ElementalVisualConfig.natureMeleeWaveFrequency)
-                        * ElementalVisualConfig.natureMeleeWaveAmplitude;
-                Vec3 horizontalOffset = right.scale(Math.sin(angle) * (radius + waveOffset));
-                Vec3 forwardOffset = look.scale(Math.cos(angle) * (radius + waveOffset) * 0.7);
-                Vec3 p = centerPos.add(horizontalOffset).add(forwardOffset);
+                Vec3 offset = right.scale(Math.sin(angle) * radius)
+                        .add(look.scale(Math.cos(angle) * radius * ElementalVisualConfig.thunderMeleeForwardOffsetFactor));
+                Vec3 pos = centerPos.add(offset);
 
-                double velX = look.x * ElementalVisualConfig.natureMeleeComposterSpeedXZ;
-                double velZ = look.z * ElementalVisualConfig.natureMeleeComposterSpeedXZ;
-                level.addParticle(ParticleTypes.COMPOSTER, p.x, p.y, p.z, velX, 0, velZ);
+                level.addParticle(ParticleTypes.GLOW,
+                        pos.x, pos.y, pos.z, 0, ElementalVisualConfig.thunderMeleeFallSpeed, 0);
 
-                // 孢子花粒子
-                if (RANDOM.nextFloat() < ElementalVisualConfig.natureMeleeSporeBlossomChance) {
-                    level.addParticle(ParticleTypes.SPORE_BLOSSOM_AIR, p.x, p.y, p.z, 0, 0, 0);
+                if (tier >= 2 && RANDOM.nextFloat() < ElementalVisualConfig.thunderMeleeGlowChanceTier2) {
+                    level.addParticle(ParticleTypes.GLOW,
+                            pos.x, pos.y, pos.z, 0, ElementalVisualConfig.thunderMeleeFallSpeed, 0);
                 }
-
-                // 樱花叶粒子（等级 >= 3）
-                if (tier >= 3 && ElementalVisualConfig.natureMeleeCherryLeavesEnabled
-                        && progress > ElementalVisualConfig.natureMeleeCherryLeavesMinProgress
-                        && RANDOM.nextFloat() < ElementalVisualConfig.natureMeleeCherryLeavesChance) {
-                    level.addParticle(ParticleTypes.CHERRY_LEAVES, p.x, p.y, p.z, 0, 0, 0);
+                if (tier >= 3 && RANDOM.nextFloat() < ElementalVisualConfig.thunderMeleeReversePortalChanceTier3) {
+                    level.addParticle(ParticleTypes.REVERSE_PORTAL,
+                            pos.x, pos.y, pos.z, 0, ElementalVisualConfig.thunderMeleeFallSpeed, 0);
                 }
+            }
 
-                // 打蜡粒子（等级 >= 4）
-                if (tier >= 4 && ElementalVisualConfig.natureMeleeWaxOnEnabled
-                        && progress > ElementalVisualConfig.natureMeleeWaxOnMinProgress) {
-                    level.addParticle(ParticleTypes.WAX_ON, p.x, p.y, p.z, 0, 0, 0);
+            if (tier >= 4 && ElementalVisualConfig.thunderMeleeArcLineEnabled) {
+                Vec3 start = centerPos.add(right.scale(Math.sin(startAngle) * radius)
+                        .add(look.scale(Math.cos(startAngle) * radius * ElementalVisualConfig.thunderMeleeForwardOffsetFactor)));
+                Vec3 end = centerPos.add(right.scale(Math.sin(endAngle) * radius)
+                        .add(look.scale(Math.cos(endAngle) * radius * ElementalVisualConfig.thunderMeleeForwardOffsetFactor)));
+                double dist = start.distanceTo(end);
+                int steps = (int) (dist * ElementalVisualConfig.thunderMeleeArcLineStepFactor);
+                for (int s = 0; s <= steps; s++) {
+                    double t = (double) s / steps;
+                    double x = start.x + (end.x - start.x) * t;
+                    double y = start.y + (end.y - start.y) * t;
+                    double z = start.z + (end.z - start.z) * t;
+                    if (s % 2 == 0) {
+                        level.addParticle(ParticleTypes.GLOW, x, y, z, 0, ElementalVisualConfig.thunderMeleeFallSpeed, 0);
+                    }
                 }
             }
         }
     }
 
-    // ======================== 服务端远程特效 ========================
-
     @SubscribeEvent
     public static void onProjectileJoin(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide) return;
-        if (!ElementalVisualConfig.natureRangedEnabled) return;
+        if (!ElementalVisualConfig.thunderRangedEnabled) return;
 
         if (event.getEntity() instanceof Projectile projectile) {
             Entity owner = projectile.getOwner();
             if (owner instanceof LivingEntity shooter) {
                 ItemStack weapon = shooter.getMainHandItem();
                 ElementType type = ElementUtils.getAttackElement(weapon);
-                if (type == ElementType.NATURE) {
+                if (type == ElementType.THUNDER) {
                     int tier = calculateVisualTier(shooter, type);
                     if (tier > 0) {
                         CompoundTag data = projectile.getPersistentData();
@@ -162,7 +166,7 @@ public class NatureVisuals {
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        boolean enabled = ElementalVisualConfig.natureRangedEnabled;
+        boolean enabled = ElementalVisualConfig.thunderRangedEnabled;
 
         synchronized (ACTIVE_PROJECTILES) {
             Iterator<Projectile> iterator = ACTIVE_PROJECTILES.iterator();
@@ -181,6 +185,7 @@ public class NatureVisuals {
 
                 Vec3 velocity = p.getDeltaMovement();
                 double currentSpeedSq = velocity.lengthSqr();
+
                 double movedDistSq = p.position().distanceToSqr(p.xo, p.yo, p.zo);
                 boolean isStuck = movedDistSq < 0.000001;
 
@@ -201,7 +206,7 @@ public class NatureVisuals {
                         continue;
                     }
                     int tier = data.getInt(TAG_PROJECTILE_TIER);
-                    spawnVineHelixTrail(serverLevel, p, tier);
+                    spawnHelixTrail(serverLevel, p, tier);
                 }
             }
         }
@@ -220,7 +225,7 @@ public class NatureVisuals {
         return false;
     }
 
-    private static void spawnVineHelixTrail(ServerLevel level, Projectile p, int tier) {
+    private static void spawnHelixTrail(ServerLevel level, Projectile p, int tier) {
         if (tier <= 0) return;
         Vec3 velocity = p.getDeltaMovement();
         if (velocity.lengthSqr() < 1e-7) return;
@@ -230,9 +235,8 @@ public class NatureVisuals {
         int spawnTick = data.getInt(TAG_SPAWN_TICK);
         int elapsed = p.tickCount - spawnTick;
 
-        // 主螺旋线参数
-        int totalHelices = tier * ElementalVisualConfig.natureRangedOuterHelixCountPerTier;
-        int activationInterval = ElementalVisualConfig.natureRangedActivationInterval;
+        int totalHelices = tier * ElementalVisualConfig.thunderRangedHelixCountPerTier;
+        int activationInterval = ElementalVisualConfig.thunderRangedActivationInterval;
         int activatedHelices = Math.min(totalHelices, elapsed / activationInterval + 1);
         if (activatedHelices < 1) activatedHelices = 1;
 
@@ -242,57 +246,54 @@ public class NatureVisuals {
         Vec3 right = dir.cross(up).normalize();
         Vec3 realUp = right.cross(dir).normalize();
 
-        double outerDirection = ElementalVisualConfig.natureRangedOuterReverseRotation ? -1 : 1;
-        double baseAngle = outerDirection * p.tickCount * ElementalVisualConfig.natureRangedRotationSpeed;
+        double baseAngle = -p.tickCount * ElementalVisualConfig.thunderRangedRotationSpeed;
 
-        // 主螺旋线生成
         for (int h = 0; h < activatedHelices; h++) {
             double helixAngle = baseAngle + (2 * Math.PI * h) / totalHelices;
-            double radius = ElementalVisualConfig.natureRangedConeMaxRadius;
-            double backDist = ElementalVisualConfig.natureRangedBackOffsetStart;
+            double radius = ElementalVisualConfig.thunderRangedConeMaxRadius;
+            double backDist = ElementalVisualConfig.thunderRangedBackOffsetStart;
 
             Vec3 radial = right.scale(Math.cos(helixAngle) * radius)
                     .add(realUp.scale(Math.sin(helixAngle) * radius));
             Vec3 pos = p.position().subtract(dir.scale(backDist)).add(radial);
 
-            level.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                    pos.x, pos.y, pos.z,
-                    ElementalVisualConfig.natureRangedMainParticleCount, 0, 0, 0, 0);
+            level.sendParticles(ModParticles.THUNDER_SPARK_PERSISTENT.get(),
+                    pos.x, pos.y, pos.z, ElementalVisualConfig.thunderRangedMainParticleCount, 0, 0, 0, 0);
         }
 
-        // 尾部螺旋线参数
-        int tailTotalHelices = tier * ElementalVisualConfig.natureRangedTailHelixCountPerTier;
-        int tailDelay = ElementalVisualConfig.natureRangedTailDelayTicks;
-        int tailElapsed = Math.max(0, elapsed - tailDelay);
-        int tailActivatedHelices = Math.min(tailTotalHelices, tailElapsed / activationInterval + 1);
-        if (tailActivatedHelices < 1) tailActivatedHelices = 0;
-
-        Vec3 tailPos = p.position().subtract(dir.scale(ElementalVisualConfig.natureRangedBackOffsetStart));
-        double tailRadius = ElementalVisualConfig.natureRangedConeMaxRadius
-                * ElementalVisualConfig.natureRangedTailRadiusFactor;
-        double tailDirection = ElementalVisualConfig.natureRangedTailReverseRotation ? -1 : 1;
-        double tailBaseAngle = tailDirection * p.tickCount * ElementalVisualConfig.natureRangedRotationSpeed;
-
-        // 尾部螺旋线生成
-        for (int h = 0; h < tailActivatedHelices; h++) {
-            double helixAngle = tailBaseAngle + (2 * Math.PI * h) / tailTotalHelices;
-            Vec3 radial = right.scale(Math.cos(helixAngle) * tailRadius)
-                    .add(realUp.scale(Math.sin(helixAngle) * tailRadius));
-            Vec3 pos = tailPos.add(radial);
-            level.sendParticles(ParticleTypes.HAPPY_VILLAGER,
-                    pos.x, pos.y, pos.z,
-                    ElementalVisualConfig.natureRangedTailParticleCount, 0, 0, 0, 0);
+        Vec3 tailPos = p.position().subtract(dir.scale(ElementalVisualConfig.thunderRangedBackOffsetStart));
+        if (tier >= 2 && ElementalVisualConfig.thunderRangedTailEndRodEnabled) {
+            level.sendParticles(ParticleTypes.END_ROD,
+                    tailPos.x, tailPos.y, tailPos.z, ElementalVisualConfig.thunderRangedTailEndRodCount, 0, 0, 0, 0);
         }
-
-        // 中心粒子
-        if (ElementalVisualConfig.natureRangedCenterParticleEnabled) {
-            level.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                    tailPos.x, tailPos.y, tailPos.z,
-                    ElementalVisualConfig.natureRangedCenterParticleCount, 0, 0, 0, 0);
+        if (tier >= 3 && ElementalVisualConfig.thunderRangedTailReversePortalEnabled) {
+            int groups = ElementalVisualConfig.thunderRangedTailReversePortalGroups;
+            int countPerGroup = ElementalVisualConfig.thunderRangedTailReversePortalCount;
+            double spread = ElementalVisualConfig.thunderRangedTailReversePortalSpread;
+            for (int i = 0; i < groups; i++) {
+                double offsetX = (RANDOM.nextDouble() - 0.5) * spread;
+                double offsetY = (RANDOM.nextDouble() - 0.5) * spread;
+                double offsetZ = (RANDOM.nextDouble() - 0.5) * spread;
+                level.sendParticles(ParticleTypes.REVERSE_PORTAL,
+                        tailPos.x + offsetX, tailPos.y + offsetY, tailPos.z + offsetZ,
+                        countPerGroup, 0, 0, 0, 0);
+            }
+        }
+        if (tier >= 4 && ElementalVisualConfig.thunderRangedTailDragonBreathEnabled) {
+            int groups = ElementalVisualConfig.thunderRangedTailDragonBreathGroups;
+            int countPerGroup = ElementalVisualConfig.thunderRangedTailDragonBreathCount;
+            double spread = ElementalVisualConfig.thunderRangedTailDragonBreathSpread;
+            for (int i = 0; i < groups; i++) {
+                double offsetX = (RANDOM.nextDouble() - 0.5) * spread;
+                double offsetY = (RANDOM.nextDouble() - 0.5) * spread;
+                double offsetZ = (RANDOM.nextDouble() - 0.5) * spread;
+                level.sendParticles(ParticleTypes.DRAGON_BREATH,
+                        tailPos.x + offsetX, tailPos.y + offsetY, tailPos.z + offsetZ,
+                        countPerGroup, 0, 0, 0, 0);
+            }
         }
     }
 
-    // ======================== 命中特效 ========================
     @SubscribeEvent
     public static void onLivingDamage(LivingDamageEvent event) {
         if (event.getEntity().level().isClientSide) return;
@@ -301,72 +302,69 @@ public class NatureVisuals {
         if (!(attacker instanceof LivingEntity livingAttacker)) return;
 
         int tier = 0;
-        boolean isNature = false;
+        boolean isThunder = false;
         boolean isRanged = false;
 
         Entity directEntity = event.getSource().getDirectEntity();
         if (directEntity instanceof Projectile projectile) {
             isRanged = true;
             CompoundTag data = projectile.getPersistentData();
-            if (data != null && data.contains(TAG_ELEMENTAL_PROJECTILE) && data.getString(TAG_ELEMENTAL_PROJECTILE).equals("nature")) {
-                isNature = true;
+            if (data != null && data.contains(TAG_ELEMENTAL_PROJECTILE) && data.getString(TAG_ELEMENTAL_PROJECTILE).equals("thunder")) {
+                isThunder = true;
                 tier = data.getInt(TAG_PROJECTILE_TIER);
             }
         } else {
             ItemStack weapon = livingAttacker.getMainHandItem();
             ElementType type = ElementUtils.getAttackElement(weapon);
-            if (type == ElementType.NATURE) {
-                isNature = true;
+            if (type == ElementType.THUNDER) {
+                isThunder = true;
                 tier = calculateVisualTier(livingAttacker, type);
             }
         }
 
         if (isRanged) {
-            if (!ElementalVisualConfig.natureRangedEnabled) return;
+            if (!ElementalVisualConfig.thunderRangedEnabled) return;
         } else {
-            if (!ElementalVisualConfig.natureMeleeEnabled) return;
+            if (!ElementalVisualConfig.thunderMeleeEnabled) return;
         }
 
-        if (isNature && tier > 0) {
-            playOvergrowthImpact(event.getEntity(), tier);
+        if (isThunder && tier > 0) {
+            playThunderImpact(event.getEntity(), tier);
         }
     }
 
-    private static void playOvergrowthImpact(Entity target, int tier) {
+    private static void playThunderImpact(LivingEntity target, int tier) {
         if (!(target.level() instanceof ServerLevel serverLevel)) return;
 
-        // Happy Villager 粒子
-        int happyCount = ElementalVisualConfig.natureImpactHappyVillagerCountPerTier * tier;
-        serverLevel.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+        int glowCount = ElementalVisualConfig.thunderImpactGlowCountPerTier * tier;
+        serverLevel.sendParticles(ParticleTypes.GLOW,
                 target.getX(), target.getY() + target.getBbHeight() * 0.5, target.getZ(),
-                happyCount,
-                ElementalVisualConfig.natureImpactHappyVillagerSpread,
-                ElementalVisualConfig.natureImpactHappyVillagerSpread,
-                ElementalVisualConfig.natureImpactHappyVillagerSpread,
-                ElementalVisualConfig.natureImpactHappyVillagerSpeed);
+                glowCount,
+                ElementalVisualConfig.thunderImpactGlowSpread,
+                ElementalVisualConfig.thunderImpactGlowSpread,
+                ElementalVisualConfig.thunderImpactGlowSpread,
+                ElementalVisualConfig.thunderImpactGlowSpeed);
 
-        // 等级 ≥ 3 的额外特效
-        if (tier >= 3) {
-            // 孢子花粒子
-            if (ElementalVisualConfig.natureImpactSporeBlossomEnabled) {
-                serverLevel.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR,
-                        target.getX(), target.getY() + 0.2, target.getZ(),
-                        ElementalVisualConfig.natureImpactSporeBlossomCount,
-                        ElementalVisualConfig.natureImpactSporeBlossomSpreadXZ,
-                        ElementalVisualConfig.natureImpactSporeBlossomSpreadY,
-                        ElementalVisualConfig.natureImpactSporeBlossomSpreadXZ,
-                        ElementalVisualConfig.natureImpactSporeBlossomSpeed);
-            }
+        int endRodCount = ElementalVisualConfig.thunderImpactEndRodCountPerTier * tier;
+        serverLevel.sendParticles(ParticleTypes.END_ROD,
+                target.getX(), target.getY() + target.getBbHeight() * 0.5, target.getZ(),
+                endRodCount,
+                ElementalVisualConfig.thunderImpactEndRodSpread,
+                ElementalVisualConfig.thunderImpactEndRodSpread,
+                ElementalVisualConfig.thunderImpactEndRodSpread,
+                ElementalVisualConfig.thunderImpactEndRodSpeed);
 
-            // 樱花叶粒子
-            if (ElementalVisualConfig.natureImpactCherryLeavesEnabled) {
-                serverLevel.sendParticles(ParticleTypes.CHERRY_LEAVES,
-                        target.getX(), target.getY() + target.getBbHeight() + 0.5, target.getZ(),
-                        ElementalVisualConfig.natureImpactCherryLeavesCount,
-                        ElementalVisualConfig.natureImpactCherryLeavesSpreadXZ,
-                        ElementalVisualConfig.natureImpactCherryLeavesSpreadY,
-                        ElementalVisualConfig.natureImpactCherryLeavesSpreadXZ,
-                        ElementalVisualConfig.natureImpactCherryLeavesSpeed);
+        if (tier >= 2 && ElementalVisualConfig.thunderImpactExtraEndRodEnabled) {
+            int extraCount = ElementalVisualConfig.thunderImpactExtraEndRodCountPerTier * tier;
+            double hSpread = ElementalVisualConfig.thunderImpactExtraEndRodHorizontalSpread;
+            boolean randomY = ElementalVisualConfig.thunderImpactExtraEndRodVerticalRandom;
+            for (int i = 0; i < extraCount; i++) {
+                double offsetX = (RANDOM.nextDouble() - 0.5) * hSpread;
+                double offsetZ = (RANDOM.nextDouble() - 0.5) * hSpread;
+                double offsetY = randomY ? RANDOM.nextDouble() * target.getBbHeight() : target.getBbHeight() * 0.5;
+                serverLevel.sendParticles(ParticleTypes.END_ROD,
+                        target.getX() + offsetX, target.getY() + offsetY, target.getZ() + offsetZ,
+                        1, 0, 0, 0, 0);
             }
         }
     }
