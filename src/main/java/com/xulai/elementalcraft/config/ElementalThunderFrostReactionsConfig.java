@@ -1,0 +1,615 @@
+package com.xulai.elementalcraft.config;
+
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.config.ModConfig;
+
+import java.util.List;
+
+public final class ElementalThunderFrostReactionsConfig {
+    public static final ForgeConfigSpec SPEC;
+
+    public static final ForgeConfigSpec.IntValue THUNDER_STRENGTH_THRESHOLD;
+    public static final ForgeConfigSpec.DoubleValue STATIC_BASE_CHANCE;
+    public static final ForgeConfigSpec.IntValue STATIC_SCALING_STEP;
+    public static final ForgeConfigSpec.DoubleValue STATIC_SCALING_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue STATIC_WETNESS_BONUS_CHANCE_PER_LEVEL;
+    public static final ForgeConfigSpec.DoubleValue STATIC_STACKING_BONUS_CHANCE;
+    public static final ForgeConfigSpec.IntValue STATIC_MAX_STACKS_PER_ATTACK;
+    public static final ForgeConfigSpec.IntValue STATIC_MAX_TOTAL_STACKS;
+    public static final ForgeConfigSpec.IntValue STATIC_DURATION_PER_STACK_TICKS;
+
+    public static final ForgeConfigSpec.IntValue STATIC_RESIST_IMMUNITY_THRESHOLD;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> STATIC_IMMUNITY_BLACKLIST;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> PARALYSIS_IMMUNITY_BLACKLIST;
+
+    public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_MIN;
+    public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_MAX;
+    public static final ForgeConfigSpec.IntValue STATIC_DAMAGE_INTERVAL_TICKS;
+
+    public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_NATURE_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_FROST_MULTIPLIER;
+
+    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue STATIC_SPLASH_DAMAGE_PERCENTAGE;
+    public static final ForgeConfigSpec.IntValue STATIC_SPLASH_BASE_RANGE;
+    public static final ForgeConfigSpec.IntValue STATIC_SPLASH_RANGE_PER_STACK;
+    public static final ForgeConfigSpec.IntValue STATIC_SPLASH_MAX_RANGE;
+    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_SKIP_IF_TARGET_HAS_STATIC;
+    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_EXCLUDE_FRIENDLY_ENTITIES;
+    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_ONLY_HOSTILE;
+    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_TRIGGER_PARALYSIS_ON_WET;
+
+    public static final ForgeConfigSpec.IntValue THUNDER_COUNTER_MIN_SPORE_STACKS;
+    public static final ForgeConfigSpec.IntValue NATURE_ATTACK_COOLDOWN_TICKS;
+    public static final ForgeConfigSpec.IntValue STATIC_STACKS_WHEN_NO_WETNESS;
+    public static final ForgeConfigSpec.DoubleValue COUNTER_LIGHTNING_DAMAGE;
+
+    public static final ForgeConfigSpec.IntValue PARALYSIS_MAX_STACKS;
+    public static final ForgeConfigSpec.IntValue PARALYSIS_DURATION_PER_STACK_TICKS;
+    public static final ForgeConfigSpec.DoubleValue PARALYSIS_DAMAGE_PERCENTAGE;
+    public static final ForgeConfigSpec.IntValue PARALYSIS_COOLDOWN_TICKS;
+
+    public static final ForgeConfigSpec.IntValue PARALYSIS_SPREAD_THRESHOLD_STACKS;
+    public static final ForgeConfigSpec.IntValue PARALYSIS_SPREAD_BASE_RANGE;
+    public static final ForgeConfigSpec.IntValue PARALYSIS_SPREAD_RANGE_PER_EXTRA_STACK;
+    public static final ForgeConfigSpec.BooleanValue PARALYSIS_SPREAD_ALLOW_CHAIN;
+    public static final ForgeConfigSpec.BooleanValue PARALYSIS_SPREAD_ALLOW_TO_SOURCE;
+    public static final ForgeConfigSpec.BooleanValue PARALYSIS_SPREAD_EXCLUDE_FRIENDLY_ENTITIES;
+    public static final ForgeConfigSpec.BooleanValue PARALYSIS_SPREAD_ONLY_HOSTILE;
+
+    public static final ForgeConfigSpec.DoubleValue STATIC_SPORE_BLAST_BASE_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue STATIC_SPORE_BLAST_PER_STATIC_STACK;
+    public static final ForgeConfigSpec.DoubleValue STATIC_SPORE_BLAST_PER_SPORE_STACK;
+
+
+    public static final ForgeConfigSpec.DoubleValue STATIC_MAX_PROT_CAP;
+    public static final ForgeConfigSpec.DoubleValue STATIC_MAX_PROJECTILE_PROT_CAP;
+
+    static {
+        ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
+
+        BUILDER.comment("Static Shock (Thunder) Reaction Configuration",
+                        "静电（雷霆）效果配置")
+                .push("static_shock");
+
+        BUILDER.comment("Trigger & Stack Rules", "触发与叠加规则")
+                .push("trigger_and_stack");
+
+        THUNDER_STRENGTH_THRESHOLD = BUILDER
+                .comment("Minimum Thunder Strength points required for the attacker to have a chance to apply Static Shock.",
+                         "攻击者触发静电效果所需的最低雷霆属性强化点数。",
+                         "Default: 20")
+                .defineInRange("thunder_strength_threshold", 20, 1, 10000);
+
+        BUILDER.comment("");
+
+        STATIC_BASE_CHANCE = BUILDER
+                .comment("Base chance to apply Static Shock on attack when the threshold is met.",
+                         "达到门槛后，攻击触发静电的基础概率。",
+                         "Default: 0.2 (20%)")
+                .defineInRange("static_base_chance", 0.2, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        STATIC_SCALING_STEP = BUILDER
+                .comment("Strength step size for increasing the application chance.",
+                         "触发概率成长所需的强化点数步长。",
+                         "Default: 20")
+                .defineInRange("static_scaling_step", 20, 1, 10000);
+
+        BUILDER.comment("");
+
+        STATIC_SCALING_CHANCE = BUILDER
+                .comment("Additional chance gained per each scaling step.",
+                         "每达到一个步长增加的额外概率。",
+                         "Default: 0.1 (10%)")
+                .defineInRange("static_scaling_chance", 0.1, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        STATIC_WETNESS_BONUS_CHANCE_PER_LEVEL = BUILDER
+                .comment("Additional chance per level of Wetness effect on the target.",
+                         "目标身上每层潮湿效果增加的额外概率。",
+                         "Default: 0.05 (5% per level)")
+                .defineInRange("static_wetness_bonus_chance_per_level", 0.05, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        STATIC_STACKING_BONUS_CHANCE = BUILDER
+                .comment("Additional chance when target already has Static Shock effect.",
+                         "目标已存在静电效果时的额外叠加概率。",
+                         "Default: 0.05 (5%)")
+                .defineInRange("static_stacking_bonus_chance", 0.05, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        STATIC_MAX_STACKS_PER_ATTACK = BUILDER
+                .comment("Maximum number of Static Shock stacks that can be applied in a single attack.",
+                         "单次攻击最多可施加的静电层数。",
+                         "Default: 1")
+                .defineInRange("static_max_stacks_per_attack", 1, 1, 100);
+
+        BUILDER.comment("");
+
+        STATIC_MAX_TOTAL_STACKS = BUILDER
+                .comment("Maximum total stacks of Static Shock a target can have. Once reached, no more stacks can be applied.",
+                         "目标身上静电的最大总层数。达到上限后无法继续叠加。",
+                         "Default: 5")
+                .defineInRange("static_max_total_stacks", 5, 1, 1000);
+
+        BUILDER.comment("");
+
+        STATIC_DURATION_PER_STACK_TICKS = BUILDER
+                .comment("Base duration (in ticks) per stack of Static Shock. 20 ticks = 1 second.",
+                         "每层静电的基础持续时间（以刻为单位）。20刻 = 1秒。",
+                         "Default: 20 (1 seconds)")
+                .defineInRange("static_duration_per_stack_ticks", 20, 1, 72000);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Immunity Rule", "免疫规则")
+                .push("immunity");
+
+        STATIC_RESIST_IMMUNITY_THRESHOLD = BUILDER
+                .comment("Thunder Resistance points required for an entity to become completely immune to Static Shock (both stacking and damage).",
+                         "实体完全免疫静电（叠加和伤害）所需的雷霆抗性点数。",
+                         "Default: 80")
+                .defineInRange("static_resist_immunity_threshold", 80, 1, 10000);
+
+        BUILDER.comment("");
+
+        STATIC_IMMUNITY_BLACKLIST = BUILDER
+                .comment("Entities in this blacklist are completely immune to Static Shock effect (cannot be applied).",
+                         "处于此黑名单中的实体完全免疫静电效果（无法被施加）。",
+                         "Example: [\"minecraft:creeper\", \"minecraft:skeleton\"]")
+                .defineListAllowEmpty("static_immunity_blacklist", List.of(), o -> o instanceof String);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Periodic Damage (Damage over Time)", "周期性伤害（持续伤害）")
+                .push("periodic_damage");
+
+        STATIC_DAMAGE_MIN = BUILDER
+                .comment("Minimum damage dealt per damage tick (in half-hearts, where 1.0 = 1 heart).",
+                         "每次伤害的最小值（以半心为单位，1.0 = 1心）。",
+                         "Default: 2.0")
+                .defineInRange("static_damage_min", 2.0, 0.0, 10000.0);
+
+        BUILDER.comment("");
+
+        STATIC_DAMAGE_MAX = BUILDER
+                .comment("Maximum damage dealt per damage tick (in half-hearts, where 1.0 = 1 heart).",
+                         "每次伤害的最大值（以半心为单位，1.0 = 1心）。",
+                         "Default: 10.0")
+                .defineInRange("static_damage_max", 10.0, 0.0, 10000.0);
+
+        BUILDER.comment("");
+
+        STATIC_DAMAGE_INTERVAL_TICKS = BUILDER
+                .comment("Interval (in ticks) between each Static Shock damage tick. 20 ticks = 1 second.",
+                         "每次静电伤害触发的间隔时间（以刻为单位）。20刻 = 1秒。",
+                         "Default: 100 (5 seconds)")
+                .defineInRange("static_damage_interval_ticks", 100, 1, 72000);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Elemental Attribute Modifiers", "元素属性修正")
+                .push("elemental_modifiers");
+
+        STATIC_DAMAGE_NATURE_MULTIPLIER = BUILDER
+                .comment("Damage multiplier for Nature attribute mobs when taking Static Shock damage . 0.5 = 50% damage.",
+                         "自然属性生物受到静电伤害时的伤害倍率。0.5 = 50%伤害。",
+                         "Default: 0.5")
+                .defineInRange("static_damage_nature_multiplier", 0.5, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        STATIC_DAMAGE_FROST_MULTIPLIER = BUILDER
+                .comment("Damage multiplier for Frost attribute mobs when taking Static Shock damage . 1.5 = 150% damage.",
+                         "冰霜属性生物受到静电伤害时的伤害倍率。1.5 = 150%伤害。",
+                         "Default: 1.5")
+                .defineInRange("static_damage_frost_multiplier", 1.5, 0.0, 10.0);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Static Splash (Chain Lightning) Configuration",
+                        "静电传导配置")
+                .push("static_splash");
+
+        STATIC_SPLASH_ENABLED = BUILDER
+                .comment("Enable static splash effect. When enabled, entities with Static Shock will damage nearby entities when taking periodic damage.",
+                         "启用静电传导效果。启用后，带有静电效果的实体受到周期性伤害时会对周围实体造成溅射伤害。",
+                         "Default: true")
+                .define("static_splash_enabled", true);
+
+        BUILDER.comment("");
+
+        STATIC_SPLASH_DAMAGE_PERCENTAGE = BUILDER
+                .comment("Percentage of the original damage dealt to splash targets. 0.5 = 50% damage.",
+                         "溅射伤害占原始伤害的百分比。0.5 = 50%伤害。",
+                         "Default: 0.5")
+                .defineInRange("static_splash_damage_percentage", 0.5, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        STATIC_SPLASH_BASE_RANGE = BUILDER
+                .comment("Base splash range (in blocks) when target has 1 stack of Static Shock.",
+                         "1层静电时的基础溅射范围（以方块为单位）。",
+                         "Default: 1")
+                .defineInRange("static_splash_base_range", 1, 1, 20);
+
+        BUILDER.comment("");
+
+        STATIC_SPLASH_RANGE_PER_STACK = BUILDER
+                .comment("Additional range (in blocks) per extra stack of Static Shock beyond the first.",
+                         "超过1层后，每层静电增加的范围（以方块为单位）。",
+                         "Default: 1")
+                .defineInRange("static_splash_range_per_stack", 1, 0, 10);
+
+        BUILDER.comment("");
+
+        STATIC_SPLASH_MAX_RANGE = BUILDER
+                .comment("Maximum splash range (in blocks) regardless of stacks.",
+                         "溅射最大范围限制（以方块为单位）。",
+                         "Default: 10")
+                .defineInRange("static_splash_max_range", 10, 1, 50);
+
+        BUILDER.comment("");
+
+        STATIC_SPLASH_SKIP_IF_TARGET_HAS_STATIC = BUILDER
+                .comment("If true, splash damage will not affect entities that already have Static Shock effect.",
+                         "如果为 true，溅射伤害不会影响已经带有静电效果的实体。",
+                         "Default: true")
+                .define("static_splash_skip_if_target_has_static", true);
+
+        BUILDER.comment("");
+
+        STATIC_SPLASH_EXCLUDE_FRIENDLY_ENTITIES = BUILDER
+                .comment("If true, players and tamed pets are immune to static splash damage.",
+                         "如果为 true，玩家与已驯服的宠物免疫静电传导伤害。",
+                         "Default: true")
+                .define("static_splash_exclude_friendly_entities", true);
+
+        BUILDER.comment("");
+
+        STATIC_SPLASH_ONLY_HOSTILE = BUILDER
+                .comment("If true, only hostile mobs (MobCategory.MONSTER) are affected by static splash damage.",
+                         "如果为 true，只有敌对生物会受到静电传导伤害，中立/被动生物将被忽略。",
+                         "Default: false")
+                .define("static_splash_only_hostile", true);
+
+        BUILDER.comment("");
+
+        STATIC_SPLASH_TRIGGER_PARALYSIS_ON_WET = BUILDER
+                .comment("If true, splash on a wet target will trigger Paralysis reaction (instead of dealing splash damage).",
+                         "如果为 true，溅射到潮湿目标时触发麻痹反应（而不是造成溅射伤害）。",
+                         "Default: true")
+                .define("static_splash_trigger_paralysis_on_wet", true);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Static Shock + Spores -> Toxic Blast Configuration",
+                        "静电+孢子触发毒火爆燃配置")
+                .push("static_spore_blast");
+
+        STATIC_SPORE_BLAST_BASE_CHANCE = BUILDER
+                .comment("Base chance for Static Shock damage to trigger Toxic Blast on a target with Spores.",
+                         "静电伤害触发毒火爆燃的基础概率。",
+                         "Default: 0.2 (20%)")
+                .defineInRange("base_chance", 0.2, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        STATIC_SPORE_BLAST_PER_STATIC_STACK = BUILDER
+                .comment("Additional chance per stack of Static Shock on the target.",
+                         "目标每层静电增加的额外概率。",
+                         "Default: 0.05 (5%)")
+                .defineInRange("per_static_stack", 0.05, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        STATIC_SPORE_BLAST_PER_SPORE_STACK = BUILDER
+                .comment("Additional chance per stack of Spores on the target.",
+                         "目标每层孢子增加的额外概率。",
+                         "Default: 0.05 (5%)")
+                .defineInRange("per_spore_stack", 0.05, 0.0, 1.0);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Static Shock Enchantment Reduction Configuration",
+                        "静电附魔减伤配置")
+                .push("static_enchantment_reduction");
+
+        STATIC_MAX_PROT_CAP = BUILDER
+                .comment("Maximum damage reduction from Protection enchantment against Static Shock damage.",
+                         "保护附魔对静电伤害的最大减免比例。",
+                         "4 pieces of Protection IV = 16 levels × (this_value / 16) = this_value.",
+                         "4件保护IV = 16级 × (该值 / 16) = 该值。",
+                         "Default: 0.25 (25%)")
+                .defineInRange("static_max_prot_cap", 0.25, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        STATIC_MAX_PROJECTILE_PROT_CAP = BUILDER
+                .comment("Maximum damage reduction from Projectile Protection enchantment against Static Shock damage.",
+                         "弹射物保护附魔对静电伤害的最大减免比例。",
+                         "4 pieces of Projectile Protection IV = 16 levels × (this_value / 16) = this_value.",
+                         "4件弹射物保护IV = 16级 × (该值 / 16) = 该值。",
+                         "Default: 0.50 (50%)")
+                .defineInRange("static_max_projectile_prot_cap", 0.50, 0.0, 1.0);
+
+        BUILDER.pop();
+
+        BUILDER.pop();
+
+        BUILDER.comment("Thunder Counter Configuration",
+
+                        "雷霆反制配置")
+                .push("thunder_counter");
+
+        THUNDER_COUNTER_MIN_SPORE_STACKS = BUILDER
+                .comment("Minimum stacks of Flammable Spores required on a Thunder target for a Nature attacker to trigger Thunder Counter.",
+                         "雷霆目标需要携带的最小易燃孢子层数，自然属性攻击者才能够触发雷霆反制。",
+                         "Default: 2")
+                .defineInRange("min_spore_stacks", 2, 1, 100);
+
+        BUILDER.comment("");
+
+        NATURE_ATTACK_COOLDOWN_TICKS = BUILDER
+                .comment("Cooldown ticks after the Thunder Counter is triggered on a Nature attacker.",
+                         "雷霆反制触发后，自然属性攻击者再次尝试触发雷霆反制的冷却时间（刻）。",
+                         "Default: 200 (10 seconds)")
+                .defineInRange("cooldown_ticks", 200, 1, 72000);
+
+        BUILDER.comment("");
+
+        STATIC_STACKS_WHEN_NO_WETNESS = BUILDER
+                .comment("Static Shock stacks applied to the Nature attacker when they are not under Wetness effect.",
+                         "自然属性攻击者没有潮湿效果时，雷霆反制施加的静电层数。",
+                         "Default: 2")
+                .defineInRange("static_stacks_when_no_wetness", 2, 1, 100);
+
+        BUILDER.comment("");
+
+        COUNTER_LIGHTNING_DAMAGE = BUILDER
+                .comment("Damage dealt by the lightning bolt summoned by Thunder Counter.",
+                         "雷霆反制召唤的闪电造成的伤害。",
+                         "Default: 10.0")
+                .defineInRange("lightning_damage", 10.0, 0.0, 100.0);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Paralysis Reaction Configuration",
+                        "麻痹反应配置")
+                .push("paralysis");
+
+        PARALYSIS_MAX_STACKS = BUILDER
+                .comment("Maximum total stacks of Paralysis a target can have.",
+                         "目标身上麻痹的最大总层数。",
+                         "Default: 5")
+                .defineInRange("paralysis_max_stacks", 5, 1, 1000);
+
+        BUILDER.comment("");
+
+        PARALYSIS_DURATION_PER_STACK_TICKS = BUILDER
+                .comment("Base duration (in ticks) per stack of Paralysis. 20 ticks = 1 second.",
+                         "每层麻痹的基础持续时间（以刻为单位）。20刻 = 1秒。",
+                         "Default: 10 (0.5 seconds)")
+                .defineInRange("paralysis_duration_per_stack_ticks", 10, 1, 72000);
+
+        BUILDER.comment("");
+
+        PARALYSIS_DAMAGE_PERCENTAGE = BUILDER
+                .comment("Percentage of remaining Static Shock damage dealt when Paralysis is triggered . 0.5 = 50%.",
+                         "触发麻痹时，静电剩余伤害的百分比。0.5 = 50%。",
+                         "Default: 0.5")
+                .defineInRange("paralysis_damage_percentage", 0.5, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        PARALYSIS_COOLDOWN_TICKS = BUILDER
+                .comment("Cooldown ticks before a target can enter the Paralysis flow again after Paralysis ends.\n" +
+                         "During cooldown, Wetness and Static Shock effects still work normally. Only when the\n" +
+                         "paralysis flow is about to be triggered (target has both Wetness and Static), the cooldown\n" +
+                         "is checked. If in cooldown, Wetness and Static are cleared but NO static damage is dealt\n" +
+                         "and NO Paralysis is applied.\n" +
+                         "目标在麻痹结束后，再次进入麻痹流程所需的冷却时间（刻）。\n" +
+                         "冷却期间，潮湿和静电效果正常运作（潮湿减火伤、静电持续伤害）。\n" +
+                         "仅在尝试触发麻痹流程时检测冷却，冷却中则清除潮湿和静电效果，\n" +
+                         "不结算静电伤害也不施加麻痹状态。",
+                         "Default: 200 (10 seconds)")
+                .defineInRange("paralysis_cooldown_ticks", 200, 0, 72000);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Paralysis Spread Configuration",
+                        "麻痹传染配置")
+                .push("paralysis_spread");
+
+        PARALYSIS_SPREAD_THRESHOLD_STACKS = BUILDER
+                .comment("Minimum paralysis stacks required for an entity to trigger paralysis spread.",
+                         "触发麻痹传染所需的最小麻痹层数。",
+                         "Default: 3")
+                .defineInRange("paralysis_spread_threshold_stacks", 3, 1, 1000);
+
+        BUILDER.comment("");
+
+        PARALYSIS_SPREAD_BASE_RANGE = BUILDER
+                .comment("Base spread range (in blocks) for paralysis from paralyzed entities. 3 = 3x3 area.",
+                         "麻痹生物传染麻痹的基础范围（以方块为单位）。3 = 3x3区域。",
+                         "Default: 3")
+                .defineInRange("paralysis_spread_base_range", 3, 1, 20);
+
+        BUILDER.comment("");
+
+        PARALYSIS_SPREAD_RANGE_PER_EXTRA_STACK = BUILDER
+                .comment("Additional spread range per extra paralysis stack beyond threshold.",
+                         "超过阈值后，每层额外麻痹增加的传染范围。",
+                         "Default: 1")
+                .defineInRange("paralysis_spread_range_per_extra_stack", 1, 0, 10);
+
+        BUILDER.comment("");
+
+        PARALYSIS_SPREAD_ALLOW_CHAIN = BUILDER
+                .comment("Whether infected entities can further spread paralysis to others.",
+                         "被传染的实体是否能够继续传染麻痹给其他生物。",
+                         "Default: false")
+                .define("paralysis_spread_allow_chain", false);
+
+        BUILDER.comment("");
+
+        PARALYSIS_SPREAD_ALLOW_TO_SOURCE = BUILDER
+                .comment("If true, paralysis can spread back to the original source entity.",
+                         "如果为 true，麻痹可以传染回原始的父源实体。",
+                         "If false, the original source entity will be skipped during contagion.",
+                         "如果为 false，传染过程中会跳过父源实体。",
+                         "Default: true")
+                .define("paralysis_spread_allow_to_source", true);
+
+        BUILDER.comment("");
+
+        PARALYSIS_SPREAD_EXCLUDE_FRIENDLY_ENTITIES = BUILDER
+                .comment("If true, players and tamed pets are immune to paralysis spread.",
+                         "如果为 true，玩家和已驯服的宠物免疫麻痹传染。",
+                         "Default: true")
+                .define("paralysis_spread_exclude_friendly_entities", true);
+
+        BUILDER.comment("");
+
+        PARALYSIS_SPREAD_ONLY_HOSTILE = BUILDER
+                .comment("If true, paralysis spread only affects hostile mobs (MobCategory.MONSTER).",
+                         "如果为 true，麻痹传染仅影响敌对生物，忽略中立/被动生物。",
+                         "Default: false")
+                .define("paralysis_spread_only_hostile", true);
+
+        BUILDER.comment("");
+
+        PARALYSIS_IMMUNITY_BLACKLIST = BUILDER
+                .comment("Entities in this blacklist are completely immune to Paralysis effect (cannot be applied).",
+                         "处于此黑名单中的实体完全免疫麻痹效果（无法被施加）。",
+                         "Example: [\"minecraft:iron_golem\", \"minecraft:wither\"]")
+                .defineListAllowEmpty("paralysis_immunity_blacklist", List.of(), o -> o instanceof String);
+
+        BUILDER.pop();
+
+        SPEC = BUILDER.build();
+    }
+
+    public static int thunderStrengthThreshold;
+    public static double staticBaseChance;
+    public static int staticScalingStep;
+    public static double staticScalingChance;
+    public static double staticWetnessBonusChancePerLevel;
+    public static double staticStackingBonusChance;
+    public static int staticMaxStacksPerAttack;
+    public static int staticMaxTotalStacks;
+    public static int staticDurationPerStackTicks;
+    public static int staticResistImmunityThreshold;
+    public static double staticDamageMin;
+    public static double staticDamageMax;
+    public static int staticDamageIntervalTicks;
+    public static double staticDamageNatureMultiplier;
+    public static double staticDamageFrostMultiplier;
+
+    public static boolean staticSplashEnabled;
+    public static double staticSplashDamagePercentage;
+    public static int staticSplashBaseRange;
+    public static int staticSplashRangePerStack;
+    public static int staticSplashMaxRange;
+    public static boolean staticSplashSkipIfTargetHasStatic;
+    public static boolean staticSplashExcludeFriendlyEntities;
+    public static boolean staticSplashOnlyHostile;
+    public static boolean staticSplashTriggerParalysisOnWet;
+
+    public static int thunderCounterMinSporeStacks;
+    public static int natureAttackCooldownTicks;
+    public static int staticStacksWhenNoWetness;
+    public static double counterLightningDamage;
+
+    public static List<? extends String> cachedStaticImmunityBlacklist;
+    public static List<? extends String> cachedParalysisImmunityBlacklist;
+
+    public static int paralysisMaxStacks;
+    public static int paralysisDurationPerStackTicks;
+    public static double paralysisDamagePercentage;
+    public static int paralysisCooldownTicks;
+
+    public static int paralysisSpreadThresholdStacks;
+    public static int paralysisSpreadBaseRange;
+    public static int paralysisSpreadRangePerExtraStack;
+    public static boolean paralysisSpreadAllowChain;
+    public static boolean paralysisSpreadAllowToSource;
+    public static boolean paralysisSpreadExcludeFriendlyEntities;
+    public static boolean paralysisSpreadOnlyHostile;
+
+    public static double staticSporeBlastBaseChance;
+    public static double staticSporeBlastPerStaticStack;
+    public static double staticSporeBlastPerSporeStack;
+
+
+    public static double staticMaxProtCap;
+    public static double staticMaxProjectileProtCap;
+
+    public static void register(String configPath) {
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, configPath);
+    }
+
+    public static void refreshCache() {
+        thunderStrengthThreshold = THUNDER_STRENGTH_THRESHOLD.get();
+        staticBaseChance = STATIC_BASE_CHANCE.get();
+        staticScalingStep = STATIC_SCALING_STEP.get();
+        staticScalingChance = STATIC_SCALING_CHANCE.get();
+        staticWetnessBonusChancePerLevel = STATIC_WETNESS_BONUS_CHANCE_PER_LEVEL.get();
+        staticStackingBonusChance = STATIC_STACKING_BONUS_CHANCE.get();
+        staticMaxStacksPerAttack = STATIC_MAX_STACKS_PER_ATTACK.get();
+        staticMaxTotalStacks = STATIC_MAX_TOTAL_STACKS.get();
+        staticDurationPerStackTicks = STATIC_DURATION_PER_STACK_TICKS.get();
+        staticResistImmunityThreshold = STATIC_RESIST_IMMUNITY_THRESHOLD.get();
+        cachedStaticImmunityBlacklist = STATIC_IMMUNITY_BLACKLIST.get();
+        cachedParalysisImmunityBlacklist = PARALYSIS_IMMUNITY_BLACKLIST.get();
+        staticDamageMin = STATIC_DAMAGE_MIN.get();
+        staticDamageMax = STATIC_DAMAGE_MAX.get();
+        staticDamageIntervalTicks = STATIC_DAMAGE_INTERVAL_TICKS.get();
+
+        staticDamageNatureMultiplier = STATIC_DAMAGE_NATURE_MULTIPLIER.get();
+        staticDamageFrostMultiplier = STATIC_DAMAGE_FROST_MULTIPLIER.get();
+
+        staticSplashEnabled = STATIC_SPLASH_ENABLED.get();
+        staticSplashDamagePercentage = STATIC_SPLASH_DAMAGE_PERCENTAGE.get();
+        staticSplashBaseRange = STATIC_SPLASH_BASE_RANGE.get();
+        staticSplashRangePerStack = STATIC_SPLASH_RANGE_PER_STACK.get();
+        staticSplashMaxRange = STATIC_SPLASH_MAX_RANGE.get();
+        staticSplashSkipIfTargetHasStatic = STATIC_SPLASH_SKIP_IF_TARGET_HAS_STATIC.get();
+        staticSplashExcludeFriendlyEntities = STATIC_SPLASH_EXCLUDE_FRIENDLY_ENTITIES.get();
+        staticSplashOnlyHostile = STATIC_SPLASH_ONLY_HOSTILE.get();
+        staticSplashTriggerParalysisOnWet = STATIC_SPLASH_TRIGGER_PARALYSIS_ON_WET.get();
+
+        thunderCounterMinSporeStacks = THUNDER_COUNTER_MIN_SPORE_STACKS.get();
+        natureAttackCooldownTicks = NATURE_ATTACK_COOLDOWN_TICKS.get();
+        staticStacksWhenNoWetness = STATIC_STACKS_WHEN_NO_WETNESS.get();
+        counterLightningDamage = COUNTER_LIGHTNING_DAMAGE.get();
+
+        paralysisMaxStacks = PARALYSIS_MAX_STACKS.get();
+        paralysisDurationPerStackTicks = PARALYSIS_DURATION_PER_STACK_TICKS.get();
+        paralysisDamagePercentage = PARALYSIS_DAMAGE_PERCENTAGE.get();
+        paralysisCooldownTicks = PARALYSIS_COOLDOWN_TICKS.get();
+
+        paralysisSpreadThresholdStacks = PARALYSIS_SPREAD_THRESHOLD_STACKS.get();
+        paralysisSpreadBaseRange = PARALYSIS_SPREAD_BASE_RANGE.get();
+        paralysisSpreadRangePerExtraStack = PARALYSIS_SPREAD_RANGE_PER_EXTRA_STACK.get();
+        paralysisSpreadAllowChain = PARALYSIS_SPREAD_ALLOW_CHAIN.get();
+        paralysisSpreadAllowToSource = PARALYSIS_SPREAD_ALLOW_TO_SOURCE.get();
+        paralysisSpreadExcludeFriendlyEntities = PARALYSIS_SPREAD_EXCLUDE_FRIENDLY_ENTITIES.get();
+        paralysisSpreadOnlyHostile = PARALYSIS_SPREAD_ONLY_HOSTILE.get();
+
+        staticSporeBlastBaseChance = STATIC_SPORE_BLAST_BASE_CHANCE.get();
+        staticSporeBlastPerStaticStack = STATIC_SPORE_BLAST_PER_STATIC_STACK.get();
+        staticSporeBlastPerSporeStack = STATIC_SPORE_BLAST_PER_SPORE_STACK.get();
+
+        staticMaxProtCap = STATIC_MAX_PROT_CAP.get();
+        staticMaxProjectileProtCap = STATIC_MAX_PROJECTILE_PROT_CAP.get();
+    }
+
+    private ElementalThunderFrostReactionsConfig() {}
+}

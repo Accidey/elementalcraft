@@ -1,0 +1,8 @@
+{
+  "electric_zap": {
+    "sounds": ["elementalcraft:electric_zap"]
+  },
+  "spore_gain": {
+    "sounds": ["elementalcraft:spore_gain"]
+  }
+}
