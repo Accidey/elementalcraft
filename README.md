@@ -2,7 +2,7 @@
 
 Welcome to **ElementalCraft**! This is a Minecraft mod centered around elemental combat, adding a new attribute system, elemental reactions, special enchantments, and stunning visual effects to vanilla survival and combat.
 
-**The following is for version V1.6.0 (testing and fixing bugs now, and an update is coming soon). Frost attribute elemental reactions will be updated in V1.7.0.**
+**The following is for version V1.6.0. Frost attribute elemental reactions will be updated in V1.7.0.**
 
 ## 🌟 Core Elements
 
