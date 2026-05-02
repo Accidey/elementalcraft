@@ -6,6 +6,7 @@ import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
+import com.xulai.elementalcraft.util.ElementDamageHelper;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -155,7 +156,7 @@ public class ScorchedHandler {
         if (entity.tickCount % 20 == 0) {
             float damage = calculateScorchedDamage(fireStrength, entity);
             if (damage > 0) {
-                entity.hurt(ModDamageTypes.source(level, ModDamageTypes.LAVA_MAGIC), damage);
+                ElementDamageHelper.applyDamage(entity, damage, ModDamageTypes.source(entity.level(), ModDamageTypes.LAVA_MAGIC));
                 level.sendParticles(ParticleTypes.LAVA, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(), 10, 0.2, 0.2, 0.2, 0.0);
                 level.sendParticles(ParticleTypes.SMOKE, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(), 5, 0.2, 0.2, 0.2, 0.0);
                 level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.2f, 1.0f);
@@ -192,7 +193,7 @@ public class ScorchedHandler {
         float shockDamage = totalRemainingDamage * ratio;
 
         if (shockDamage > 0.5f) {
-            entity.hurt(ModDamageTypes.source(level, ModDamageTypes.LAVA_MAGIC), shockDamage);
+            ElementDamageHelper.applyDamage(entity, shockDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.LAVA_MAGIC));
         }
 
         entity.clearFire();

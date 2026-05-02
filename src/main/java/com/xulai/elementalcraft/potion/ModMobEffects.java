@@ -24,6 +24,12 @@ public final class ModMobEffects {
     public static final RegistryObject<MobEffect> PARALYSIS =
             MOB_EFFECTS.register("paralysis", ParalysisEffect::new);
 
+    public static final RegistryObject<MobEffect> FROSTBITE =
+            MOB_EFFECTS.register("frostbite", FrostbiteEffect::new);
+
+    public static final RegistryObject<MobEffect> FREEZE =
+            MOB_EFFECTS.register("freeze", FreezeEffect::new);
+
     public static void register(IEventBus eventBus) {
         MOB_EFFECTS.register(eventBus);
     }

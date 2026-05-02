@@ -66,6 +66,50 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue STATIC_MAX_PROT_CAP;
     public static final ForgeConfigSpec.DoubleValue STATIC_MAX_PROJECTILE_PROT_CAP;
 
+    public static final ForgeConfigSpec.DoubleValue FROST_STRENGTH_THRESHOLD;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_BASE_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_SCALING_STEP;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_SCALING_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_WETNESS_BONUS_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_STACKING_BONUS_CHANCE;
+    public static final ForgeConfigSpec.IntValue FROSTBITE_MAX_STACKS_PER_ATTACK;
+    public static final ForgeConfigSpec.IntValue FROSTBITE_MAX_TOTAL_STACKS;
+    public static final ForgeConfigSpec.IntValue FROSTBITE_BASE_DURATION_TICKS;
+    public static final ForgeConfigSpec.IntValue FROSTBITE_DURATION_PER_EXTRA_STACK_TICKS;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_SPEED_REDUCTION_PER_STACK;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_PERIODIC_DAMAGE;
+    public static final ForgeConfigSpec.IntValue FROSTBITE_DAMAGE_INTERVAL_TICKS;
+    public static final ForgeConfigSpec.IntValue FROSTBITE_RESIST_IMMUNITY_THRESHOLD;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> FROSTBITE_IMMUNITY_BLACKLIST;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_FIRE_DURATION_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_THUNDER_DURATION_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_NETHER_DURATION_MULTIPLIER;
+
+    public static final ForgeConfigSpec.IntValue FREEZE_DURATION_TICKS;
+    public static final ForgeConfigSpec.DoubleValue FREEZE_ELEMENTAL_VULNERABILITY;
+    public static final ForgeConfigSpec.DoubleValue FREEZE_SETTLEMENT_DAMAGE_PER_STACK;
+    public static final ForgeConfigSpec.IntValue FREEZE_COOLDOWN_TICKS;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> FREEZE_IMMUNITY_BLACKLIST;
+
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_THERMAL_SHOCK_BASE_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_THERMAL_SHOCK_PER_STACK;
+
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_THUNDER_VULNERABILITY_PER_STACK;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_SUPERCONDUCT_RADIUS;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_SUPERCONDUCT_RADIUS_PER_STACK;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_SUPERCONDUCT_DAMAGE_RATIO;
+
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_SPORE_TO_FROST_RATIO;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_STEAM_CLOUD_BONUS_CHANCE;
+
+    public static final ForgeConfigSpec.IntValue FROSTBITE_AURA_THRESHOLD;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_AURA_BASE_RANGE;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_AURA_RANGE_PER_STACK;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_AURA_MAX_RANGE;
+    public static final ForgeConfigSpec.IntValue FROSTBITE_AURA_DAMAGE_INTERVAL_TICKS;
+    public static final ForgeConfigSpec.BooleanValue FROSTBITE_AURA_EXCLUDE_FRIENDLY;
+    public static final ForgeConfigSpec.BooleanValue FROSTBITE_AURA_ONLY_HOSTILE;
+
     static {
         ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
@@ -143,8 +187,8 @@ public final class ElementalThunderFrostReactionsConfig {
         STATIC_DURATION_PER_STACK_TICKS = BUILDER
                 .comment("Base duration (in ticks) per stack of Static Shock. 20 ticks = 1 second.",
                          "每层静电的基础持续时间（以刻为单位）。20刻 = 1秒。",
-                         "Default: 20 (1 seconds)")
-                .defineInRange("static_duration_per_stack_ticks", 20, 1, 72000);
+                         "Default: 100 (5 seconds)")
+                .defineInRange("static_duration_per_stack_ticks", 100, 1, 72000);
 
         BUILDER.pop();
 
@@ -207,9 +251,9 @@ public final class ElementalThunderFrostReactionsConfig {
 
         STATIC_DAMAGE_FROST_MULTIPLIER = BUILDER
                 .comment("Damage multiplier for Frost attribute mobs when taking Static Shock damage . 1.5 = 150% damage.",
-                         "冰霜属性生物受到静电伤害时的伤害倍率。1.5 = 150%伤害。",
-                         "Default: 1.5")
-                .defineInRange("static_damage_frost_multiplier", 1.5, 0.0, 10.0);
+                         "冰霜属性生物受到静电伤害时的伤害倍率。2.0 = 200%伤害。",
+                         "Default: 2.0")
+                .defineInRange("static_damage_frost_multiplier", 2.0, 0.0, 10.0);
 
         BUILDER.pop();
 
@@ -493,6 +537,346 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
+        BUILDER.comment("Frostbite (Frost) Reaction Configuration",
+                        "霜冻（冰霜）效果配置")
+                .push("frostbite");
+
+        BUILDER.comment("Trigger & Stack Rules", "触发与叠加规则")
+                .push("trigger_and_stack");
+
+        FROST_STRENGTH_THRESHOLD = BUILDER
+                .comment("Minimum Frost Strength points required for the attacker to have a chance to apply Frostbite.",
+                         "攻击者触发霜冻效果所需的最低冰霜属性强化点数。",
+                         "Default: 20")
+                .defineInRange("frost_strength_threshold", 20.0, 1.0, 10000.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_BASE_CHANCE = BUILDER
+                .comment("Base chance to apply Frostbite on attack when the threshold is met.",
+                         "达到门槛后，攻击触发霜冻的基础概率。",
+                         "Default: 0.2 (20%)")
+                .defineInRange("frostbite_base_chance", 0.2, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_SCALING_STEP = BUILDER
+                .comment("Strength step size for increasing the application chance.",
+                         "触发概率成长所需的强化点数步长。",
+                         "Default: 20")
+                .defineInRange("frostbite_scaling_step", 20.0, 1.0, 10000.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_SCALING_CHANCE = BUILDER
+                .comment("Additional chance gained per each scaling step.",
+                         "每达到一个步长增加的额外概率。",
+                         "Default: 0.1 (10%)")
+                .defineInRange("frostbite_scaling_chance", 0.1, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_WETNESS_BONUS_CHANCE = BUILDER
+                .comment("Additional chance per level of Wetness effect on the target.",
+                         "目标身上每层潮湿效果增加的额外概率。",
+                         "Default: 0.05 (5% per level)")
+                .defineInRange("frostbite_wetness_bonus_chance", 0.05, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_STACKING_BONUS_CHANCE = BUILDER
+                .comment("Additional chance when target already has Frostbite effect.",
+                         "目标已存在霜冻效果时的额外叠加概率。",
+                         "Default: 0.05 (5%)")
+                .defineInRange("frostbite_stacking_bonus_chance", 0.05, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_MAX_STACKS_PER_ATTACK = BUILDER
+                .comment("Maximum number of Frostbite stacks that can be applied in a single attack.",
+                         "单次攻击最多可施加的霜冻层数。",
+                         "Default: 1")
+                .defineInRange("frostbite_max_stacks_per_attack", 1, 1, 100);
+
+        BUILDER.comment("");
+
+        FROSTBITE_MAX_TOTAL_STACKS = BUILDER
+                .comment("Maximum total stacks of Frostbite a target can have.",
+                         "目标身上霜冻的最大总层数。",
+                         "Default: 5")
+                .defineInRange("frostbite_max_total_stacks", 5, 1, 1000);
+
+        BUILDER.comment("");
+
+        FROSTBITE_BASE_DURATION_TICKS = BUILDER
+                .comment("Base duration (in ticks) for the first Frostbite stack. 20 ticks = 1 second.",
+                         "霜冻首层的基础持续时间（以刻为单位）。20刻 = 1秒。",
+                         "Default: 200 (10 seconds)")
+                .defineInRange("frostbite_base_duration_ticks", 200, 1, 72000);
+
+        BUILDER.comment("");
+
+        FROSTBITE_DURATION_PER_EXTRA_STACK_TICKS = BUILDER
+                .comment("Additional duration (in ticks) per extra Frostbite stack beyond the first. 20 ticks = 1 second.",
+                         "超过首层后，每层霜冻额外增加的持续时间（以刻为单位）。20刻 = 1秒。",
+                         "Default: 100 (5 seconds)")
+                .defineInRange("frostbite_duration_per_extra_stack_ticks", 100, 1, 72000);
+
+        BUILDER.comment("");
+
+        FROSTBITE_SPEED_REDUCTION_PER_STACK = BUILDER
+                .comment("Movement speed reduction per stack of Frostbite. 0.1 = 10% reduction.",
+                         "每层霜冻降低的移动速度比例。0.1 = 10%减速。",
+                         "Default: 0.1 (10%)")
+                .defineInRange("frostbite_speed_reduction_per_stack", 0.1, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_PERIODIC_DAMAGE = BUILDER
+                .comment("Damage dealt by Frostbite periodic tick (every frostbite_damage_interval_ticks).",
+                         "霜冻周期性伤害的伤害值（每隔 frostbite_damage_interval_ticks 触发一次）。",
+                         "Default: 2.0")
+                .defineInRange("frostbite_periodic_damage", 2.0, 0.0, 10000.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_DAMAGE_INTERVAL_TICKS = BUILDER
+                .comment("Interval (in ticks) between each Frostbite periodic damage. 20 ticks = 1 second.",
+                         "霜冻周期性伤害的间隔时间（以刻为单位）。20刻 = 1秒。",
+                         "Default: 100 (5 seconds)")
+                .defineInRange("frostbite_damage_interval_ticks", 100, 1, 72000);
+
+        BUILDER.comment("");
+
+        FROSTBITE_RESIST_IMMUNITY_THRESHOLD = BUILDER
+                .comment("Frost Resistance points required for an entity to become completely immune to Frostbite.",
+                         "实体完全免疫霜冻所需的冰霜抗性点数。",
+                         "Default: 80")
+                .defineInRange("frostbite_resist_immunity_threshold", 80, 1, 10000);
+
+        BUILDER.comment("");
+
+        FROSTBITE_IMMUNITY_BLACKLIST = BUILDER
+                .comment("Entities in this blacklist are completely immune to Frostbite effect.",
+                         "处于此黑名单中的实体完全免疫霜冻效果。",
+                         "Example: [\"minecraft:blaze\", \"minecraft:magma_cube\"]")
+                .defineListAllowEmpty("frostbite_immunity_blacklist", List.of(), o -> o instanceof String);
+
+        BUILDER.comment("");
+
+        FROSTBITE_FIRE_DURATION_MULTIPLIER = BUILDER
+                .comment("Duration multiplier for Fire attribute mobs when receiving Frostbite. 1.5 = 150% duration.",
+                         "赤焰属性生物受到霜冻时的持续时间倍率。1.5 = 150%持续时间。",
+                         "Default: 1.5")
+                .defineInRange("frostbite_fire_duration_multiplier", 1.5, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_THUNDER_DURATION_MULTIPLIER = BUILDER
+                .comment("Duration multiplier for Thunder attribute mobs when receiving Frostbite. 0.5 = 50% duration.",
+                         "雷霆属性生物受到霜冻时的持续时间倍率。0.5 = 50%持续时间。",
+                         "Default: 0.5")
+                .defineInRange("frostbite_thunder_duration_multiplier", 0.5, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_NETHER_DURATION_MULTIPLIER = BUILDER
+                .comment("Duration multiplier for Frostbite in the Nether dimension. 0.5 = 50% duration.",
+                         "下界维度中霜冻的持续时间倍率。0.5 = 50%持续时间。",
+                         "Default: 0.5")
+                .defineInRange("frostbite_nether_duration_multiplier", 0.5, 0.0, 1.0);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Freeze Reaction Configuration", "冻结反应配置（霜冻+潮湿触发）")
+                .push("freeze");
+
+        FREEZE_DURATION_TICKS = BUILDER
+                .comment("Duration (in ticks) of the Freeze effect. 20 ticks = 1 second.",
+                         "冻结效果的持续时间（以刻为单位）。20刻 = 1秒。",
+                         "Default: 60 (3 seconds)")
+                .defineInRange("freeze_duration_ticks", 60, 1, 72000);
+
+        BUILDER.comment("");
+
+        FREEZE_ELEMENTAL_VULNERABILITY = BUILDER
+                .comment("Damage multiplier for elemental damage during Freeze. 1.5 = 150% damage.",
+                         "冻结期间受到的元素伤害倍率。1.5 = 150%伤害。",
+                         "Default: 1.5")
+                .defineInRange("freeze_elemental_vulnerability", 1.5, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        FREEZE_SETTLEMENT_DAMAGE_PER_STACK = BUILDER
+                .comment("Damage multiplier per Frostbite stack when Freeze is triggered (percentage of frostbite_periodic_damage). 1.0 = 100%, 0.5 = 50%, 2.0 = 200%.",
+                         "触发冻结时每层霜冻结算的伤害倍率（基于frostbite_periodic_damage的百分比）。1.0 = 100%，0.5 = 50%，2.0 = 200%。",
+                         "Default: 1.0")
+                .defineInRange("freeze_settlement_damage_per_stack", 1.0, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        FREEZE_COOLDOWN_TICKS = BUILDER
+                .comment("Cooldown ticks before a target can be frozen again after Freeze ends.",
+                         "冻结结束后再次被冻结所需的冷却时间（刻）。",
+                         "Default: 200 (10 seconds)")
+                .defineInRange("freeze_cooldown_ticks", 200, 0, 72000);
+
+        BUILDER.comment("");
+
+        FREEZE_IMMUNITY_BLACKLIST = BUILDER
+                .comment("Entities in this blacklist are immune to Freeze (but not Frostbite slow).",
+                         "处于此黑名单中的实体免疫冻结（但不免疫霜冻减速）。",
+                         "Example: [\"minecraft:ender_dragon\", \"minecraft:wither\"]")
+                .defineListAllowEmpty("freeze_immunity_blacklist", List.of(), o -> o instanceof String);
+
+        BUILDER.pop();
+
+        BUILDER.pop();
+
+        BUILDER.comment("Frostbite + Fire (Thermal Shock)",
+                        "霜冻+赤焰（热震蒸汽）")
+                .push("frostbite_fire");
+
+        FROSTBITE_THERMAL_SHOCK_BASE_DAMAGE = BUILDER
+                .comment("Base damage dealt by Thermal Shock when a Fire attack hits a Frozen target.",
+                         "火攻击命中冻结目标时热震的基础伤害。",
+                         "Default: 5.0")
+                .defineInRange("frostbite_thermal_shock_base_damage", 5.0, 0.0, 10000.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_THERMAL_SHOCK_PER_STACK = BUILDER
+                .comment("Additional Thermal Shock damage per remaining Frostbite stack.",
+                         "每层剩余霜冻层数增加的热震伤害。",
+                         "Default: 2.0")
+                .defineInRange("frostbite_thermal_shock_per_stack", 2.0, 0.0, 10000.0);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Frostbite + Thunder (Superconduct)",
+                        "霜冻+雷霆（超导传导）")
+                .push("frostbite_thunder");
+
+        FROSTBITE_THUNDER_VULNERABILITY_PER_STACK = BUILDER
+                .comment("Thunder damage vulnerability increase per Frostbite stack. 0.1 = 10%.",
+                         "每层霜冻增加的雷霆伤害易伤。0.1 = 10%。",
+                         "Default: 0.1 (10%)")
+                .defineInRange("frostbite_thunder_vulnerability_per_stack", 0.1, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_SUPERCONDUCT_RADIUS = BUILDER
+                .comment("Base radius (in blocks) for Superconduct chain lightning.",
+                         "超导传导的基础范围（以方块为单位）。",
+                         "Default: 4.0")
+                .defineInRange("frostbite_superconduct_radius", 4.0, 0.0, 50.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_SUPERCONDUCT_RADIUS_PER_STACK = BUILDER
+                .comment("Additional radius per Frostbite stack for Superconduct.",
+                         "每层霜冻增加的超导传导范围。",
+                         "Default: 1.0")
+                .defineInRange("frostbite_superconduct_radius_per_stack", 1.0, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_SUPERCONDUCT_DAMAGE_RATIO = BUILDER
+                .comment("Percentage of original Thunder damage dealt to nearby entities. 0.6 = 60%.",
+                         "对周围实体造成的雷霆伤害占原始伤害的百分比。0.6 = 60%。",
+                         "Default: 0.6 (60%)")
+                .defineInRange("frostbite_superconduct_damage_ratio", 0.6, 0.0, 1.0);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Frostbite + Nature (Spore Crystallize)",
+                        "霜冻+自然（孢子结晶）")
+                .push("frostbite_nature");
+
+        FROSTBITE_SPORE_TO_FROST_RATIO = BUILDER
+                .comment("Ratio of Spore stacks converted to Frostbite stacks. 0.5 = 2 spores -> 1 frostbite.",
+                         "孢子层数转化为霜冻层数的比率。0.5 = 2层孢子→1层霜冻。",
+                         "Default: 0.5")
+                .defineInRange("frostbite_spore_to_frost_ratio", 0.5, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        BUILDER.pop();
+
+        BUILDER.comment("Frostbite + Steam Cloud",
+                        "霜冻+蒸汽云")
+                .push("frostbite_steam");
+
+        FROSTBITE_STEAM_CLOUD_BONUS_CHANCE = BUILDER
+                .comment("Additional Frostbite application chance when target is in a condensing steam cloud.",
+                         "目标处于冷凝蒸汽云中时霜冻施加的额外概率。",
+                         "Default: 0.15 (15%)")
+                .defineInRange("frostbite_steam_cloud_bonus_chance", 0.15, 0.0, 1.0);
+
+        BUILDER.comment("");
+
+        BUILDER.pop();
+
+        BUILDER.comment("Frostbite Aura (AoE Frost Damage)",
+                        "霜冻光环（范围冰霜伤害）")
+                .push("frostbite_aura");
+
+        FROSTBITE_AURA_THRESHOLD = BUILDER
+                .comment("Minimum Frostbite stacks required to activate the Frostbite Aura.",
+                         "激活霜冻光环所需的最低霜冻层数。",
+                         "Default: 3")
+                .defineInRange("frostbite_aura_threshold", 3, 1, 100);
+
+        BUILDER.comment("");
+
+        FROSTBITE_AURA_BASE_RANGE = BUILDER
+                .comment("Base radius (in blocks) of the Frostbite Aura when stacks equal the threshold.",
+                         "霜冻层数等于阈值时的基础光环半径（以方块为单位）。",
+                         "Default: 3.0")
+                .defineInRange("frostbite_aura_base_range", 3.0, 1.0, 50.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_AURA_RANGE_PER_STACK = BUILDER
+                .comment("Additional radius (in blocks) per extra Frostbite stack beyond the threshold.",
+                         "超过阈值后，每层霜冻增加的光环范围（以方块为单位）。",
+                         "Default: 1.0")
+                .defineInRange("frostbite_aura_range_per_stack", 1.0, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_AURA_MAX_RANGE = BUILDER
+                .comment("Maximum radius (in blocks) of the Frostbite Aura regardless of stacks.",
+                         "霜冻光环的最大范围限制（以方块为单位）。",
+                         "Default: 8.0")
+                .defineInRange("frostbite_aura_max_range", 8.0, 1.0, 50.0);
+
+        BUILDER.comment("");
+
+        FROSTBITE_AURA_DAMAGE_INTERVAL_TICKS = BUILDER
+                .comment("Interval (in ticks) between each Frostbite Aura damage tick. 20 ticks = 1 second.",
+                         "霜冻光环伤害触发的间隔时间（以刻为单位）。20刻 = 1秒。",
+                         "Default: 40 (2 seconds)")
+                .defineInRange("frostbite_aura_damage_interval_ticks", 40, 1, 72000);
+
+        BUILDER.comment("");
+
+        FROSTBITE_AURA_EXCLUDE_FRIENDLY = BUILDER
+                .comment("If true, players and tamed pets are immune to Frostbite Aura damage.",
+                         "如果为 true，玩家和已驯服的宠物免疫霜冻光环伤害。",
+                         "Default: true")
+                .define("frostbite_aura_exclude_friendly", true);
+
+        BUILDER.comment("");
+
+        FROSTBITE_AURA_ONLY_HOSTILE = BUILDER
+                .comment("If true, only hostile mobs (MobCategory.MONSTER) are affected by Frostbite Aura.",
+                         "如果为 true，只有敌对生物会受到霜冻光环影响，中立/被动生物将被忽略。",
+                         "Default: false")
+                .define("frostbite_aura_only_hostile", false);
+
+        BUILDER.pop();
+
         SPEC = BUILDER.build();
     }
 
@@ -550,6 +934,50 @@ public final class ElementalThunderFrostReactionsConfig {
 
     public static double staticMaxProtCap;
     public static double staticMaxProjectileProtCap;
+
+    public static double frostStrengthThreshold;
+    public static double frostbiteBaseChance;
+    public static double frostbiteScalingStep;
+    public static double frostbiteScalingChance;
+    public static double frostbiteWetnessBonusChance;
+    public static double frostbiteStackingBonusChance;
+    public static int frostbiteMaxStacksPerAttack;
+    public static int frostbiteMaxTotalStacks;
+    public static int frostbiteBaseDurationTicks;
+    public static int frostbiteDurationPerExtraStackTicks;
+    public static double frostbiteSpeedReductionPerStack;
+    public static double frostbitePeriodicDamage;
+    public static int frostbiteDamageIntervalTicks;
+    public static int frostbiteResistImmunityThreshold;
+    public static List<? extends String> cachedFrostbiteImmunityBlacklist;
+    public static double frostbiteFireDurationMultiplier;
+    public static double frostbiteThunderDurationMultiplier;
+    public static double frostbiteNetherDurationMultiplier;
+
+    public static int freezeDurationTicks;
+    public static double freezeElementalVulnerability;
+    public static double freezeSettlementDamagePerStack;
+    public static int freezeCooldownTicks;
+    public static List<? extends String> cachedFreezeImmunityBlacklist;
+
+    public static double frostbiteThermalShockBaseDamage;
+    public static double frostbiteThermalShockPerStack;
+
+    public static double frostbiteThunderVulnerabilityPerStack;
+    public static double frostbiteSuperconductRadius;
+    public static double frostbiteSuperconductRadiusPerStack;
+    public static double frostbiteSuperconductDamageRatio;
+
+    public static double frostbiteSporeToFrostRatio;
+    public static double frostbiteSteamCloudBonusChance;
+
+    public static int frostbiteAuraThreshold;
+    public static double frostbiteAuraBaseRange;
+    public static double frostbiteAuraRangePerStack;
+    public static double frostbiteAuraMaxRange;
+    public static int frostbiteAuraDamageIntervalTicks;
+    public static boolean frostbiteAuraExcludeFriendly;
+    public static boolean frostbiteAuraOnlyHostile;
 
     public static void register(String configPath) {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, configPath);
@@ -609,6 +1037,50 @@ public final class ElementalThunderFrostReactionsConfig {
 
         staticMaxProtCap = STATIC_MAX_PROT_CAP.get();
         staticMaxProjectileProtCap = STATIC_MAX_PROJECTILE_PROT_CAP.get();
+
+        frostStrengthThreshold = FROST_STRENGTH_THRESHOLD.get();
+        frostbiteBaseChance = FROSTBITE_BASE_CHANCE.get();
+        frostbiteScalingStep = FROSTBITE_SCALING_STEP.get();
+        frostbiteScalingChance = FROSTBITE_SCALING_CHANCE.get();
+        frostbiteWetnessBonusChance = FROSTBITE_WETNESS_BONUS_CHANCE.get();
+        frostbiteStackingBonusChance = FROSTBITE_STACKING_BONUS_CHANCE.get();
+        frostbiteMaxStacksPerAttack = FROSTBITE_MAX_STACKS_PER_ATTACK.get();
+        frostbiteMaxTotalStacks = FROSTBITE_MAX_TOTAL_STACKS.get();
+        frostbiteBaseDurationTicks = FROSTBITE_BASE_DURATION_TICKS.get();
+        frostbiteDurationPerExtraStackTicks = FROSTBITE_DURATION_PER_EXTRA_STACK_TICKS.get();
+        frostbiteSpeedReductionPerStack = FROSTBITE_SPEED_REDUCTION_PER_STACK.get();
+        frostbitePeriodicDamage = FROSTBITE_PERIODIC_DAMAGE.get();
+        frostbiteDamageIntervalTicks = FROSTBITE_DAMAGE_INTERVAL_TICKS.get();
+        frostbiteResistImmunityThreshold = FROSTBITE_RESIST_IMMUNITY_THRESHOLD.get();
+        cachedFrostbiteImmunityBlacklist = FROSTBITE_IMMUNITY_BLACKLIST.get();
+        frostbiteFireDurationMultiplier = FROSTBITE_FIRE_DURATION_MULTIPLIER.get();
+        frostbiteThunderDurationMultiplier = FROSTBITE_THUNDER_DURATION_MULTIPLIER.get();
+        frostbiteNetherDurationMultiplier = FROSTBITE_NETHER_DURATION_MULTIPLIER.get();
+
+        freezeDurationTicks = FREEZE_DURATION_TICKS.get();
+        freezeElementalVulnerability = FREEZE_ELEMENTAL_VULNERABILITY.get();
+        freezeSettlementDamagePerStack = FREEZE_SETTLEMENT_DAMAGE_PER_STACK.get();
+        freezeCooldownTicks = FREEZE_COOLDOWN_TICKS.get();
+        cachedFreezeImmunityBlacklist = FREEZE_IMMUNITY_BLACKLIST.get();
+
+        frostbiteThermalShockBaseDamage = FROSTBITE_THERMAL_SHOCK_BASE_DAMAGE.get();
+        frostbiteThermalShockPerStack = FROSTBITE_THERMAL_SHOCK_PER_STACK.get();
+
+        frostbiteThunderVulnerabilityPerStack = FROSTBITE_THUNDER_VULNERABILITY_PER_STACK.get();
+        frostbiteSuperconductRadius = FROSTBITE_SUPERCONDUCT_RADIUS.get();
+        frostbiteSuperconductRadiusPerStack = FROSTBITE_SUPERCONDUCT_RADIUS_PER_STACK.get();
+        frostbiteSuperconductDamageRatio = FROSTBITE_SUPERCONDUCT_DAMAGE_RATIO.get();
+
+        frostbiteSporeToFrostRatio = FROSTBITE_SPORE_TO_FROST_RATIO.get();
+        frostbiteSteamCloudBonusChance = FROSTBITE_STEAM_CLOUD_BONUS_CHANCE.get();
+
+        frostbiteAuraThreshold = FROSTBITE_AURA_THRESHOLD.get();
+        frostbiteAuraBaseRange = FROSTBITE_AURA_BASE_RANGE.get();
+        frostbiteAuraRangePerStack = FROSTBITE_AURA_RANGE_PER_STACK.get();
+        frostbiteAuraMaxRange = FROSTBITE_AURA_MAX_RANGE.get();
+        frostbiteAuraDamageIntervalTicks = FROSTBITE_AURA_DAMAGE_INTERVAL_TICKS.get();
+        frostbiteAuraExcludeFriendly = FROSTBITE_AURA_EXCLUDE_FRIENDLY.get();
+        frostbiteAuraOnlyHostile = FROSTBITE_AURA_ONLY_HOSTILE.get();
     }
 
     private ElementalThunderFrostReactionsConfig() {}

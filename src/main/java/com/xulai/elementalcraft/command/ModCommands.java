@@ -24,5 +24,7 @@ public class ModCommands {
         StaticImmunityBlacklistCommand.register(event.getDispatcher());
 
         ParalysisBlacklistCommand.register(event.getDispatcher());
+
+        FrostbiteBlacklistCommand.register(event.getDispatcher());
     }
 }

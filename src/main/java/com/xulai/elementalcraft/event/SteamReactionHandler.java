@@ -3,11 +3,13 @@ package com.xulai.elementalcraft.event;
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.EffectHelper;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
+import com.xulai.elementalcraft.util.ElementDamageHelper;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -345,28 +347,32 @@ public class SteamReactionHandler {
                     damage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierSpore;
                 }
 
-                if (damage > 0) {
-                    if (checkImmunity(entity)) {
-                    } else {
-                        entity.invulnerableTime = 0;
-                        boolean hurtSuccess = entity.hurt(ModDamageTypes.source(entity.level(), ModDamageTypes.STEAM_SCALDING), damage);
-                        if (hurtSuccess) {
-                            if (entity instanceof PathfinderMob mob && heatSource != null) {
-                                mob.setTarget(null);
-                                int fleeDist = (int) (heatSource.getRadius() + 2);
-                                Vec3 escapePos = DefaultRandomPos.getPosAway(mob, fleeDist, 4, heatSource.position());
-                                if (escapePos != null) {
-                                    mob.getNavigation().moveTo(escapePos.x, escapePos.y, escapePos.z, 1.5);
-                                }
+                    if (damage > 0 && !checkImmunity(entity)) {
+                        ElementDamageHelper.applyDamage(entity, damage, ModDamageTypes.source(entity.level(), ModDamageTypes.STEAM_SCALDING));
+                        if (entity instanceof PathfinderMob mob && heatSource != null) {
+                            mob.setTarget(null);
+                            int fleeDist = (int) (heatSource.getRadius() + 2);
+                            Vec3 escapePos = DefaultRandomPos.getPosAway(mob, fleeDist, 4, heatSource.position());
+                            if (escapePos != null) {
+                                mob.getNavigation().moveTo(escapePos.x, escapePos.y, escapePos.z, 1.5);
                             }
                         }
                     }
-                }
             }
             if (entity.getPersistentData().getInt(WetnessHandler.NBT_WETNESS) > 0) {
                 removeWetness(entity);
             }
         } else if (isCondensing) {
+            // Frostbite acceleration in condensing steam clouds
+            if (FrostbiteHandler.hasFrostbite(entity)) {
+                CompoundTag frostData = entity.getPersistentData();
+                int currentDuration = frostData.getInt(FrostbiteHandler.NBT_FROSTBITE_DURATION);
+                int bonus = (int) (currentDuration * ElementalThunderFrostReactionsConfig.frostbiteSteamCloudBonusChance);
+                if (bonus > 0) {
+                    frostData.putInt(FrostbiteHandler.NBT_FROSTBITE_DURATION, currentDuration + bonus);
+                }
+            }
+
             int currentTimer = entity.getPersistentData().getInt(NBT_CONDENSATION_TIMER);
             currentTimer += ElementalFireNatureReactionsConfig.steamCheckInterval;
             int delayThreshold = Math.max(10, ElementalFireNatureReactionsConfig.steamCondensationDelay);
@@ -448,7 +454,7 @@ public class SteamReactionHandler {
         return resist >= threshold;
     }
 
-    private static void spawnSteamCloud(LivingEntity target, boolean isHighHeat, int fuelLevel) {
+    public static void spawnSteamCloud(LivingEntity target, boolean isHighHeat, int fuelLevel) {
         if (!(target.level() instanceof ServerLevel serverLevel)) return;
         int maxLevel = isHighHeat ? ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel : ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel;
         int level = Math.max(1, Math.min(fuelLevel, maxLevel));

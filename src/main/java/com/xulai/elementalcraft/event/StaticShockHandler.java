@@ -10,6 +10,7 @@ import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.sound.ModSounds;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
+import com.xulai.elementalcraft.util.ElementDamageHelper;
 import com.xulai.elementalcraft.event.WetnessHandler;
 import com.xulai.elementalcraft.util.EffectHelper;
 import net.minecraft.nbt.CompoundTag;
@@ -219,6 +220,10 @@ public class StaticShockHandler {
             return;
         }
 
+        if (entity.level() instanceof ServerLevel serverLevel) {
+            EffectHelper.playStaticShockParticles(serverLevel, entity);
+        }
+
         int totalTimer = data.getInt(NBT_STATIC_TIMER);
         int damageTimer = data.getInt(NBT_STATIC_DAMAGE_TIMER);
         int interval = ElementalThunderFrostReactionsConfig.staticDamageIntervalTicks;
@@ -252,31 +257,15 @@ public class StaticShockHandler {
             data.putInt(NBT_STATIC_TIMER, totalTimer);
         }
 
-        int durationPerStack = ElementalThunderFrostReactionsConfig.staticDurationPerStackTicks;
-        int newStacks = (int) Math.ceil((double) totalTimer / durationPerStack);
-        if (newStacks < 1) newStacks = 1;
-        if (newStacks > stacks) {
-            newStacks = stacks;
-        }
-        if (newStacks != stacks) {
-            data.putInt(NBT_STATIC_STACKS, newStacks);
-        }
-
         if (totalTimer <= 0) {
             clearStaticShock(entity);
             return;
         }
 
-        updateEffect(entity, newStacks, totalTimer);
+        updateEffect(entity, stacks, totalTimer);
     }
 
-    private static void triggerStaticDamage(LivingEntity entity) {
-        if (isImmuneToStatic(entity)) {
-            clearStaticShock(entity);
-            return;
-        }
-        float rawDamage = getRandomStaticDamage(entity);
-
+    private static float applyEnchantmentReduction(LivingEntity entity, float damage) {
         int totalProtLevel = getTotalEnchantmentLevel(Enchantments.ALL_DAMAGE_PROTECTION, entity);
         int totalProjectileProtLevel = getTotalEnchantmentLevel(Enchantments.PROJECTILE_PROTECTION, entity);
 
@@ -295,10 +284,19 @@ public class StaticShockHandler {
 
         double totalReduction = Math.min(actualProtRed + actualProjectileProtRed, 1.0);
 
-        float finalDamage = rawDamage * (float) (1.0 - totalReduction);
+        return damage * (float) (1.0 - totalReduction);
+    }
 
-        DamageSource damageSource = ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK);
-        boolean hurtResult = entity.hurt(damageSource, finalDamage);
+    private static void triggerStaticDamage(LivingEntity entity) {
+        if (isImmuneToStatic(entity)) {
+            clearStaticShock(entity);
+            return;
+        }
+        float rawDamage = getRandomStaticDamage(entity);
+
+        float finalDamage = applyEnchantmentReduction(entity, rawDamage);
+
+        ElementDamageHelper.applyDamage(entity, finalDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK));
 
         if (!entity.level().isClientSide) {
             float pitch = 0.8f + RANDOM.nextFloat() * 0.4f;
@@ -307,8 +305,8 @@ public class StaticShockHandler {
         if (entity.level() instanceof ServerLevel serverLevel) {
             EffectHelper.playStaticBurst(serverLevel, entity);
         }
-        if (hurtResult && ElementalThunderFrostReactionsConfig.staticSplashEnabled) {
-            applySplashDamage(entity, finalDamage, damageSource);
+        if (ElementalThunderFrostReactionsConfig.staticSplashEnabled) {
+            applySplashDamage(entity, finalDamage);
         }
 
         tryTriggerSporeBlast(entity);
@@ -353,6 +351,19 @@ public class StaticShockHandler {
             damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageNatureMultiplier;
         } else if (element == ElementType.FROST) {
             damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageFrostMultiplier;
+        }
+
+        // Frostbite stacks increase thunder damage vulnerability (Frostbite + Thunder reaction)
+        CompoundTag data = entity.getPersistentData();
+        if (data.contains(FrostbiteHandler.NBT_FROSTBITE_STACKS)) {
+            int frostbiteStacks = data.getInt(FrostbiteHandler.NBT_FROSTBITE_STACKS);
+            if (frostbiteStacks > 0) {
+                double vulnPerStack = ElementalThunderFrostReactionsConfig.frostbiteThunderVulnerabilityPerStack;
+                double totalMultiplier = 1.0 + (frostbiteStacks * vulnPerStack);
+                double maxVuln = 1.0 + (5 * vulnPerStack);
+                totalMultiplier = Math.min(totalMultiplier, maxVuln);
+                damage *= (float) totalMultiplier;
+            }
         }
         return damage;
     }
@@ -453,9 +464,10 @@ public class StaticShockHandler {
         }
         totalDamage *= ElementalThunderFrostReactionsConfig.paralysisDamagePercentage;
 
+        float finalDamage = 0;
         if (totalDamage > 0) {
-            DamageSource damageSource = ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK);
-            entity.hurt(damageSource, (float) totalDamage);
+            finalDamage = applyEnchantmentReduction(entity, (float) totalDamage);
+            ElementDamageHelper.applyDamage(entity, finalDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK));
         }
 
         clearStaticShock(entity);
@@ -475,7 +487,7 @@ public class StaticShockHandler {
         data.putInt(NBT_PARALYSIS_TIMER, paralysisDuration);
 
         if (cooldownTicks > 0) {
-            data.putInt(NBT_PARALYSIS_COOLDOWN_TIMER, cooldownTicks);
+            data.putInt(NBT_PARALYSIS_COOLDOWN_TIMER, paralysisDuration + cooldownTicks);
         }
 
         if (!entity.level().isClientSide) {
@@ -487,7 +499,7 @@ public class StaticShockHandler {
         pCtx.target = entity;
         pCtx.paralysisStacks = paralysisStacks;
         pCtx.remainingHits = remainingHits;
-        pCtx.totalDamage = (float) totalDamage;
+        pCtx.totalDamage = finalDamage;
         DebugCommand.sendParalysisLog(pCtx);
     }
 
@@ -495,7 +507,7 @@ public class StaticShockHandler {
         return entity.getType().getCategory() == MobCategory.MONSTER;
     }
 
-    private static void applySplashDamage(LivingEntity source, float originalDamage, DamageSource damageSource) {
+    private static void applySplashDamage(LivingEntity source, float originalDamage) {
         CompoundTag data = source.getPersistentData();
         int stacks = data.getInt(NBT_STATIC_STACKS);
         if (stacks <= 0) return;
@@ -514,6 +526,7 @@ public class StaticShockHandler {
         java.util.List<LivingEntity> nearby = source.level().getEntitiesOfClass(LivingEntity.class, area);
         int affectedCount = 0;
         int paralysisCount = 0;
+        float accumulatedDamage = 0;
 
         for (LivingEntity target : nearby) {
             if (target == source) continue;
@@ -546,9 +559,16 @@ public class StaticShockHandler {
             }
 
             float splashDamage = originalDamage * (float) ElementalThunderFrostReactionsConfig.staticSplashDamagePercentage;
+            ElementType splashTargetElement = ElementUtils.getElementType(target);
+            if (splashTargetElement == ElementType.NATURE) {
+                splashDamage *= (float) ElementalThunderFrostReactionsConfig.staticDamageNatureMultiplier;
+            } else if (splashTargetElement == ElementType.FROST) {
+                splashDamage *= (float) ElementalThunderFrostReactionsConfig.staticDamageFrostMultiplier;
+            }
+            splashDamage = applyEnchantmentReduction(target, splashDamage);
             if (splashDamage > 0) {
-                DamageSource splashSource = damageSource;
-                boolean hurtResult = target.hurt(splashSource, splashDamage);
+                ElementDamageHelper.applyDamage(target, splashDamage, ModDamageTypes.source(target.level(), ModDamageTypes.STATIC_SHOCK));
+                accumulatedDamage += splashDamage;
                 if (target.level() instanceof ServerLevel serverLevel) {
                     EffectHelper.playStaticSplashParticles(serverLevel, source, target);
                 }
@@ -562,6 +582,7 @@ public class StaticShockHandler {
             cCtx.range = range;
             cCtx.affectedCount = affectedCount;
             cCtx.paralysisCount = paralysisCount;
+            cCtx.totalDamage = accumulatedDamage;
             DebugCommand.sendStaticConductionLog(cCtx);
         }
     }
@@ -615,8 +636,8 @@ public class StaticShockHandler {
         totalDamage *= ElementalThunderFrostReactionsConfig.paralysisDamagePercentage;
 
         if (totalDamage > 0) {
-            DamageSource damageSource = ModDamageTypes.source(target.level(), ModDamageTypes.STATIC_SHOCK);
-            target.hurt(damageSource, (float) totalDamage);
+            float finalDamage = applyEnchantmentReduction(target, (float) totalDamage);
+            ElementDamageHelper.applyDamage(target, finalDamage, ModDamageTypes.source(target.level(), ModDamageTypes.STATIC_SHOCK));
         }
 
         clearStaticShock(target);
@@ -636,7 +657,7 @@ public class StaticShockHandler {
         targetData.putInt(NBT_PARALYSIS_TIMER, paralysisDuration);
 
         if (cooldownTicks > 0) {
-            targetData.putInt(NBT_PARALYSIS_COOLDOWN_TIMER, cooldownTicks);
+            targetData.putInt(NBT_PARALYSIS_COOLDOWN_TIMER, paralysisDuration + cooldownTicks);
         }
 
         if (!target.level().isClientSide) {

@@ -3,6 +3,7 @@ package com.xulai.elementalcraft.event;
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.sound.ModSounds;
@@ -11,6 +12,7 @@ import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
 import com.xulai.elementalcraft.event.ScorchedHandler;
 import com.xulai.elementalcraft.event.WetnessHandler;
+import com.xulai.elementalcraft.util.ElementDamageHelper;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -163,6 +165,39 @@ public class ReactionHandler {
 
     public static void stackSporeEffect(LivingEntity target, int layersToAdd, LivingEntity applier) {
         if (!ModMobEffects.SPORES.isPresent() || ModMobEffects.SPORES.get() == null) return;
+
+        // Frostbite + Spore Crystallization: If applier has frost attack and target has spores
+        if (applier != null) {
+            ElementType applierElement = ElementUtils.getConsistentAttackElement(applier);
+            if (applierElement == ElementType.FROST) {
+                MobEffectInstance currentSpore = target.getEffect(ModMobEffects.SPORES.get());
+                if (currentSpore != null) {
+                    int sporeStacks = currentSpore.getAmplifier() + 1;
+                    double ratio = ElementalThunderFrostReactionsConfig.frostbiteSporeToFrostRatio;
+                    int convertedFrost = (int) (sporeStacks * ratio);
+                    if (convertedFrost >= 1) {
+                        // Remove consumed spore stacks
+                        int remainingSpores = sporeStacks - (int) (convertedFrost / ratio);
+                        if (remainingSpores <= 0) {
+                            target.removeEffect(ModMobEffects.SPORES.get());
+                        } else {
+                            target.removeEffect(ModMobEffects.SPORES.get());
+                            target.addEffect(new MobEffectInstance(ModMobEffects.SPORES.get(), remainingSpores * ElementalFireNatureReactionsConfig.sporeDurationPerStack * 20, remainingSpores - 1));
+                        }
+                        // Apply converted frostbite
+                        FrostbiteHandler.applyFrostbite(target, applier, convertedFrost);
+
+                        DebugCommand.SporeCrystallizeLogContext ctx = new DebugCommand.SporeCrystallizeLogContext();
+                        ctx.target = target;
+                        ctx.attacker = applier;
+                        ctx.sporeStacks = sporeStacks;
+                        ctx.convertedFrostbite = convertedFrost;
+                        DebugCommand.sendSporeCrystallizeLog(ctx);
+                        return;
+                    }
+                }
+            }
+        }
 
         String entityId = ForgeRegistries.ENTITY_TYPES.getKey(target.getType()).toString();
         if (ElementalFireNatureReactionsConfig.cachedSporeBlacklist != null && ElementalFireNatureReactionsConfig.cachedSporeBlacklist.contains(entityId)) {
@@ -345,13 +380,12 @@ public class ReactionHandler {
                         }
                         if (isPet) continue;
 
-                        entity.invulnerableTime = 0;
                         if (ElementalFireNatureReactionsConfig.blastChainReaction && ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null && entity.hasEffect(ModMobEffects.SPORES.get())) {
                             triggerToxicBlast(level, attacker, entity, firePower, killCredit);
                         }
                         float mitigation = calculateBlastMitigation(entity);
                         float finalDamage = rawBaseDamage * (1.0f - mitigation);
-                        entity.hurt(ModDamageTypes.source(level, ModDamageTypes.LAVA_MAGIC, killCredit), finalDamage);
+                        ElementDamageHelper.applyDamage(entity, finalDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.LAVA_MAGIC, killCredit));
                         ScorchedHandler.applyScorched(entity, killCredit, (int) firePower, scorchDuration, (int) firePower, 1.0f, true);
                         affectedCount++;
                     }
@@ -362,6 +396,7 @@ public class ReactionHandler {
                     blastCtx.stacks = stacks;
                     blastCtx.radius = radius;
                     blastCtx.affectedCount = affectedCount;
+                    blastCtx.rawBaseDamage = rawBaseDamage;
                     DebugCommand.sendToxicBlastLog(blastCtx);
                 });
             }

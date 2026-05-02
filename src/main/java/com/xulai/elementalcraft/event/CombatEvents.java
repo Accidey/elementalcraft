@@ -240,7 +240,23 @@ public class CombatEvents {
         float globalDamageMult = (float) ElementalConfig.elementalDamageMultiplier;
         float globalResistMult = (float) ElementalConfig.elementalResistanceMultiplier;
 
-        float attackPart = baseEnhancementDamage * globalDamageMult * combinedWetnessMult * restraintMult * sporeVulnMult;
+        // 霜冻层数增加雷伤易伤
+        float frostbiteThunderVulnMult = 1.0f;
+        if (attackElement == ElementType.THUNDER && FrostbiteHandler.hasFrostbite(target)) {
+            int frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(target);
+            float vulnPerStack = (float) ElementalThunderFrostReactionsConfig.frostbiteThunderVulnerabilityPerStack;
+            float maxVuln = vulnPerStack * 5.0f; // 最多5层霜冻，即最多50%易伤
+            float totalVuln = frostbiteStacks * vulnPerStack;
+            frostbiteThunderVulnMult = 1.0f + Math.min(totalVuln, maxVuln);
+        }
+
+        // 冻结目标受到的元素伤害增加
+        float freezeVulnMult = 1.0f;
+        if (FrostbiteHandler.isFrozen(target) && attackElement != ElementType.NONE) {
+            freezeVulnMult = (float) ElementalThunderFrostReactionsConfig.freezeElementalVulnerability;
+        }
+
+        float attackPart = baseEnhancementDamage * globalDamageMult * combinedWetnessMult * restraintMult * sporeVulnMult * frostbiteThunderVulnMult * freezeVulnMult;
 
         float finalElementalDmg;
         boolean isFloored = false;
@@ -284,6 +300,7 @@ public class CombatEvents {
         combatCtx.globalDamageMult = globalDamageMult;
         combatCtx.restraintMult = restraintMult;
         combatCtx.sporeVulnMult = sporeVulnMult;
+        combatCtx.freezeVulnMult = freezeVulnMult;
         combatCtx.wetnessBaseMult = wetnessBaseMult;
         combatCtx.selfDryingPenaltyMult = selfDryingPenaltyMult;
         combatCtx.combinedWetnessMult = combinedWetnessMult;
@@ -297,10 +314,25 @@ public class CombatEvents {
 
         DebugCommand.sendCombatLog(combatCtx);
 
+        // 雷霆攻击冻结目标 → 超导传导
+        if (attackElement == ElementType.THUNDER && FrostbiteHandler.isFrozen(target)) {
+            FrostbiteHandler.triggerSuperconduct(target, attacker, finalElementalDmg);
+
+            DebugCommand.SuperconductLogContext scCtx = new DebugCommand.SuperconductLogContext();
+            scCtx.target = target;
+            scCtx.attacker = attacker;
+            scCtx.frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(target);
+            scCtx.radius = ElementalThunderFrostReactionsConfig.frostbiteSuperconductRadius;
+            scCtx.chainDamage = finalElementalDmg * (float) ElementalThunderFrostReactionsConfig.frostbiteSuperconductDamageRatio;
+            scCtx.affectedCount = 0;
+            DebugCommand.sendSuperconductLog(scCtx);
+        }
+
         if (attackElement == ElementType.FIRE) {
             tryTriggerScorched(attacker, target, enhancementPoints);
         } else if (attackElement == ElementType.NATURE) {
-            if (ElementUtils.getConsistentAttackElement(target) == ElementType.THUNDER) {
+            // 自然攻击：检测目标是否雷霆属性或有霜冻层数
+            if (ElementUtils.getConsistentAttackElement(target) == ElementType.THUNDER || FrostbiteHandler.hasFrostbite(target)) {
                 net.minecraft.world.effect.MobEffect spore = SPORES_EFFECT.get();
                 if (spore == null || !target.hasEffect(spore)) {
                 return;
@@ -324,6 +356,7 @@ public class CombatEvents {
                 thunderCtx.target = target;
                 thunderCtx.chance = 1.0;
                 thunderCtx.success = true;
+                thunderCtx.lightningDamage = (float) ElementalThunderFrostReactionsConfig.counterLightningDamage;
 
                 LivingEntity reactionTarget = attacker;
                 net.minecraft.world.effect.MobEffect wetnessEffect = WETNESS_EFFECT.get();
@@ -382,6 +415,9 @@ public class CombatEvents {
         if (attackerEntity instanceof LivingEntity attacker) {
             net.minecraft.world.effect.MobEffect paralysisEffect = PARALYSIS_EFFECT.get();
             if (paralysisEffect != null && attacker.hasEffect(paralysisEffect)) {
+                event.setCanceled(true);
+            }
+            if (FrostbiteHandler.isFrozen(attacker) && !event.getSource().is(ModDamageTypes.FROSTBITE_THERMAL_SHOCK)) {
                 event.setCanceled(true);
             }
         }

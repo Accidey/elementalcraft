@@ -34,7 +34,6 @@ public class ParalysisEffect extends MobEffect {
     private static final String NBT_ORIGINAL_NO_AI = "EC_OriginalNoAI";
     private static final String NBT_AI_DISABLED = "EC_AIDisabled";
 
-
     private static final String NBT_SPREADED = "EC_ParalysisSpreaded";
     private static final String NBT_INFECTED = "EC_ParalysisInfected";
     private static final String NBT_CONTAGION_SOURCE = "EC_ParalysisContagionSource";
@@ -60,11 +59,8 @@ public class ParalysisEffect extends MobEffect {
     public void removeAttributeModifiers(LivingEntity entity, AttributeMap pAttributeMap, int pAmplifier) {
         super.removeAttributeModifiers(entity, pAttributeMap, pAmplifier);
         restoreAI(entity);
-
         resetContagionFlags(entity);
     }
-
-
 
     private static void resetContagionFlags(LivingEntity entity) {
         CompoundTag data = entity.getPersistentData();
@@ -103,11 +99,8 @@ public class ParalysisEffect extends MobEffect {
         data.remove(NBT_AI_DISABLED);
     }
 
-
-
     private void checkAndSpreadStaticShock(LivingEntity entity, int amplifier) {
         CompoundTag data = entity.getPersistentData();
-
 
         int cooldown = data.getInt(NBT_SPREAD_COOLDOWN);
         if (cooldown > 0) {
@@ -115,13 +108,11 @@ public class ParalysisEffect extends MobEffect {
             return;
         }
 
-
         int paralysisStacks = amplifier + 1;
         int thresholdStacks = ElementalThunderFrostReactionsConfig.paralysisSpreadThresholdStacks;
         if (paralysisStacks < thresholdStacks) {
             return;
         }
-
 
         boolean isSpreaded = data.getBoolean(NBT_SPREADED);
         boolean isInfected = data.getBoolean(NBT_INFECTED);
@@ -130,7 +121,6 @@ public class ParalysisEffect extends MobEffect {
         if (isSpreaded || blockByInfected) {
             return;
         }
-
 
         int baseRange = ElementalThunderFrostReactionsConfig.paralysisSpreadBaseRange;
         int extraStacks = paralysisStacks - thresholdStacks;
@@ -159,7 +149,6 @@ public class ParalysisEffect extends MobEffect {
                 continue;
             }
 
-
             if (target.hasEffect(ModMobEffects.PARALYSIS.get())) {
                 continue;
             }
@@ -172,13 +161,11 @@ public class ParalysisEffect extends MobEffect {
                 continue;
             }
 
-
             if (contagionSourceUUID != null && target.getUUID().equals(contagionSourceUUID)) {
                 if (!ElementalThunderFrostReactionsConfig.paralysisSpreadAllowToSource) {
                     continue;
                 }
             }
-
 
             if (ElementalThunderFrostReactionsConfig.paralysisSpreadExcludeFriendlyEntities) {
                 if (target instanceof Player) {
@@ -195,13 +182,11 @@ public class ParalysisEffect extends MobEffect {
                 }
             }
 
-
             if (ElementalThunderFrostReactionsConfig.paralysisSpreadOnlyHostile) {
                 if (!(target instanceof Enemy)) {
                     continue;
                 }
             }
-
 
             int targetThunderResist = ElementUtils.getDisplayResistance(target, ElementType.THUNDER);
             int immunityThreshold = ElementalThunderFrostReactionsConfig.staticResistImmunityThreshold;
@@ -212,28 +197,22 @@ public class ParalysisEffect extends MobEffect {
             validTargets.add(target);
         }
 
-
         if (validTargets.isEmpty()) {
             return;
         }
 
-
         data.putBoolean(NBT_SPREADED, true);
-
 
         List<LivingEntity> infectedTargets = new ArrayList<>();
         for (LivingEntity target : validTargets) {
             CompoundTag targetData = target.getPersistentData();
-
             targetData.putUUID(NBT_CONTAGION_SOURCE, entity.getUUID());
-
             targetData.putBoolean(NBT_INFECTED, true);
 
             int wetnessLevel = WetnessHandler.getWetnessLevel(target);
             applyParalysisToTarget(target, wetnessLevel);
             infectedTargets.add(target);
         }
-
 
         if (entity.level() instanceof ServerLevel) {
             EffectHelper.playParalysisSpread(entity, infectedTargets, spreadRange);
@@ -244,7 +223,6 @@ public class ParalysisEffect extends MobEffect {
 
     private void applyParalysisToTarget(LivingEntity target, int paralysisStacks) {
         CompoundTag data = target.getPersistentData();
-
 
         int cooldown = data.getInt("ec_paralysis_cooldown_timer");
         if (cooldown > 0) {
@@ -272,11 +250,9 @@ public class ParalysisEffect extends MobEffect {
         data.putInt(NBT_PARALYSIS_STACKS, paralysisStacks);
         data.putInt(NBT_PARALYSIS_TIMER, totalDuration);
 
-
-
         int cooldownTicks = ElementalThunderFrostReactionsConfig.paralysisCooldownTicks;
         if (cooldownTicks > 0) {
-            data.putInt("ec_paralysis_cooldown_timer", cooldownTicks);
+            data.putInt("ec_paralysis_cooldown_timer", totalDuration + cooldownTicks);
         }
     }
 }

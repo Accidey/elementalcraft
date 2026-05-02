@@ -15,6 +15,8 @@ public class ElementalVisualConfig {
     public static final ForgeConfigSpec.BooleanValue THUNDER_MELEE_ENABLED;
     public static final ForgeConfigSpec.BooleanValue THUNDER_RANGED_ENABLED;
 
+    public static final ForgeConfigSpec.BooleanValue STATIC_SHOCK_AURA_ENABLED;
+
     public static final ForgeConfigSpec.BooleanValue FROST_MELEE_ENABLED;
     public static final ForgeConfigSpec.BooleanValue FROST_RANGED_ENABLED;
 
@@ -350,6 +352,8 @@ public class ElementalVisualConfig {
     public static int thunderImpactExtraEndRodCountPerTier = 4;
     public static double thunderImpactExtraEndRodHorizontalSpread = 1.2;
     public static boolean thunderImpactExtraEndRodVerticalRandom = true;
+
+    public static boolean staticShockAuraEnabled = true;
 
     public static boolean frostMeleeEnabled = true;
     public static boolean frostRangedEnabled = true;
@@ -1187,6 +1191,17 @@ public class ElementalVisualConfig {
         BUILDER.pop();
         BUILDER.pop();
 
+        BUILDER.comment("Static Shock Aura Visuals", "静电光环特效")
+                .push("static_shock_aura");
+
+        STATIC_SHOCK_AURA_ENABLED = BUILDER
+                .comment("Whether to enable static shock aura visual effects (electric ring around entity with shock stacks).",
+                        "是否开启静电光环视觉特效（拥有静电层数的实体周围显示电网光环）。",
+                        "Default: true")
+                .define("enabled", true);
+
+        BUILDER.pop();
+
         BUILDER.comment("Thunder Attribute Visuals", "雷霆属性特效")
                 .push("thunder_visuals");
 
@@ -2005,6 +2020,8 @@ public class ElementalVisualConfig {
         natureRangedEnabled = NATURE_RANGED_ENABLED.get();
         thunderMeleeEnabled = THUNDER_MELEE_ENABLED.get();
         thunderRangedEnabled = THUNDER_RANGED_ENABLED.get();
+
+        staticShockAuraEnabled = STATIC_SHOCK_AURA_ENABLED.get();
 
         fireMeleeRadius = FIRE_MELEE_RADIUS.get();
         fireMeleeBaseAngleDegrees = FIRE_MELEE_BASE_ANGLE_DEGREES.get();
