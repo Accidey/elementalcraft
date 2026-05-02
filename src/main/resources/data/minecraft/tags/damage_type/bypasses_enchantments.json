@@ -3,6 +3,8 @@
   "values": [
     "elementalcraft:lava_magic",
     "elementalcraft:steam_scalding",
-    "elementalcraft:static_shock"
+    "elementalcraft:static_shock",
+    "elementalcraft:frostbite_thermal_shock",
+    "elementalcraft:frostbite_shatter"
   ]
 }
