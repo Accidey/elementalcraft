@@ -106,13 +106,13 @@
   "command.elementalcraft.frostbite.blacklist.not_found": "§e%s §7不在霜冻免疫黑名单中。",
   "command.elementalcraft.frostbite.blacklist.removed": "§a成功将 §e%s §a从霜冻免疫黑名单移除。",
 
-  "command.elementalcraft.steam_blacklist.add.success": "§a成功将 §e%s §a添加到蒸汽免疫黑名单。",
-  "command.elementalcraft.steam_blacklist.empty": "§e蒸汽免疫黑名单为空。",
-  "command.elementalcraft.steam_blacklist.exists": "§e%s §7已存在于蒸汽免疫黑名单中。",
-  "command.elementalcraft.steam_blacklist.list.header": "§e蒸汽免疫黑名单列表：",
-  "command.elementalcraft.steam_blacklist.not_egg": "§c请手持一个刷怪蛋！",
-  "command.elementalcraft.steam_blacklist.not_found": "§e%s §7未在蒸汽免疫黑名单中找到。",
-  "command.elementalcraft.steam_blacklist.remove.success": "§a成功将 §e%s §a从蒸汽免疫黑名单移除。",
+  "command.elementalcraft.steam.blacklist.added": "§a成功将 §e%s §a加入蒸汽免疫黑名单。",
+  "command.elementalcraft.steam.blacklist.already_exists": "§e%s §7已在蒸汽免疫黑名单中。",
+  "command.elementalcraft.steam.blacklist.empty": "§e蒸汽免疫黑名单为空。",
+  "command.elementalcraft.steam.blacklist.header": "§e当前蒸汽免疫黑名单 (%s):",
+  "command.elementalcraft.steam.blacklist.no_egg": "§c请手持一个刷怪蛋！",
+  "command.elementalcraft.steam.blacklist.not_found": "§e%s §7不在蒸汽免疫黑名单中。",
+  "command.elementalcraft.steam.blacklist.removed": "§a成功将 §e%s §a从蒸汽免疫黑名单移除。",
 
   "command.elementalcraft.wetness.blacklist.added": "§a成功将 §e%s §a加入潮湿黑名单。",
   "command.elementalcraft.wetness.blacklist.already_exists": "§e%s §7已在潮湿黑名单中。",
@@ -145,6 +145,8 @@
   "debug.elementalcraft.reaction.paralysis.message": "%s 对 %s 触发了 %s 层数麻痹！ ",
   "debug.elementalcraft.reaction.static_conduction.header": "[静电传导]",
   "debug.elementalcraft.reaction.static_conduction.message": "%s 触发静电传导 (层数 %s)：范围 %s 格，影响 %s 个目标，其中 %s 个转为麻痹，总伤害 %s",
+  "debug.elementalcraft.reaction.water_electrification.header": "[感电水域]",
+  "debug.elementalcraft.reaction.water_electrification.message": "%s 使感电水域 (层数 %s)：范围 %s 格，影响 %s 个目标，结算伤害 %s，麻痹持续 %s tick",
   "debug.elementalcraft.reaction.toxic_blast.header": "[毒火爆燃]",
   "debug.elementalcraft.reaction.toxic_blast.message": "%s 引爆了 %s 身上的 %s 层孢子！半径: %s, 影响实体: %s, 伤害: %s",
   "debug.elementalcraft.reaction.wildfire.header": "[自然反制]",
@@ -181,11 +183,7 @@
   "debug.elementalcraft.reaction.freeze.with_wetness": "(潮湿加成)",
   "debug.elementalcraft.reaction.thermal_shock.header": "[热震蒸汽]",
   "debug.elementalcraft.reaction.thermal_shock.message": "%s 对 %s 触发热震！霜冻层数 %s，伤害 %s",
-  "debug.elementalcraft.reaction.superconduct.header": "[超导传导]",
-  "debug.elementalcraft.reaction.superconduct.message": "%s 对 %s 触发超导！霜冻层数 %s，范围 %s 格，链式伤害 %s，影响 %s 个目标",
-  "debug.elementalcraft.reaction.spore_crystallize.header": "[孢子结晶]",
-  "debug.elementalcraft.reaction.spore_crystallize.message": "%s 攻击 %s，%s 层孢子转化为 %s 层霜冻",
-  
+
   "jade.elementalcraft.attack_suffix": "属性攻击",
   "jade.elementalcraft.attack_title": "§l攻击属性",
   "jade.elementalcraft.element_relation.none": "无",
@@ -223,6 +221,8 @@
   "enchantment.elementalcraft.thunder_strike.desc": "§7赋予武器雷霆攻击属性，对敌人造成额外雷霆属性伤害",
 
   "death.attack.lava_magic": "%1$s 被体内高热熔化了",
+  "death.attack.scorched_aura": "%1$s 被灼烧光环烫死了",
+  "death.attack.scorched_aura.player": "%1$s 在试图对抗 %2$s 时被灼烧光环烫死了",
   "death.attack.lava_magic.player": "%1$s 在试图对抗 %2$s 时因体内高热熔化了",
   "death.attack.scorched": "%1$s 被严重灼烧致死",
   "death.attack.static_shock": "%1$s 触电而死",
@@ -233,11 +233,6 @@
   "death.attack.spores.player": "%1$s 在与 %2$s 的战斗中被易燃孢子侵蚀致死",
   "death.attack.frostbite_thermal_shock": "%1$s 被热震蒸汽炸死了",
   "death.attack.frostbite_thermal_shock.player": "%1$s 在与 %2$s 的战斗中被热震蒸汽炸死",
-  "death.attack.frostbite_shatter": "%1$s 被冰霜碎裂击杀了",
-  "death.attack.frostbite_shatter.player": "%1$s 在与 %2$s 的战斗中被冰霜碎裂击杀",
-  "death.attack.frostbite_aura": "%1$s 被霜冻光环冻死了",
-  "death.attack.frostbite_aura.player": "%1$s 在与 %2$s 的战斗中被霜冻光环冻死",
-
   "effect.elementalcraft.flammable_spores": "易燃孢子",
   "effect.elementalcraft.flammable_spores.description": "这种神秘孢子正在寄生。你变得迟钝且极度畏火，但物理攻击更难伤到你。",
   "effect.elementalcraft.paralysis": "麻痹",
@@ -249,5 +244,12 @@
   "effect.elementalcraft.frostbite": "霜冻",
   "effect.elementalcraft.frostbite.description": "你被冰霜侵蚀，每5秒受到一次冰冻伤害，移动速度降低。与潮湿效果接触时会被冻结！",
   "effect.elementalcraft.freeze": "冻结",
-  "effect.elementalcraft.freeze.description": "你被完全冻结！无法移动和攻击，受到的元素伤害增加，但物理伤害被冰壳格挡。赤焰属性攻击会立即解除冻结并触发热震蒸汽。"
+  "effect.elementalcraft.freeze.description": "你被完全冻结！无法移动和攻击，受到的元素伤害增加，但物理伤害被冰壳格挡。赤焰属性攻击会立即解除冻结并触发热震蒸汽。",
+
+  "update.elementalcraft.header": "ElementalCraft : Reactions ",
+  "update.elementalcraft.available": "有可用更新",
+  "update.elementalcraft.modrinth": "Modrinth下载链接",
+  "update.elementalcraft.modrinth.hover": "点击前往 Modrinth",
+  "update.elementalcraft.curseforge": "CurseForge下载链接",
+  "update.elementalcraft.curseforge.hover": "点击前往 CurseForge"
 }

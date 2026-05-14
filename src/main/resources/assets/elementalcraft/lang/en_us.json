@@ -106,13 +106,13 @@
   "command.elementalcraft.frostbite.blacklist.not_found": "§e%s §7is not in the Frostbite immunity blacklist.",
   "command.elementalcraft.frostbite.blacklist.removed": "§aSuccessfully removed §e%s §afrom Frostbite immunity blacklist.",
 
-  "command.elementalcraft.steam_blacklist.add.success": "§aSuccessfully added §e%s §ato Steam immunity blacklist.",
-  "command.elementalcraft.steam_blacklist.empty": "§eSteam immunity blacklist is empty.",
-  "command.elementalcraft.steam_blacklist.exists": "§e%s §7already exists in Steam immunity blacklist.",
-  "command.elementalcraft.steam_blacklist.list.header": "§eSteam immunity blacklist:",
-  "command.elementalcraft.steam_blacklist.not_egg": "§cPlease hold a spawn egg!",
-  "command.elementalcraft.steam_blacklist.not_found": "§e%s §7was not found in Steam immunity blacklist.",
-  "command.elementalcraft.steam_blacklist.remove.success": "§aSuccessfully removed §e%s §afrom Steam immunity blacklist.",
+  "command.elementalcraft.steam.blacklist.added": "§aSuccessfully added §e%s §ato Steam immunity blacklist.",
+  "command.elementalcraft.steam.blacklist.already_exists": "§e%s §7already exists in Steam immunity blacklist.",
+  "command.elementalcraft.steam.blacklist.empty": "§eSteam immunity blacklist is empty.",
+  "command.elementalcraft.steam.blacklist.header": "§eCurrent Steam immunity blacklist (%s):",
+  "command.elementalcraft.steam.blacklist.no_egg": "§cPlease hold a spawn egg!",
+  "command.elementalcraft.steam.blacklist.not_found": "§e%s §7is not in the Steam immunity blacklist.",
+  "command.elementalcraft.steam.blacklist.removed": "§aSuccessfully removed §e%s §afrom Steam immunity blacklist.",
 
   "command.elementalcraft.wetness.blacklist.added": "§aSuccessfully added §e%s §ato Wetness blacklist.",
   "command.elementalcraft.wetness.blacklist.already_exists": "§e%s §7is already in the Wetness blacklist.",
@@ -147,6 +147,8 @@
   "debug.elementalcraft.reaction.paralysis.entity": "Entity",
   "debug.elementalcraft.reaction.static_conduction.header": "[Static Conduction]",
   "debug.elementalcraft.reaction.static_conduction.message": "%s triggered Static Conduction (Stacks %s): Range %s blocks, affected %s target(s), %s turned into Paralysis",
+  "debug.elementalcraft.reaction.water_electrification.header": "[Water Electrification]",
+  "debug.elementalcraft.reaction.water_electrification.message": "%s electrifies water (Stacks %s): Range %s blocks, affected %s target(s), Settlement Damage %s, Paralysis %s ticks",
   "debug.elementalcraft.reaction.toxic_blast.header": "[Toxic Blast]",
   "debug.elementalcraft.reaction.toxic_blast.message": "%s detonated %s Spores stacks on %s! Radius: %s, Entities affected: %s",
   "debug.elementalcraft.reaction.wildfire.header": "[Nature Counter]",
@@ -181,10 +183,6 @@
   "debug.elementalcraft.reaction.freeze.with_wetness": "(Wetness Bonus)",
   "debug.elementalcraft.reaction.thermal_shock.header": "[Thermal Shock]",
   "debug.elementalcraft.reaction.thermal_shock.message": "%s triggered Thermal Shock on %s! Frostbite stacks %s, damage %s",
-  "debug.elementalcraft.reaction.superconduct.header": "[Superconduct]",
-  "debug.elementalcraft.reaction.superconduct.message": "%s triggered Superconduct on %s! Frostbite stacks %s, radius %s blocks, chain damage %s, affected %s targets",
-  "debug.elementalcraft.reaction.spore_crystallize.header": "[Spore Crystallize]",
-  "debug.elementalcraft.reaction.spore_crystallize.message": "%s attacked %s, %s Spore stacks converted to %s Frostbite stacks",
 
   "jade.elementalcraft.attack_suffix": "Elemental Attack",
   "jade.elementalcraft.attack_title": "§lAttack Attribute",
@@ -224,6 +222,8 @@
 
   "death.attack.lava_magic": "%1$s melted from internal heat",
   "death.attack.lava_magic.player": "%1$s melted from internal heat while fighting %2$s",
+  "death.attack.scorched_aura": "%1$s was scalded to death by a scorched aura",
+  "death.attack.scorched_aura.player": "%1$s was scalded to death by a scorched aura while fighting %2$s",
   "death.attack.scorched": "%1$s burned to death",
   "death.attack.static_shock": "%1$s was electrocuted",
   "death.attack.static_shock.player": "%1$s was electrocuted while fighting %2$s",
@@ -233,11 +233,7 @@
   "death.attack.spores.player": "%1$s was consumed by flammable spores while fighting %2$s",
   "death.attack.frostbite_thermal_shock": "%1$s was killed by thermal shock steam",
   "death.attack.frostbite_thermal_shock.player": "%1$s was killed by thermal shock steam while fighting %2$s",
-  "death.attack.frostbite_shatter": "%1$s was killed by frost shatter",
-  "death.attack.frostbite_shatter.player": "%1$s was killed by frost shatter while fighting %2$s",
-  "death.attack.frostbite_aura": "%1$s was frozen by a frostbite aura",
-  "death.attack.frostbite_aura.player": "%1$s was frozen by %2$s's frostbite aura",
-
+  
   "effect.elementalcraft.flammable_spores": "Flammable Spores",
   "effect.elementalcraft.flammable_spores.description": "Mysterious spores are parasitizing you. You become sluggish and extremely vulnerable to fire, but physical attacks hurt you less.",
   "effect.elementalcraft.paralysis": "Paralysis",
@@ -249,5 +245,12 @@
   "effect.elementalcraft.frostbite": "Frostbite",
   "effect.elementalcraft.frostbite.description": "You are being encased in frost, taking ice damage every 5 seconds and slowing your movement. Contact with Wetness will freeze you solid!",
   "effect.elementalcraft.freeze": "Freeze",
-  "effect.elementalcraft.freeze.description": "You are completely frozen! Unable to move or attack, taking increased elemental damage, but physical damage is blocked by the ice shell. Fire attacks immediately break the freeze and trigger Thermal Shock Steam."
+  "effect.elementalcraft.freeze.description": "You are completely frozen! Unable to move or attack, taking increased elemental damage, but physical damage is blocked by the ice shell. Fire attacks immediately break the freeze and trigger Thermal Shock Steam.",
+  
+  "update.elementalcraft.header": "ElementalCraft : Reactions ",
+  "update.elementalcraft.available": "Update Available",
+  "update.elementalcraft.modrinth": "Modrinth Download",
+  "update.elementalcraft.modrinth.hover": "Click to go to Modrinth",
+  "update.elementalcraft.curseforge": "CurseForge Download",
+  "update.elementalcraft.curseforge.hover": "Click to go to CurseForge"
 }
