@@ -13,10 +13,10 @@ import com.xulai.elementalcraft.util.ElementUtils;
 import com.xulai.elementalcraft.util.ElementDamageHelper;
 import com.xulai.elementalcraft.event.WetnessHandler;
 import com.xulai.elementalcraft.util.EffectHelper;
+import com.xulai.elementalcraft.client.ModParticles;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
@@ -27,15 +27,24 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.core.BlockPos;
+import net.minecraft.tags.FluidTags;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.MobEffectEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
-import org.joml.Vector3f;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.InputEvent;
@@ -46,12 +55,28 @@ import org.lwjgl.glfw.GLFW;
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
 public class StaticShockHandler {
     private static final Random RANDOM = new Random();
-    private static final String NBT_STATIC_STACKS = "ec_static_stacks";
+    public static final String NBT_STATIC_STACKS = "ec_static_stacks";
     private static final String NBT_STATIC_TIMER = "ec_static_timer";
     private static final String NBT_STATIC_DAMAGE_TIMER = "ec_static_damage_timer";
     private static final String NBT_PARALYSIS_STACKS = "ec_paralysis_stacks";
     private static final String NBT_PARALYSIS_TIMER = "ec_paralysis_timer";
     private static final String NBT_PARALYSIS_COOLDOWN_TIMER = "ec_paralysis_cooldown_timer";
+    private static final String NBT_STATIC_AURA_DAMAGE_TIMER = "ec_static_aura_damage_timer";
+    private static final Map<ResourceKey<Level>, ActiveElectrification> activeElectrifications = new HashMap<>();
+
+    private static class ActiveElectrification {
+        final double x, y, z, range;
+        final long startTick;
+        final int duration;
+        final float settlementDamage;
+        final Set<UUID> damagedEntities = new HashSet<>();
+        long lastParticleTick;
+        ActiveElectrification(double x, double y, double z, double range, long startTick, int duration, float settlementDamage) {
+            this.x = x; this.y = y; this.z = z;
+            this.range = range; this.startTick = startTick; this.duration = duration;
+            this.settlementDamage = settlementDamage;
+        }
+    }
 
     private static boolean isImmuneToStatic(LivingEntity entity) {
         String entityId = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()).toString();
@@ -65,6 +90,11 @@ public class StaticShockHandler {
     private static boolean isImmuneToParalysis(LivingEntity entity) {
         String entityId = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()).toString();
         return ElementalThunderFrostReactionsConfig.cachedParalysisImmunityBlacklist.contains(entityId);
+    }
+
+    private static boolean isInOrOnWater(LivingEntity entity) {
+        if (entity.isInWater()) return true;
+        return entity.level().getFluidState(entity.blockPosition()).is(FluidTags.WATER);
     }
 
     private static void trimStaticStacks(LivingEntity entity) {
@@ -136,7 +166,7 @@ public class StaticShockHandler {
             int newTotalTicks = data.getInt(NBT_STATIC_TIMER) + addTicks;
             data.putInt(NBT_STATIC_STACKS, newStacks);
             data.putInt(NBT_STATIC_TIMER, newTotalTicks);
-            triggerParalysisReaction(attacker, target);
+            WetnessHandler.resolveElementReactionConflict(target, attacker);
             if (target.hasEffect(ModMobEffects.SPORES.get())) {
                 tryTriggerSporeBlast(target);
             }
@@ -224,6 +254,21 @@ public class StaticShockHandler {
             EffectHelper.playStaticShockParticles(serverLevel, entity);
         }
 
+        boolean hasWetness = entity.hasEffect(ModMobEffects.WETNESS.get());
+        int wetnessLevel = 0;
+        if (hasWetness) {
+            MobEffectInstance wetnessEffect = entity.getEffect(ModMobEffects.WETNESS.get());
+            if (wetnessEffect != null) {
+                wetnessLevel = wetnessEffect.getAmplifier() + 1;
+            }
+        }
+
+        if (wetnessLevel > 0) {
+            if (processWaterElectrification(entity, stacks)) {
+                return;
+            }
+        }
+
         int totalTimer = data.getInt(NBT_STATIC_TIMER);
         int damageTimer = data.getInt(NBT_STATIC_DAMAGE_TIMER);
         int interval = ElementalThunderFrostReactionsConfig.staticDamageIntervalTicks;
@@ -238,20 +283,6 @@ public class StaticShockHandler {
         }
         data.putInt(NBT_STATIC_DAMAGE_TIMER, damageTimer);
 
-        boolean hasWetness = entity.hasEffect(ModMobEffects.WETNESS.get());
-        int wetnessLevel = 0;
-        if (hasWetness) {
-            MobEffectInstance wetnessEffect = entity.getEffect(ModMobEffects.WETNESS.get());
-            if (wetnessEffect != null) {
-                wetnessLevel = wetnessEffect.getAmplifier() + 1;
-            }
-        }
-
-        if (wetnessLevel > 0) {
-            triggerParalysisReaction(null, entity);
-            return;
-        }
-
         if (totalTimer > 0) {
             totalTimer--;
             data.putInt(NBT_STATIC_TIMER, totalTimer);
@@ -263,6 +294,263 @@ public class StaticShockHandler {
         }
 
         updateEffect(entity, stacks, totalTimer);
+
+        // Static Aura processing
+        if (stacks >= ElementalThunderFrostReactionsConfig.staticAuraThreshold) {
+            processAuraTick(entity, stacks);
+        } else {
+            data.remove(NBT_STATIC_AURA_DAMAGE_TIMER);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLevelTick(TickEvent.LevelTickEvent event) {
+        if (event.level.isClientSide()) return;
+        if (event.phase != TickEvent.Phase.END) return;
+        if (activeElectrifications.isEmpty()) return;
+
+        ResourceKey<Level> dim = event.level.dimension();
+        ActiveElectrification elec = activeElectrifications.get(dim);
+        if (elec == null) return;
+
+        long now = event.level.getGameTime();
+
+        if (now - elec.startTick >= elec.duration) {
+            if (event.level instanceof ServerLevel sl) {
+                AABB area = new AABB(
+                        elec.x - elec.range, elec.y - elec.range, elec.z - elec.range,
+                        elec.x + elec.range, elec.y + elec.range, elec.z + elec.range);
+                for (LivingEntity target : sl.getEntitiesOfClass(LivingEntity.class, area)) {
+                    if (target.hasEffect(ModMobEffects.PARALYSIS.get())) {
+                        target.removeEffect(ModMobEffects.PARALYSIS.get());
+                    }
+                }
+            }
+            activeElectrifications.remove(dim);
+            return;
+        }
+
+        if (!(event.level instanceof ServerLevel sl)) return;
+
+        AABB area = new AABB(
+                elec.x - elec.range, elec.y - elec.range, elec.z - elec.range,
+                elec.x + elec.range, elec.y + elec.range, elec.z + elec.range);
+
+        for (LivingEntity entity : sl.getEntitiesOfClass(LivingEntity.class, area)) {
+            if (!isInOrOnWater(entity)) continue;
+
+            double dx = entity.getX() - elec.x;
+            double dy = entity.getY() - elec.y;
+            double dz = entity.getZ() - elec.z;
+            if (dx * dx + dy * dy + dz * dz > elec.range * elec.range) continue;
+
+            if (!isImmuneToStatic(entity) && !elec.damagedEntities.contains(entity.getUUID())) {
+                elec.damagedEntities.add(entity.getUUID());
+                float dmg = applyEnchantmentReduction(entity, elec.settlementDamage);
+                if (dmg > 0) {
+                    ElementDamageHelper.applyDamage(entity, dmg, ModDamageTypes.source(sl, ModDamageTypes.STATIC_SHOCK));
+                }
+            }
+
+            if (!isImmuneToStatic(entity)) {
+                long remaining = elec.duration - (now - elec.startTick);
+                if (remaining > 0) {
+                    entity.addEffect(new MobEffectInstance(ModMobEffects.PARALYSIS.get(), (int)remaining, 0, false, false, true));
+                }
+            }
+        }
+
+        long elapsed = now - elec.startTick;
+        if (elapsed % 60 == 0 && elec.lastParticleTick != now) {
+            elec.lastParticleTick = now;
+            double ex = elec.x, ey = elec.y, ez = elec.z, er = elec.range;
+            int mX = (int)Math.floor(ex - er), MX = (int)Math.ceil(ex + er);
+            int mY = (int)Math.floor(ey - er), MY = (int)Math.ceil(ey + er);
+            int mZ = (int)Math.floor(ez - er), MZ = (int)Math.ceil(ez + er);
+            BlockPos.betweenClosed(mX, mY, mZ, MX, MY, MZ).forEach(pos -> {
+                boolean onBoundary = pos.getX() == mX || pos.getX() == MX
+                        || pos.getY() == mY || pos.getY() == MY
+                        || pos.getZ() == mZ || pos.getZ() == MZ;
+                if (onBoundary && sl.getFluidState(pos).is(FluidTags.WATER)) {
+                    sl.sendParticles(ModParticles.THUNDER_SPARK_PERSISTENT.get(),
+                            pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                            1, 0, 0, 0, 0);
+                    if (sl.isEmptyBlock(pos.above())) {
+                        sl.sendParticles(ModParticles.THUNDER_SPARK_PERSISTENT.get(),
+                                pos.getX() + 0.5, pos.getY() + 1.5, pos.getZ() + 0.5,
+                                1, 0, 0, 0, 0);
+                    }
+                }
+            });
+        }
+    }
+
+    private static boolean processWaterElectrification(LivingEntity source, int stacks) {
+        if (!ElementalThunderFrostReactionsConfig.waterElectrificationEnabled) return false;
+        if (stacks <= 0) return false;
+        if (!isInOrOnWater(source)) return false;
+
+        double range = ElementalThunderFrostReactionsConfig.waterElectrificationRangeBase
+                + stacks * ElementalThunderFrostReactionsConfig.waterElectrificationRangePerStack;
+        range = Math.min(range, ElementalThunderFrostReactionsConfig.waterElectrificationMaxRange);
+
+        ActiveElectrification existing = activeElectrifications.get(source.level().dimension());
+        if (existing != null && source.level().getGameTime() - existing.startTick >= existing.duration) {
+            activeElectrifications.remove(source.level().dimension());
+        }
+
+        CompoundTag sourceData = source.getPersistentData();
+        boolean firstTrigger = !activeElectrifications.containsKey(source.level().dimension());
+
+        if (firstTrigger) {
+            int sourceTimer = sourceData.getInt(NBT_STATIC_TIMER);
+            int interval = ElementalThunderFrostReactionsConfig.staticDamageIntervalTicks;
+            if (interval < 1) interval = 1;
+            int remainingHits = (sourceTimer + interval - 1) / interval;
+
+            double baseSettlementDamage = 0;
+            for (int i = 0; i < remainingHits; i++) {
+                baseSettlementDamage += getRandomStaticDamage(source);
+            }
+            baseSettlementDamage *= ElementalThunderFrostReactionsConfig.paralysisDamagePercentage;
+
+            int paralysisDuration = ElementalThunderFrostReactionsConfig.waterElectrificationParalysisDuration;
+
+            clearStaticShock(source);
+            if (WetnessHandler.getWetnessLevel(source) > 0) {
+                WetnessHandler.clearWetnessData(source);
+            }
+
+            ActiveElectrification newElec = new ActiveElectrification(
+                source.getX(), source.getY(), source.getZ(), range, source.level().getGameTime(), paralysisDuration, (float)baseSettlementDamage);
+            activeElectrifications.put(source.level().dimension(), newElec);
+            newElec.damagedEntities.add(source.getUUID());
+
+            if (paralysisDuration > 0) {
+                source.addEffect(new MobEffectInstance(ModMobEffects.PARALYSIS.get(), paralysisDuration, 0, false, false, true));
+            }
+
+            AABB area = new AABB(
+                    source.getX() - range, source.getY() - range, source.getZ() - range,
+                    source.getX() + range, source.getY() + range, source.getZ() + range
+            );
+            java.util.List<LivingEntity> affectedTargets = new java.util.ArrayList<>();
+            java.util.List<LivingEntity> nearby = source.level().getEntitiesOfClass(LivingEntity.class, area);
+            for (LivingEntity target : nearby) {
+                if (target == source) continue;
+                if (target.isDeadOrDying()) continue;
+                if (!isInOrOnWater(target)) continue;
+                if (isImmuneToStatic(target)) continue;
+
+                if (ElementalThunderFrostReactionsConfig.staticSplashExcludeFriendlyEntities) {
+                    if (target instanceof Player) continue;
+                    if (target instanceof TamableAnimal pet && pet.isTame() && pet.getOwner() != null) continue;
+                }
+                if (ElementalThunderFrostReactionsConfig.staticSplashOnlyHostile) {
+                    if (target.getType().getCategory() != MobCategory.MONSTER) continue;
+                }
+
+                if (paralysisDuration > 0) {
+                    target.addEffect(new MobEffectInstance(ModMobEffects.PARALYSIS.get(), paralysisDuration, 0, false, false, true));
+                }
+                if (source.level() instanceof ServerLevel serverLevel) {
+                    EffectHelper.playStaticSplashParticles(serverLevel, source, target);
+                }
+                newElec.damagedEntities.add(target.getUUID());
+                affectedTargets.add(target);
+            }
+
+            float sourceDamage = applyEnchantmentReduction(source, (float) baseSettlementDamage);
+            if (sourceDamage > 0) {
+                ElementDamageHelper.applyDamage(source, sourceDamage, ModDamageTypes.source(source.level(), ModDamageTypes.STATIC_SHOCK));
+            }
+            for (LivingEntity target : affectedTargets) {
+                float finalDamage = applyEnchantmentReduction(target, (float) baseSettlementDamage);
+                if (finalDamage > 0) {
+                    ElementDamageHelper.applyDamage(target, finalDamage, ModDamageTypes.source(target.level(), ModDamageTypes.STATIC_SHOCK));
+                }
+            }
+
+            DebugCommand.WaterElectrificationLogContext logCtx = new DebugCommand.WaterElectrificationLogContext();
+            logCtx.source = source;
+            logCtx.stacks = stacks;
+            logCtx.range = range;
+            logCtx.affectedCount = affectedTargets.size() + 1;
+            logCtx.settlementDamage = (float)baseSettlementDamage;
+            logCtx.paralysisDuration = paralysisDuration;
+            DebugCommand.sendWaterElectrificationLog(logCtx);
+
+            return true;
+        }
+        return false;
+    }
+
+    private static void processAuraTick(LivingEntity source, int stacks) {
+        CompoundTag data = source.getPersistentData();
+        int timer = data.getInt(NBT_STATIC_AURA_DAMAGE_TIMER) + 1;
+        int interval = ElementalThunderFrostReactionsConfig.staticAuraDamageIntervalTicks;
+        if (interval < 1) interval = 1;
+        data.putInt(NBT_STATIC_AURA_DAMAGE_TIMER, timer);
+
+        if (timer < interval) return;
+        data.putInt(NBT_STATIC_AURA_DAMAGE_TIMER, 0);
+
+        double range = stacks * ElementalThunderFrostReactionsConfig.staticAuraBaseRange;
+
+        AABB auraArea = new AABB(
+                source.getX() - range, source.getY() - range, source.getZ() - range,
+                source.getX() + range, source.getY() + range, source.getZ() + range
+        );
+        java.util.List<LivingEntity> nearby = source.level().getEntitiesOfClass(LivingEntity.class, auraArea);
+
+        for (LivingEntity target : nearby) {
+            if (target == source) continue;
+            if (target.isDeadOrDying()) continue;
+
+            double dx = target.getX() - source.getX();
+            double dz = target.getZ() - source.getZ();
+            double horizontalDist = Math.sqrt(dx * dx + dz * dz);
+            if (horizontalDist > range) continue;
+
+            if (isImmuneToStatic(target)) continue;
+
+            if (ElementalThunderFrostReactionsConfig.staticAuraExcludeFriendly) {
+                if (target instanceof Player) continue;
+                if (target instanceof TamableAnimal pet && pet.isTame() && pet.getOwner() != null) continue;
+            }
+
+            if (ElementalThunderFrostReactionsConfig.staticAuraOnlyHostile) {
+                if (target.getType().getCategory() != MobCategory.MONSTER) continue;
+            }
+
+            // Check wetness: resolve element reaction conflict
+            boolean targetHasWetness = target.hasEffect(ModMobEffects.WETNESS.get());
+            if (targetHasWetness) {
+                CompoundTag targetData = target.getPersistentData();
+                if (!targetData.contains(NBT_STATIC_STACKS)) {
+                    int durPerStack = ElementalThunderFrostReactionsConfig.staticDurationPerStackTicks;
+                    targetData.putInt(NBT_STATIC_STACKS, 1);
+                    targetData.putInt(NBT_STATIC_TIMER, durPerStack);
+                    targetData.putInt(NBT_STATIC_DAMAGE_TIMER, 0);
+                    updateEffect(target, 1, durPerStack);
+                }
+                WetnessHandler.resolveElementReactionConflict(target, source);
+                if (target.hasEffect(ModMobEffects.SPORES.get())) {
+                    tryTriggerSporeBlast(target);
+                }
+                continue;
+            }
+
+            // No wetness: apply aura damage with element multipliers
+            float auraDamage = getRandomStaticDamage(target);
+            auraDamage = applyEnchantmentReduction(target, auraDamage);
+            if (auraDamage > 0) {
+                ElementDamageHelper.applyDamage(target, auraDamage, ModDamageTypes.source(source.level(), ModDamageTypes.STATIC_SHOCK, source));
+                if (source.level() instanceof ServerLevel serverLevel) {
+                    EffectHelper.playStaticSplashParticles(serverLevel, source, target);
+                }
+            }
+        }
     }
 
     private static float applyEnchantmentReduction(LivingEntity entity, float damage) {
@@ -346,25 +634,17 @@ public class StaticShockHandler {
         double maxDmg = ElementalThunderFrostReactionsConfig.staticDamageMax;
         if (maxDmg < minDmg) maxDmg = minDmg;
         float damage = (float) (minDmg + RANDOM.nextDouble() * (maxDmg - minDmg));
-        ElementType element = ElementUtils.getElementType(entity);
-        if (element == ElementType.NATURE) {
+        ElementType element = ElementUtils.getConsistentAttackElement(entity);
+        if (element == ElementType.FIRE) {
+            damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageFireMultiplier;
+        } else if (element == ElementType.THUNDER) {
+            damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageThunderMultiplier;
+        } else if (element == ElementType.NATURE) {
             damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageNatureMultiplier;
         } else if (element == ElementType.FROST) {
             damage *= (float) ElementalThunderFrostReactionsConfig.staticDamageFrostMultiplier;
         }
 
-        // Frostbite stacks increase thunder damage vulnerability (Frostbite + Thunder reaction)
-        CompoundTag data = entity.getPersistentData();
-        if (data.contains(FrostbiteHandler.NBT_FROSTBITE_STACKS)) {
-            int frostbiteStacks = data.getInt(FrostbiteHandler.NBT_FROSTBITE_STACKS);
-            if (frostbiteStacks > 0) {
-                double vulnPerStack = ElementalThunderFrostReactionsConfig.frostbiteThunderVulnerabilityPerStack;
-                double totalMultiplier = 1.0 + (frostbiteStacks * vulnPerStack);
-                double maxVuln = 1.0 + (5 * vulnPerStack);
-                totalMultiplier = Math.min(totalMultiplier, maxVuln);
-                damage *= (float) totalMultiplier;
-            }
-        }
         return damage;
     }
 
@@ -412,7 +692,7 @@ public class StaticShockHandler {
         }
     }
 
-    private static void triggerParalysisReaction(LivingEntity attacker, LivingEntity entity) {
+    public static void triggerParalysisReaction(LivingEntity attacker, LivingEntity entity) {
         if (isImmuneToParalysis(entity)) {
             return;
         }
@@ -430,12 +710,6 @@ public class StaticShockHandler {
         int cooldownTicks = ElementalThunderFrostReactionsConfig.paralysisCooldownTicks;
         if (cooldownTicks > 0 && cooldownRemaining > 0) {
             clearStaticShock(entity);
-            if (entity.hasEffect(ModMobEffects.WETNESS.get())) {
-                entity.removeEffect(ModMobEffects.WETNESS.get());
-            }
-            WetnessHandler.updateWetnessLevel(entity, 0);
-            data.remove(WetnessHandler.NBT_RAIN_TIMER);
-            data.remove(WetnessHandler.NBT_DECAY_TIMER);
             return;
         }
 
@@ -472,12 +746,9 @@ public class StaticShockHandler {
 
         clearStaticShock(entity);
 
-        if (entity.hasEffect(ModMobEffects.WETNESS.get())) {
-            entity.removeEffect(ModMobEffects.WETNESS.get());
+        if (WetnessHandler.getWetnessLevel(entity) > 0) {
+            WetnessHandler.clearWetnessData(entity);
         }
-        WetnessHandler.updateWetnessLevel(entity, 0);
-        data.remove(WetnessHandler.NBT_RAIN_TIMER);
-        data.remove(WetnessHandler.NBT_DECAY_TIMER);
 
         int paralysisDuration = ElementalThunderFrostReactionsConfig.paralysisDurationPerStackTicks * paralysisStacks;
         entity.addEffect(new MobEffectInstance(
@@ -559,8 +830,12 @@ public class StaticShockHandler {
             }
 
             float splashDamage = originalDamage * (float) ElementalThunderFrostReactionsConfig.staticSplashDamagePercentage;
-            ElementType splashTargetElement = ElementUtils.getElementType(target);
-            if (splashTargetElement == ElementType.NATURE) {
+            ElementType splashTargetElement = ElementUtils.getConsistentAttackElement(target);
+            if (splashTargetElement == ElementType.FIRE) {
+                splashDamage *= (float) ElementalThunderFrostReactionsConfig.staticDamageFireMultiplier;
+            } else if (splashTargetElement == ElementType.THUNDER) {
+                splashDamage *= (float) ElementalThunderFrostReactionsConfig.staticDamageThunderMultiplier;
+            } else if (splashTargetElement == ElementType.NATURE) {
                 splashDamage *= (float) ElementalThunderFrostReactionsConfig.staticDamageNatureMultiplier;
             } else if (splashTargetElement == ElementType.FROST) {
                 splashDamage *= (float) ElementalThunderFrostReactionsConfig.staticDamageFrostMultiplier;
@@ -602,12 +877,6 @@ public class StaticShockHandler {
         int cooldownTicks = ElementalThunderFrostReactionsConfig.paralysisCooldownTicks;
         if (cooldownTicks > 0 && cooldownRemaining > 0) {
             clearStaticShock(target);
-            if (target.hasEffect(ModMobEffects.WETNESS.get())) {
-                target.removeEffect(ModMobEffects.WETNESS.get());
-            }
-            WetnessHandler.updateWetnessLevel(target, 0);
-            targetData.remove(WetnessHandler.NBT_RAIN_TIMER);
-            targetData.remove(WetnessHandler.NBT_DECAY_TIMER);
             return;
         }
 
@@ -642,12 +911,9 @@ public class StaticShockHandler {
 
         clearStaticShock(target);
 
-        if (target.hasEffect(ModMobEffects.WETNESS.get())) {
-            target.removeEffect(ModMobEffects.WETNESS.get());
+        if (WetnessHandler.getWetnessLevel(target) > 0) {
+            WetnessHandler.clearWetnessData(target);
         }
-        WetnessHandler.updateWetnessLevel(target, 0);
-        targetData.remove(WetnessHandler.NBT_RAIN_TIMER);
-        targetData.remove(WetnessHandler.NBT_DECAY_TIMER);
 
         int paralysisDuration = ElementalThunderFrostReactionsConfig.paralysisDurationPerStackTicks * paralysisStacks;
         target.addEffect(new MobEffectInstance(

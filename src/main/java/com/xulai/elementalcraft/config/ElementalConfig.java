@@ -35,6 +35,9 @@ public final class ElementalConfig {
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> FORCED_ENTITIES;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLACKLISTED_ENTITIES;
 
+    public static final ForgeConfigSpec.DoubleValue ENCHANTED_BOOK_DROP_CHANCE;
+    public static final ForgeConfigSpec.DoubleValue ENCHANTED_BOOK_LOOTING_BONUS;
+
     public static final ForgeConfigSpec.BooleanValue NETHER_DIMENSION_FORCED_FIRE;
     public static final ForgeConfigSpec.IntValue NETHER_FIRE_POINTS;
     public static final ForgeConfigSpec.BooleanValue END_DIMENSION_FORCED_THUNDER;
@@ -544,6 +547,27 @@ public final class ElementalConfig {
 
         BUILDER.pop();
 
+        BUILDER.comment("Enchanted Book Drop from Elemental Mobs", "属性生物掉落附魔书")
+                .push("enchanted_book_drop");
+
+        ENCHANTED_BOOK_DROP_CHANCE = BUILDER
+                .comment("Base chance for an elemental mob to drop an enchanted book on death.",
+                        "",
+                        "属性生物死亡时掉落附魔书的基础概率。",
+                        "",
+                        "Default: 0.05 (5%) / 默认：0.05（5%）")
+                .defineInRange("enchanted_book_drop_chance", 0.05, 0.0, 1.0);
+
+        ENCHANTED_BOOK_LOOTING_BONUS = BUILDER
+                .comment("Additional drop chance per level of Looting enchantment.",
+                        "",
+                        "每级抢夺附魔增加的掉落概率。",
+                        "",
+                        "Default: 0.10 (10%) / 默认：0.10（10%）")
+                .defineInRange("enchanted_book_looting_bonus", 0.10, 0.0, 1.0);
+
+        BUILDER.pop();
+
         BUILDER.comment("Biome & Weather Attribute Bias", "生物群系与天气属性偏好")
                 .push("biome_weather_bias");
 
@@ -660,6 +684,9 @@ public final class ElementalConfig {
     public static List<? extends String> cachedRestraints = List.of();
     public static List<? extends String> cachedBlacklist = List.of();
 
+    public static double enchantedBookDropChance = 0.05;
+    public static double enchantedBookLootingBonus = 0.10;
+
     public static void refreshCache() {
         restraintMultiplier = RESTRAINT_MULTIPLIER.get();
         weakMultiplier = WEAK_MULTIPLIER.get();
@@ -695,6 +722,9 @@ public final class ElementalConfig {
 
         cachedRestraints = ELEMENT_RESTRAINTS.get();
         cachedBlacklist = BLACKLISTED_ENTITIES.get();
+
+        enchantedBookDropChance = ENCHANTED_BOOK_DROP_CHANCE.get();
+        enchantedBookLootingBonus = ENCHANTED_BOOK_LOOTING_BONUS.get();
     }
 
     public static int getStrengthPerHalfDamage() {

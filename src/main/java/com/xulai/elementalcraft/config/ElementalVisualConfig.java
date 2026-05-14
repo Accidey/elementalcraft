@@ -17,6 +17,8 @@ public class ElementalVisualConfig {
 
     public static final ForgeConfigSpec.BooleanValue STATIC_SHOCK_AURA_ENABLED;
 
+    public static final ForgeConfigSpec.BooleanValue SCORCHED_AURA_ENABLED;
+
     public static final ForgeConfigSpec.BooleanValue FROST_MELEE_ENABLED;
     public static final ForgeConfigSpec.BooleanValue FROST_RANGED_ENABLED;
 
@@ -354,6 +356,7 @@ public class ElementalVisualConfig {
     public static boolean thunderImpactExtraEndRodVerticalRandom = true;
 
     public static boolean staticShockAuraEnabled = true;
+    public static boolean scorchedAuraEnabled = true;
 
     public static boolean frostMeleeEnabled = true;
     public static boolean frostRangedEnabled = true;
@@ -1202,6 +1205,20 @@ public class ElementalVisualConfig {
 
         BUILDER.pop();
 
+        BUILDER.comment("Scorched Aura Visuals", "灼烧光环特效")
+                .push("scorched_aura");
+
+        SCORCHED_AURA_ENABLED = BUILDER
+                .comment("Whether to enable scorched aura visual effects (flame ring at feet of scorched entities with sufficient fire power).",
+                        "是否开启灼烧光环视觉特效（赤焰强化足够的灼烧实体脚底显示火焰光环）。",
+                        "Default: true")
+                .define("enabled", true);
+
+        BUILDER.comment("");
+
+
+        BUILDER.pop();
+
         BUILDER.comment("Thunder Attribute Visuals", "雷霆属性特效")
                 .push("thunder_visuals");
 
@@ -2022,6 +2039,8 @@ public class ElementalVisualConfig {
         thunderRangedEnabled = THUNDER_RANGED_ENABLED.get();
 
         staticShockAuraEnabled = STATIC_SHOCK_AURA_ENABLED.get();
+
+        scorchedAuraEnabled = SCORCHED_AURA_ENABLED.get();
 
         fireMeleeRadius = FIRE_MELEE_RADIUS.get();
         fireMeleeBaseAngleDegrees = FIRE_MELEE_BASE_ANGLE_DEGREES.get();

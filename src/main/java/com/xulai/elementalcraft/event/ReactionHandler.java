@@ -166,39 +166,6 @@ public class ReactionHandler {
     public static void stackSporeEffect(LivingEntity target, int layersToAdd, LivingEntity applier) {
         if (!ModMobEffects.SPORES.isPresent() || ModMobEffects.SPORES.get() == null) return;
 
-        // Frostbite + Spore Crystallization: If applier has frost attack and target has spores
-        if (applier != null) {
-            ElementType applierElement = ElementUtils.getConsistentAttackElement(applier);
-            if (applierElement == ElementType.FROST) {
-                MobEffectInstance currentSpore = target.getEffect(ModMobEffects.SPORES.get());
-                if (currentSpore != null) {
-                    int sporeStacks = currentSpore.getAmplifier() + 1;
-                    double ratio = ElementalThunderFrostReactionsConfig.frostbiteSporeToFrostRatio;
-                    int convertedFrost = (int) (sporeStacks * ratio);
-                    if (convertedFrost >= 1) {
-                        // Remove consumed spore stacks
-                        int remainingSpores = sporeStacks - (int) (convertedFrost / ratio);
-                        if (remainingSpores <= 0) {
-                            target.removeEffect(ModMobEffects.SPORES.get());
-                        } else {
-                            target.removeEffect(ModMobEffects.SPORES.get());
-                            target.addEffect(new MobEffectInstance(ModMobEffects.SPORES.get(), remainingSpores * ElementalFireNatureReactionsConfig.sporeDurationPerStack * 20, remainingSpores - 1));
-                        }
-                        // Apply converted frostbite
-                        FrostbiteHandler.applyFrostbite(target, applier, convertedFrost);
-
-                        DebugCommand.SporeCrystallizeLogContext ctx = new DebugCommand.SporeCrystallizeLogContext();
-                        ctx.target = target;
-                        ctx.attacker = applier;
-                        ctx.sporeStacks = sporeStacks;
-                        ctx.convertedFrostbite = convertedFrost;
-                        DebugCommand.sendSporeCrystallizeLog(ctx);
-                        return;
-                    }
-                }
-            }
-        }
-
         String entityId = ForgeRegistries.ENTITY_TYPES.getKey(target.getType()).toString();
         if (ElementalFireNatureReactionsConfig.cachedSporeBlacklist != null && ElementalFireNatureReactionsConfig.cachedSporeBlacklist.contains(entityId)) {
             return;
@@ -222,14 +189,22 @@ public class ReactionHandler {
         int newStacks = Math.min(maxStacks, currentStacks + layersToAdd);
         int durationTicks = newStacks * ElementalFireNatureReactionsConfig.sporeDurationPerStack * 20;
 
-        boolean isThunder = ElementUtils.getDisplayEnhancement(target, ElementType.THUNDER) > 0 || ElementUtils.getDisplayResistance(target, ElementType.THUNDER) > 0;
-        boolean isFire = ElementUtils.getDisplayEnhancement(target, ElementType.FIRE) > 0 || ElementUtils.getDisplayResistance(target, ElementType.FIRE) > 0;
+        boolean isThunder = ElementUtils.getConsistentAttackElement(target) == ElementType.THUNDER;
+        boolean isFire = ElementUtils.getConsistentAttackElement(target) == ElementType.FIRE;
+        boolean isNature = ElementUtils.getConsistentAttackElement(target) == ElementType.NATURE;
+        boolean isFrost = ElementUtils.getConsistentAttackElement(target) == ElementType.FROST;
 
         if (isThunder) {
             durationTicks = (int) (durationTicks * ElementalFireNatureReactionsConfig.sporeThunderMultiplier);
         }
         if (isFire) {
             durationTicks = (int) (durationTicks * ElementalFireNatureReactionsConfig.sporeFireDurationReduction);
+        }
+        if (isNature) {
+            durationTicks = (int) (durationTicks * ElementalFireNatureReactionsConfig.sporeNatureDurationMultiplier);
+        }
+        if (isFrost) {
+            durationTicks = (int) (durationTicks * ElementalFireNatureReactionsConfig.sporeFrostDurationMultiplier);
         }
 
         if (newStacks > 0) {
@@ -244,6 +219,12 @@ public class ReactionHandler {
             if (target.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
                 int sourceFirePower = target.getPersistentData().getInt(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
                 triggerToxicBlastFromScorched(target, newStacks, sourceFirePower, applier);
+            }
+            if (ElementalThunderFrostReactionsConfig.frostbiteClearSporesEnabled && FrostbiteHandler.hasFrostbite(target)) {
+                target.removeEffect(ModMobEffects.SPORES.get());
+                if (!target.level().isClientSide) {
+                    target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SNOW_PLACE, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 0.5f);
+                }
             }
         }
     }
@@ -330,7 +311,7 @@ public class ReactionHandler {
         triggerToxicBlast(level, attacker, target, firePower, attacker);
     }
 
-    private static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower, LivingEntity killCredit) {
+    public static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower, LivingEntity killCredit) {
         if (ModMobEffects.SPORES.get() == null) return;
         MobEffectInstance sporeEffect = target.getEffect(ModMobEffects.SPORES.get());
         int amplifier = (sporeEffect != null) ? sporeEffect.getAmplifier() : -1;

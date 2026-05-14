@@ -1,4 +1,3 @@
-
 package com.xulai.elementalcraft.command;
 
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -13,18 +12,6 @@ public class ModCommands {
 
         BiomeBiasCommand.register(event.getDispatcher());
 
-        SteamBlacklistCommand.register(event.getDispatcher());
-
-        WetnessBlacklistCommand.register(event.getDispatcher());
-
-        ScorchedBlacklistCommand.register(event.getDispatcher());
-
-        SporeBlacklistCommand.register(event.getDispatcher());
-
-        StaticImmunityBlacklistCommand.register(event.getDispatcher());
-
-        ParalysisBlacklistCommand.register(event.getDispatcher());
-
-        FrostbiteBlacklistCommand.register(event.getDispatcher());
+        BlacklistCommandHelper.registerAll(event.getDispatcher());
     }
 }

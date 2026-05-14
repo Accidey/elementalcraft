@@ -22,10 +22,13 @@ public class FreezeEffect extends MobEffect {
     @Override
     public void applyEffectTick(LivingEntity entity, int amplifier) {
         if (!entity.level().isClientSide) {
-            // 禁用 Mob AI（与麻痹相同的方式）
             disableAI(entity);
-            // 每 tick 强制停止移动
-            entity.setDeltaMovement(0, entity.getDeltaMovement().y, 0);
+
+            if (entity.isInWater()) {
+                entity.setDeltaMovement(0, -0.1, 0);
+            } else {
+                entity.setDeltaMovement(0, entity.getDeltaMovement().y, 0);
+            }
         }
     }
 

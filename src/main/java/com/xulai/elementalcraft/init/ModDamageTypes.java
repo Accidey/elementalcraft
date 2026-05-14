@@ -40,16 +40,6 @@ public class ModDamageTypes {
             new ResourceLocation(ElementalCraft.MODID, "frostbite_thermal_shock")
     );
 
-    public static final ResourceKey<DamageType> FROSTBITE_SHATTER = ResourceKey.create(
-            Registries.DAMAGE_TYPE,
-            new ResourceLocation(ElementalCraft.MODID, "frostbite_shatter")
-    );
-
-    public static final ResourceKey<DamageType> FROSTBITE_AURA = ResourceKey.create(
-            Registries.DAMAGE_TYPE,
-            new ResourceLocation(ElementalCraft.MODID, "frostbite_aura")
-    );
-
     public static DamageSource source(Level level, ResourceKey<DamageType> key) {
         return new DamageSource(
                 level.registryAccess()

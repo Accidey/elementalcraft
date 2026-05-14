@@ -47,11 +47,12 @@ public class ParalysisEffect extends MobEffect {
         if (!pLivingEntity.level().isClientSide) {
             disableAI(pLivingEntity);
 
-            if (pLivingEntity.hasEffect(ModMobEffects.WETNESS.get())) {
-                pLivingEntity.removeEffect(ModMobEffects.WETNESS.get());
-            }
-
             checkAndSpreadStaticShock(pLivingEntity, pAmplifier);
+
+            if (pLivingEntity.isInWater()) {
+                pLivingEntity.setDeltaMovement(
+                    pLivingEntity.getDeltaMovement().x, -0.07, pLivingEntity.getDeltaMovement().z);
+            }
         }
     }
 
@@ -233,7 +234,6 @@ public class ParalysisEffect extends MobEffect {
         if (paralysisStacks > maxStacks) {
             paralysisStacks = maxStacks;
         }
-        WetnessHandler.clearWetnessData(target);
         int durationPerStack = ElementalThunderFrostReactionsConfig.paralysisDurationPerStackTicks;
         int totalDuration = paralysisStacks * durationPerStack;
         if (totalDuration < 20) {

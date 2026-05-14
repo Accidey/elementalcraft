@@ -203,6 +203,15 @@ public class DebugCommand {
         public float totalDamage;
     }
 
+    public static class WaterElectrificationLogContext {
+        public LivingEntity source;
+        public int stacks;
+        public double range;
+        public int affectedCount;
+        public float settlementDamage;
+        public int paralysisDuration;
+    }
+
     public static class FrostbiteLogContext {
         public LivingEntity attacker;
         public LivingEntity target;
@@ -224,22 +233,6 @@ public class DebugCommand {
         public LivingEntity attacker;
         public int frostbiteStacks;
         public float damage;
-    }
-
-    public static class SuperconductLogContext {
-        public LivingEntity target;
-        public LivingEntity attacker;
-        public int frostbiteStacks;
-        public double radius;
-        public float chainDamage;
-        public int affectedCount;
-    }
-
-    public static class SporeCrystallizeLogContext {
-        public LivingEntity target;
-        public LivingEntity attacker;
-        public int sporeStacks;
-        public int convertedFrostbite;
     }
 
     public static void sendCombatLog(CombatLogContext ctx) {
@@ -399,6 +392,20 @@ public class DebugCommand {
         sendDebugMessage(ctx.source, prefix.append(Component.literal(" ")).append(content));
     }
 
+    public static void sendWaterElectrificationLog(WaterElectrificationLogContext ctx) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.water_electrification.header").withStyle(ChatFormatting.AQUA);
+        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.water_electrification.message",
+                ctx.source.getDisplayName(),
+                Component.literal(String.valueOf(ctx.stacks)).withStyle(ChatFormatting.LIGHT_PURPLE),
+                String.format("%.1f", ctx.range),
+                ctx.affectedCount,
+                Component.literal(String.format("%.1f", ctx.settlementDamage)).withStyle(ChatFormatting.RED),
+                Component.literal(String.valueOf(ctx.paralysisDuration)).withStyle(ChatFormatting.AQUA)
+        ).withStyle(ChatFormatting.WHITE);
+        sendDebugMessage(ctx.source, prefix.append(Component.literal(" ")).append(content));
+    }
+
     public static void sendFrostbiteLog(FrostbiteLogContext ctx) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.frostbite.header").withStyle(ChatFormatting.AQUA);
@@ -434,32 +441,6 @@ public class DebugCommand {
                 ctx.target.getDisplayName(),
                 Component.literal(String.valueOf(ctx.frostbiteStacks)).withStyle(ChatFormatting.AQUA),
                 Component.literal(String.format("%.1f", ctx.damage)).withStyle(ChatFormatting.RED)
-        ).withStyle(ChatFormatting.WHITE);
-        sendDebugMessage(ctx.attacker, prefix.append(Component.literal(" ")).append(content));
-    }
-
-    public static void sendSuperconductLog(SuperconductLogContext ctx) {
-        if (!DebugMode.hasAnyDebugEnabled()) return;
-        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.superconduct.header").withStyle(ChatFormatting.YELLOW);
-        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.superconduct.message",
-                ctx.attacker.getDisplayName(),
-                ctx.target.getDisplayName(),
-                Component.literal(String.valueOf(ctx.frostbiteStacks)).withStyle(ChatFormatting.AQUA),
-                String.format("%.1f", ctx.radius),
-                Component.literal(String.format("%.1f", ctx.chainDamage)).withStyle(ChatFormatting.RED),
-                ctx.affectedCount
-        ).withStyle(ChatFormatting.WHITE);
-        sendDebugMessage(ctx.attacker, prefix.append(Component.literal(" ")).append(content));
-    }
-
-    public static void sendSporeCrystallizeLog(SporeCrystallizeLogContext ctx) {
-        if (!DebugMode.hasAnyDebugEnabled()) return;
-        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.spore_crystallize.header").withStyle(ChatFormatting.DARK_AQUA);
-        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.spore_crystallize.message",
-                ctx.attacker.getDisplayName(),
-                ctx.target.getDisplayName(),
-                Component.literal(String.valueOf(ctx.sporeStacks)).withStyle(ChatFormatting.DARK_GREEN),
-                Component.literal(String.valueOf(ctx.convertedFrostbite)).withStyle(ChatFormatting.AQUA)
         ).withStyle(ChatFormatting.WHITE);
         sendDebugMessage(ctx.attacker, prefix.append(Component.literal(" ")).append(content));
     }

@@ -118,6 +118,14 @@ public class MobAttributeLogic {
         }
 
         applyArmorAttributes(mob, enhanceType, enhanceTotalPoints, resistType, resistTotalPoints);
+
+        CompoundTag dropData = mob.getPersistentData();
+        dropData.putString("EC_DropElementType", mainType.getId());
+        if (attackType != null) {
+            dropData.putString("EC_DropAttackType", attackType.getId());
+        }
+        dropData.putInt("EC_DropEnhancePoints", enhanceTotalPoints);
+        dropData.putInt("EC_DropResistPoints", resistTotalPoints);
     }
 
     private static void applyForcedAttributes(Mob mob, CompoundTag persistentData, ForcedAttributeHelper.ForcedData data) {
@@ -150,6 +158,13 @@ public class MobAttributeLogic {
             }
 
             applyArmorAttributes(mob, enhanceType, enhancePoints, resistType, resistPoints);
+
+            persistentData.putString("EC_DropElementType", enhanceType != null ? enhanceType.getId() : "");
+            if (attackType != null && attackType != ElementType.NONE) {
+                persistentData.putString("EC_DropAttackType", attackType.getId());
+            }
+            persistentData.putInt("EC_DropEnhancePoints", enhancePoints);
+            persistentData.putInt("EC_DropResistPoints", resistPoints);
 
             persistentData.putBoolean("ElementalCraft_AttributesSet", true);
         }));

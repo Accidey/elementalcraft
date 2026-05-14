@@ -35,57 +35,58 @@ public class FrostbiteVisuals {
         boolean hasAura = stacks >= ElementalThunderFrostReactionsConfig.frostbiteAuraThreshold;
 
         if (entity.tickCount % 4 == 0 && entity.level() instanceof ServerLevel serverLevel) {
-            double centerX = entity.getX();
-            double centerY = entity.getY() + entity.getBbHeight() * 0.5;
-            double centerZ = entity.getZ();
-
-            // Frostbite ambient particles - frost swirl around entity
-            int particleCount = stacks * 2;
-            double spread = 0.3 + stacks * 0.1;
-
-            if (isFrozen) {
-                // Frozen state: dense ice particles, snowflake ring
-                for (int i = 0; i < particleCount * 2; i++) {
-                    double angle = RANDOM.nextDouble() * Math.PI * 2;
-                    double radius = 0.5 + RANDOM.nextDouble() * 0.3;
-                    double px = centerX + Math.cos(angle) * radius;
-                    double pz = centerZ + Math.sin(angle) * radius;
-                    double py = entity.getY() + RANDOM.nextDouble() * entity.getBbHeight();
-                    serverLevel.sendParticles(ParticleTypes.SNOWFLAKE, px, py, pz, 1, 0, 0, 0, 0.02);
-                }
-
-                // Ice block effect around frozen entity
-                if (entity.tickCount % 8 == 0) {
-                    serverLevel.sendParticles(ParticleTypes.ITEM_SNOWBALL,
-                            centerX, centerY, centerZ,
-                            10, 0.4, 0.3, 0.4, 0.05);
-                    serverLevel.sendParticles(ModParticles.FROST_SNOWFLAKE.get(),
-                            centerX, centerY, centerZ,
-                            3, 0.3, 0.2, 0.3, 0);
-                }
-            } else {
-                // Active frostbite: slow swirl of frost particles
-                for (int i = 0; i < particleCount; i++) {
-                    double angle = (entity.tickCount * 0.1 + i * (Math.PI * 2 / particleCount)) % (Math.PI * 2);
-                    double radius = 0.3 + RANDOM.nextDouble() * 0.2;
-                    double px = centerX + Math.cos(angle) * radius;
-                    double pz = centerZ + Math.sin(angle) * radius;
-                    double py = entity.getY() + RANDOM.nextDouble() * entity.getBbHeight();
-                    serverLevel.sendParticles(ParticleTypes.SNOWFLAKE, px, py, pz, 1, 0, 0, 0, 0.01);
-                }
-
-                // Occasional ice shard for higher stacks
-                if (stacks >= 3 && RANDOM.nextFloat() < 0.3f) {
-                    double px = centerX + (RANDOM.nextDouble() - 0.5) * spread;
-                    double pz = centerZ + (RANDOM.nextDouble() - 0.5) * spread;
-                    double py = entity.getY() + RANDOM.nextDouble() * entity.getBbHeight();
-                    serverLevel.sendParticles(ParticleTypes.ITEM_SNOWBALL,
-                            px, py, pz, 1, 0, -0.02, 0, 0);
-                }
-            }
-
-            // ====== 霜冻光环视觉效果 ======
+            // 只有达到光环阈值后才显示所有霜冻视觉效果
             if (hasAura) {
+                double centerX = entity.getX();
+                double centerY = entity.getY() + entity.getBbHeight() * 0.5;
+                double centerZ = entity.getZ();
+
+                // Frostbite ambient particles - frost swirl around entity
+                int particleCount = stacks * 2;
+                double spread = 0.3 + stacks * 0.1;
+
+                if (isFrozen) {
+                    // Frozen state: dense ice particles, snowflake ring
+                    for (int i = 0; i < particleCount * 2; i++) {
+                        double angle = RANDOM.nextDouble() * Math.PI * 2;
+                        double radius = 0.5 + RANDOM.nextDouble() * 0.3;
+                        double px = centerX + Math.cos(angle) * radius;
+                        double pz = centerZ + Math.sin(angle) * radius;
+                        double py = entity.getY() + RANDOM.nextDouble() * entity.getBbHeight();
+                        serverLevel.sendParticles(ParticleTypes.SNOWFLAKE, px, py, pz, 1, 0, 0, 0, 0.02);
+                    }
+
+                    // Ice block effect around frozen entity
+                    if (entity.tickCount % 8 == 0) {
+                        serverLevel.sendParticles(ParticleTypes.ITEM_SNOWBALL,
+                                centerX, centerY, centerZ,
+                                10, 0.4, 0.3, 0.4, 0.05);
+                        serverLevel.sendParticles(ModParticles.FROST_SNOWFLAKE.get(),
+                                centerX, centerY, centerZ,
+                                3, 0.3, 0.2, 0.3, 0);
+                    }
+                } else {
+                    // Active frostbite: slow swirl of frost particles
+                    for (int i = 0; i < particleCount; i++) {
+                        double angle = (entity.tickCount * 0.1 + i * (Math.PI * 2 / particleCount)) % (Math.PI * 2);
+                        double radius = 0.3 + RANDOM.nextDouble() * 0.2;
+                        double px = centerX + Math.cos(angle) * radius;
+                        double pz = centerZ + Math.sin(angle) * radius;
+                        double py = entity.getY() + RANDOM.nextDouble() * entity.getBbHeight();
+                        serverLevel.sendParticles(ParticleTypes.SNOWFLAKE, px, py, pz, 1, 0, 0, 0, 0.01);
+                    }
+
+                    // Occasional ice shard for higher stacks
+                    if (stacks >= 3 && RANDOM.nextFloat() < 0.3f) {
+                        double px = centerX + (RANDOM.nextDouble() - 0.5) * spread;
+                        double pz = centerZ + (RANDOM.nextDouble() - 0.5) * spread;
+                        double py = entity.getY() + RANDOM.nextDouble() * entity.getBbHeight();
+                        serverLevel.sendParticles(ParticleTypes.ITEM_SNOWBALL,
+                                px, py, pz, 1, 0, -0.02, 0, 0);
+                    }
+                }
+
+                // ====== 霜冻光环视觉效果 ======
                 drawAuraCircle(serverLevel, entity, stacks);
 
                 // 范围内生物的雪花环绕粒子

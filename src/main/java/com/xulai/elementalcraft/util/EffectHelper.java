@@ -14,6 +14,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
+import com.xulai.elementalcraft.client.ModParticles;
 import java.util.List;
 import java.util.Random;
 
@@ -201,6 +202,50 @@ public class EffectHelper {
         level.playSound(null, pos.getX(), pos.getY(), pos.getZ(), sound, SoundSource.PLAYERS, volume, pitch);
     }
 
+    public static void playStaticChargedCloudTick(ServerLevel level, AreaEffectCloud cloud) {
+        float radius = cloud.getRadius();
+        if (radius < 0.2f) return;
+        int count = Math.max(2, (int) (radius * 8.0));
+        for (int i = 0; i < count; i++) {
+            double angle = RANDOM.nextDouble() * Math.PI * 2;
+            double dist = Math.sqrt(RANDOM.nextDouble()) * radius;
+            double x = cloud.getX() + Math.cos(angle) * dist;
+            double z = cloud.getZ() + Math.sin(angle) * dist;
+            double y = cloud.getY() + RANDOM.nextDouble() * 2.5;
+            if (RANDOM.nextFloat() < 0.6f) {
+                level.sendParticles(ModParticles.THUNDER_SPARK_PERSISTENT.get(),
+                        x, y, z, 1, 0, 0, 0, 0);
+            }
+            if (RANDOM.nextFloat() < 0.3f) {
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                        x, y, z, 1, 0, 0, 0, 0);
+            }
+            if (RANDOM.nextFloat() < 0.2f) {
+                level.sendParticles(new DustParticleOptions(STATIC_PURPLE_BLUE, 1.0f),
+                        x, y, z, 1, 0, 0, 0, 0);
+            }
+        }
+    }
+
+    public static void playFrostedCloudTick(ServerLevel level, AreaEffectCloud cloud) {
+        float radius = cloud.getRadius();
+        if (radius < 0.2f) return;
+        int count = Math.max(2, (int) (radius * 8.0));
+        for (int i = 0; i < count; i++) {
+            double angle = RANDOM.nextDouble() * Math.PI * 2;
+            double dist = Math.sqrt(RANDOM.nextDouble()) * radius;
+            double x = cloud.getX() + Math.cos(angle) * dist;
+            double z = cloud.getZ() + Math.sin(angle) * dist;
+            double y = cloud.getY() + RANDOM.nextDouble() * 2.5;
+            if (RANDOM.nextFloat() < 0.6f) {
+                level.sendParticles(ParticleTypes.SNOWFLAKE, x, y, z, 1, 0, 0.02, 0, 0.02);
+            }
+            if (RANDOM.nextFloat() < 0.2f) {
+                level.sendParticles(ParticleTypes.ITEM_SNOWBALL, x, y, z, 1, 0, 0.01, 0, 0);
+            }
+        }
+    }
+
     public static void playSteamCloudTick(ServerLevel level, AreaEffectCloud cloud, boolean isHighHeat) {
         float radius = cloud.getRadius();
         if (radius < 0.2f) return;
@@ -216,6 +261,13 @@ public class EffectHelper {
             if (isHighHeat) {
                 if (RANDOM.nextFloat() < 0.1f) level.sendParticles(ParticleTypes.FLAME, x, y, z, 0, 0, upSpeed * 0.8, 0, 0.5);
                 if (RANDOM.nextFloat() < 0.05f) level.sendParticles(ParticleTypes.LAVA, x, y, z, 0, 0, 0, 0, 0);
+            } else {
+                if (RANDOM.nextFloat() < 0.3f) {
+                    double dropX = cloud.getX() + (RANDOM.nextDouble() - 0.5) * radius * 2.0;
+                    double dropZ = cloud.getZ() + (RANDOM.nextDouble() - 0.5) * radius * 2.0;
+                    double dropY = cloud.getY() + RANDOM.nextDouble() * 2.5;
+                    level.sendParticles(ParticleTypes.FALLING_WATER, dropX, dropY, dropZ, 1, 0, 0, 0, 0);
+                }
             }
         }
     }
@@ -257,7 +309,7 @@ public class EffectHelper {
             double x = entity.getX() + Math.cos(angle) * radius;
             double z = entity.getZ() + Math.sin(angle) * radius;
             double y = entity.getY() + entity.getBbHeight() / 2 + heightOffset;
-            if (RANDOM.nextBoolean()) {
+            if (RANDOM.nextFloat() < 0.125f) {
                 level.sendParticles(ParticleTypes.END_ROD, x, y, z, 1, 0, 0, 0, 0.02);
             } else {
                 level.sendParticles(new DustParticleOptions(STATIC_PURPLE_BLUE, 1.2f),
@@ -272,6 +324,35 @@ public class EffectHelper {
             double y = entity.getY() + entity.getBbHeight() * 0.5 + (RANDOM.nextDouble() - 0.5) * 0.5;
             double z = entity.getZ() + (RANDOM.nextDouble() - 0.5) * 0.6;
             level.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y, z, 1, 0, 0, 0, 0);
+        }
+    }
+
+    public static void spawnFreezeColdCloud(ServerLevel level, LivingEntity target, double radius, int duration) {
+        int particleCount = (int) (radius * 20);
+        for (int i = 0; i < particleCount; i++) {
+            double angle = RANDOM.nextDouble() * Math.PI * 2;
+            double dist = Math.sqrt(RANDOM.nextDouble()) * radius;
+            double x = target.getX() + Math.cos(angle) * dist;
+            double z = target.getZ() + Math.sin(angle) * dist;
+            double y = target.getY() + RANDOM.nextDouble() * target.getBbHeight() + 0.2;
+            if (RANDOM.nextFloat() < 0.6f) {
+                level.sendParticles(ParticleTypes.SNOWFLAKE, x, y + RANDOM.nextDouble() * 0.5, z, 1, 0, 0.02, 0, 0.02);
+            }
+            if (RANDOM.nextFloat() < 0.25f) {
+                level.sendParticles(ParticleTypes.ITEM_SNOWBALL, x, y, z, 1, 0, 0.01, 0, 0);
+            }
+            if (RANDOM.nextFloat() < 0.15f) {
+                level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x, y, z, 0, 0, 0.03, 0, 0.5);
+            }
+        }
+        int ringPoints = (int) (radius * 8);
+        double step = (Math.PI * 2) / ringPoints;
+        for (int i = 0; i < ringPoints; i++) {
+            double angle = step * i;
+            double x = target.getX() + Math.cos(angle) * radius;
+            double z = target.getZ() + Math.sin(angle) * radius;
+            double y = target.getY() + target.getBbHeight() * 0.3;
+            level.sendParticles(ParticleTypes.SNOWFLAKE, x, y, z, 1, 0, 0.02, 0, 0.01);
         }
     }
 

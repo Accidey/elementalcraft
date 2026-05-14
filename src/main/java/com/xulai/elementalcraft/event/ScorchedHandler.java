@@ -2,6 +2,7 @@ package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.ElementType;
@@ -16,8 +17,10 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.MobEffectEvent;
@@ -59,15 +62,15 @@ public class ScorchedHandler {
         }
 
         int adjustedDuration = duration;
-        boolean isNature = isNatureAligned(target);
-        boolean isFrost = isFrostAligned(target);
 
-        if (isNature) {
-            double multiplier = ElementalFireNatureReactionsConfig.scorchedNatureDurationMultiplier;
-            adjustedDuration = (int) Math.round(duration * multiplier);
-        } else if (isFrost) {
-            double multiplier = ElementalFireNatureReactionsConfig.scorchedFrostDurationMultiplier;
-            adjustedDuration = (int) Math.round(duration * multiplier);
+        if (isNatureAligned(target)) {
+            adjustedDuration = (int) Math.round(duration * ElementalFireNatureReactionsConfig.scorchedNatureDurationMultiplier);
+        } else if (isFrostAligned(target)) {
+            adjustedDuration = (int) Math.round(duration * ElementalFireNatureReactionsConfig.scorchedFrostDurationMultiplier);
+        } else if (isFireAligned(target)) {
+            adjustedDuration = (int) Math.round(duration * ElementalFireNatureReactionsConfig.scorchedFireDurationMultiplier);
+        } else if (isThunderAligned(target)) {
+            adjustedDuration = (int) Math.round(duration * ElementalFireNatureReactionsConfig.scorchedThunderDurationMultiplier);
         }
 
         if (adjustedDuration < 1) adjustedDuration = 1;
@@ -79,7 +82,7 @@ public class ScorchedHandler {
 
         if (attacker != null && !bypassCooldown) {
             CompoundTag attackerData = attacker.getPersistentData();
-            attackerData.putLong(NBT_ATTACKER_SCORCHED_COOLDOWN, gameTime + ElementalFireNatureReactionsConfig.scorchedCooldown);
+            attackerData.putLong(NBT_ATTACKER_SCORCHED_COOLDOWN, gameTime + adjustedDuration + ElementalFireNatureReactionsConfig.scorchedCooldown);
         }
 
         target.setRemainingFireTicks(adjustedDuration);
@@ -103,6 +106,14 @@ public class ScorchedHandler {
 
     private static boolean isFrostAligned(LivingEntity entity) {
         return ElementUtils.getConsistentAttackElement(entity) == ElementType.FROST;
+    }
+
+    private static boolean isFireAligned(LivingEntity entity) {
+        return ElementUtils.getConsistentAttackElement(entity) == ElementType.FIRE;
+    }
+
+    private static boolean isThunderAligned(LivingEntity entity) {
+        return ElementUtils.getConsistentAttackElement(entity) == ElementType.THUNDER;
     }
 
     @SubscribeEvent
@@ -140,6 +151,23 @@ public class ScorchedHandler {
             return;
         }
 
+        if (FrostbiteHandler.hasFrostbite(entity) && ElementalFireNatureReactionsConfig.frostScorchedSteamEnabled) {
+            int sourceFirePower = data.getInt(NBT_SCORCHED_SOURCE_FIRE_POWER);
+            int frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(entity);
+            int fireStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
+            int level = Math.max(1, Math.min(sourceFirePower / fireStep + frostbiteStacks, ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel));
+
+            FrostbiteHandler.clearFrostbite(entity);
+            entity.clearFire();
+            data.remove(NBT_SCORCHED_TICKS);
+            data.remove(NBT_SCORCHED_STRENGTH);
+            data.remove(NBT_SCORCHED_SOURCE_FIRE_POWER);
+            data.remove(NBT_SCORCHED_DAMAGE_MULT);
+
+            SteamReactionHandler.spawnSteamCloud(entity, true, level);
+            return;
+        }
+
         data.putInt(NBT_SCORCHED_TICKS, ticks - 1);
         int fireStrength = data.getInt(NBT_SCORCHED_STRENGTH);
         ServerLevel level = (ServerLevel) entity.level();
@@ -153,6 +181,9 @@ public class ScorchedHandler {
             entity.setRemainingFireTicks(ticks);
         }
 
+        int auraInterval = ElementalFireNatureReactionsConfig.scorchedAuraDamageInterval;
+        if (auraInterval < 1) auraInterval = 20;
+
         if (entity.tickCount % 20 == 0) {
             float damage = calculateScorchedDamage(fireStrength, entity);
             if (damage > 0) {
@@ -160,6 +191,14 @@ public class ScorchedHandler {
                 level.sendParticles(ParticleTypes.LAVA, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(), 10, 0.2, 0.2, 0.2, 0.0);
                 level.sendParticles(ParticleTypes.SMOKE, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(), 5, 0.2, 0.2, 0.2, 0.0);
                 level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.2f, 1.0f);
+            }
+        }
+
+        if (ElementalFireNatureReactionsConfig.scorchedAuraEnabled && entity.tickCount % auraInterval == 0) {
+            int sourceFirePower = data.getInt(NBT_SCORCHED_SOURCE_FIRE_POWER);
+            int threshold = ElementalFireNatureReactionsConfig.scorchedAuraFirePowerThreshold;
+            if (sourceFirePower >= threshold) {
+                applyAuraDamage(entity, sourceFirePower, level);
             }
         }
     }
@@ -204,6 +243,84 @@ public class ScorchedHandler {
         data.remove(NBT_SCORCHED_DAMAGE_MULT);
         level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.5f, 2.0f);
         level.sendParticles(ParticleTypes.CLOUD, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(), 20, 0.5, 0.5, 0.5, 0.05);
+    }
+
+    private static void applyAuraDamage(LivingEntity source, int sourceFirePower, ServerLevel level) {
+        double radius = ElementalFireNatureReactionsConfig.scorchedAuraRadius;
+        double sourceY = source.getY();
+        AABB box = new AABB(
+                source.getX() - radius, sourceY - 0.5, source.getZ() - radius,
+                source.getX() + radius, sourceY + 1.5, source.getZ() + radius
+        );
+        java.util.List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, box, e -> e != source && Math.abs(e.getY() - sourceY) < 1.0);
+        if (nearby.isEmpty()) return;
+
+        int resistThreshold = ElementalFireNatureReactionsConfig.scorchedResistThreshold;
+
+        boolean steamEnabled = ElementalFireNatureReactionsConfig.scorchedAuraSteamEnabled;
+
+        for (LivingEntity target : nearby) {
+            if (target.isDeadOrDying()) continue;
+            if (target.fireImmune()) continue;
+            int resist = ElementUtils.getDisplayResistance(target, ElementType.FIRE);
+            if (resist >= resistThreshold) continue;
+
+            if (steamEnabled) {
+                CompoundTag targetData = target.getPersistentData();
+                int wetness = targetData.getInt(WetnessHandler.NBT_WETNESS);
+                if (wetness <= 0 && target.hasEffect(ModMobEffects.WETNESS.get())) {
+                    wetness = target.getEffect(ModMobEffects.WETNESS.get()).getAmplifier() + 1;
+                }
+                if (wetness > 0) {
+                    int fireStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
+                    int steamLevel = Math.max(1, sourceFirePower / fireStep + wetness);
+                    steamLevel = Math.min(steamLevel, ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel);
+                    WetnessHandler.clearWetnessData(target);
+                    SteamReactionHandler.spawnSteamCloud(target, true, steamLevel);
+                    continue;
+                }
+            }
+
+            if (ElementalThunderFrostReactionsConfig.frostbiteAuraScorchedSteamEnabled
+                    && FrostbiteHandler.hasFrostbite(target)) {
+                int frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(target);
+                int fireStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
+                int steamLevel = Math.max(1, sourceFirePower / fireStep + frostbiteStacks);
+                steamLevel = Math.min(steamLevel, ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel);
+                FrostbiteHandler.clearFrostbite(target);
+                SteamReactionHandler.spawnSteamCloud(target, true, steamLevel);
+                continue;
+            }
+
+            if (ElementalFireNatureReactionsConfig.scorchedAuraSporeDetonationEnabled
+                    && ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
+                    && target.hasEffect(ModMobEffects.SPORES.get())) {
+                MobEffectInstance sporeEffect = target.getEffect(ModMobEffects.SPORES.get());
+                int sporeStacks = sporeEffect.getAmplifier() + 1;
+                if (sporeStacks >= ElementalFireNatureReactionsConfig.sporeReactionThreshold) {
+                    ReactionHandler.triggerToxicBlast(level, source, target, sourceFirePower, source);
+                    continue;
+                }
+            }
+
+            int auraLevel = Math.max(1, sourceFirePower / Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire));
+            float auraDamage = (float) ElementalFireNatureReactionsConfig.steamScaldingDamage * (1.0f + (auraLevel - 1) * (float) ElementalFireNatureReactionsConfig.steamDamageScalePerLevel);
+            ElementType targetElement = ElementUtils.getConsistentAttackElement(target);
+            if (targetElement == ElementType.FIRE) {
+                auraDamage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierFire;
+            } else if (targetElement == ElementType.NATURE) {
+                auraDamage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierNature;
+            } else if (targetElement == ElementType.THUNDER) {
+                auraDamage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierThunder;
+            } else if (targetElement == ElementType.FROST) {
+                auraDamage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierFrost;
+            }
+            if (target.hasEffect(ModMobEffects.SPORES.get())) {
+                auraDamage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierSpore;
+            }
+            ElementDamageHelper.applyDamage(target, auraDamage, ModDamageTypes.source(level, ModDamageTypes.STEAM_SCALDING));
+            level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.1, target.getZ(), 5, 0.3, 0.1, 0.3, 0.01);
+        }
     }
 
     private static float calculateScorchedDamage(int fireStrength, LivingEntity target) {

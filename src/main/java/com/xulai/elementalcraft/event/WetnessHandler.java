@@ -38,6 +38,8 @@ import java.util.Objects;
 import java.util.Random;
 import com.xulai.elementalcraft.event.ScorchedHandler;
 import com.xulai.elementalcraft.event.SteamReactionHandler;
+import com.xulai.elementalcraft.event.StaticShockHandler;
+import com.xulai.elementalcraft.event.FrostbiteHandler;
 
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
 public class WetnessHandler {
@@ -46,6 +48,7 @@ public class WetnessHandler {
     public static final String NBT_DECAY_TIMER = "EC_WetnessDecayTimer";
     public static final String NBT_LAST_EXHAUSTION = "EC_LastExhaustion";
     public static final String NBT_FIRE_STAND_TIMER = "EC_WetnessFireStandTimer";
+    public static final String NBT_REACTION_RESOLVED = "EC_ReactionResolved";
 
     private static final Random RANDOM = new Random();
 
@@ -244,6 +247,17 @@ public class WetnessHandler {
             }
         }
         syncEffect(entity, currentLevel, inWater || inPrecipitation || inCondensingCloud);
+
+        if (currentLevel > 0 && !data.getBoolean(NBT_REACTION_RESOLVED)) {
+            boolean hasStatic = data.getInt(StaticShockHandler.NBT_STATIC_STACKS) > 0;
+            boolean hasFrostbite = FrostbiteHandler.hasFrostbite(entity);
+            if (hasStatic || hasFrostbite) {
+                if (!(inWater && hasStatic)) {
+                    resolveElementReactionConflict(entity, null);
+                }
+                data.putBoolean(NBT_REACTION_RESOLVED, true);
+            }
+        }
     }
 
     private static boolean isSnowingHere(LivingEntity entity) {
@@ -318,6 +332,7 @@ public class WetnessHandler {
             data.remove(NBT_DECAY_TIMER);
             data.remove(NBT_FIRE_STAND_TIMER);
         }
+        data.remove(NBT_REACTION_RESOLVED);
         if (entity.hasEffect(Objects.requireNonNull(ModMobEffects.WETNESS.get()))) {
             entity.removeEffect(ModMobEffects.WETNESS.get());
         }
@@ -417,6 +432,44 @@ public class WetnessHandler {
                 }
             }
             data.putFloat(NBT_LAST_EXHAUSTION, currentExhaustion);
+        }
+    }
+
+    public static void resolveElementReactionConflict(LivingEntity entity, LivingEntity attacker) {
+        CompoundTag data = entity.getPersistentData();
+
+        int staticStacks = data.getInt(StaticShockHandler.NBT_STATIC_STACKS);
+        int frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(entity);
+
+        boolean hasStatic = staticStacks > 0;
+        boolean hasFrostbite = frostbiteStacks > 0;
+
+        if (!hasStatic && !hasFrostbite) return;
+
+        if (hasStatic && !hasFrostbite) {
+            StaticShockHandler.triggerParalysisReaction(attacker, entity);
+            return;
+        }
+
+        if (!hasStatic && hasFrostbite) {
+            FrostbiteHandler.triggerFreeze(entity, attacker);
+            return;
+        }
+
+        // Both have effects - compare levels
+        if (staticStacks > frostbiteStacks) {
+            StaticShockHandler.triggerParalysisReaction(attacker, entity);
+        } else if (frostbiteStacks > staticStacks) {
+            FrostbiteHandler.triggerFreeze(entity, attacker);
+            FrostbiteHandler.clearFrostbite(entity);
+        } else {
+            // Equal - random choice
+            if (RANDOM.nextBoolean()) {
+                StaticShockHandler.triggerParalysisReaction(attacker, entity);
+            } else {
+                FrostbiteHandler.triggerFreeze(entity, attacker);
+                FrostbiteHandler.clearFrostbite(entity);
+            }
         }
     }
 
