@@ -106,6 +106,14 @@
   "command.elementalcraft.frostbite.blacklist.not_found": "§e%s §7不在霜冻免疫黑名单中。",
   "command.elementalcraft.frostbite.blacklist.removed": "§a成功将 §e%s §a从霜冻免疫黑名单移除。",
 
+  "command.elementalcraft.freeze.blacklist.added": "§a成功将 §e%s §a加入冻结免疫黑名单。",
+  "command.elementalcraft.freeze.blacklist.already_exists": "§e%s §7已在冻结免疫黑名单中。",
+  "command.elementalcraft.freeze.blacklist.empty": "§e冻结免疫黑名单为空。",
+  "command.elementalcraft.freeze.blacklist.header": "§e当前冻结免疫黑名单 (%s):",
+  "command.elementalcraft.freeze.blacklist.no_egg": "§c请手持一个刷怪蛋！",
+  "command.elementalcraft.freeze.blacklist.not_found": "§e%s §7不在冻结免疫黑名单中。",
+  "command.elementalcraft.freeze.blacklist.removed": "§a成功将 §e%s §a从冻结免疫黑名单移除。",
+
   "command.elementalcraft.steam.blacklist.added": "§a成功将 §e%s §a加入蒸汽免疫黑名单。",
   "command.elementalcraft.steam.blacklist.already_exists": "§e%s §7已在蒸汽免疫黑名单中。",
   "command.elementalcraft.steam.blacklist.empty": "§e蒸汽免疫黑名单为空。",
@@ -143,8 +151,7 @@
   "debug.elementalcraft.formula.self_drying": "自我干燥(x%s)",
   "debug.elementalcraft.reaction.paralysis.header": "[麻痹]",
   "debug.elementalcraft.reaction.paralysis.message": "%s 对 %s 触发了 %s 层数麻痹！ ",
-  "debug.elementalcraft.reaction.static_conduction.header": "[静电传导]",
-  "debug.elementalcraft.reaction.static_conduction.message": "%s 触发静电传导 (层数 %s)：范围 %s 格，影响 %s 个目标，其中 %s 个转为麻痹，总伤害 %s",
+
   "debug.elementalcraft.reaction.water_electrification.header": "[感电水域]",
   "debug.elementalcraft.reaction.water_electrification.message": "%s 使感电水域 (层数 %s)：范围 %s 格，影响 %s 个目标，结算伤害 %s，麻痹持续 %s tick",
   "debug.elementalcraft.reaction.toxic_blast.header": "[毒火爆燃]",
@@ -178,11 +185,54 @@
   "debug.elementalcraft.reaction.frostbite.header": "[霜冻]",
   "debug.elementalcraft.reaction.frostbite.message": "%s 对 %s 施加了霜冻（施加 %s 层，总计 %s 层，概率 %s%%）",
   "debug.elementalcraft.reaction.freeze.header": "[冻结]",
-  "debug.elementalcraft.reaction.freeze.message": "%s 被冻结！霜冻层数 %s，持续 %s tick %s，结算伤害 %s",
+  "debug.elementalcraft.reaction.freeze.message": "%s 被冻结！霜冻层数 %s，冻结层数 %s，持续 %s tick %s，结算伤害 %s",
   "debug.elementalcraft.reaction.freeze.normal": "(正常冻结)",
   "debug.elementalcraft.reaction.freeze.with_wetness": "(潮湿加成)",
   "debug.elementalcraft.reaction.thermal_shock.header": "[热震蒸汽]",
   "debug.elementalcraft.reaction.thermal_shock.message": "%s 对 %s 触发热震！霜冻层数 %s，伤害 %s",
+
+  "debug.elementalcraft.reaction.static_steam_cloud.header": "[感电蒸汽云]",
+  "debug.elementalcraft.reaction.static_steam_cloud.message": "%s 感电化蒸汽云 (层数 %s)：结算伤害 %s，云持续 %s tick",
+
+  "debug.elementalcraft.reaction.paralysis_spread.header": "[麻痹传播]",
+  "debug.elementalcraft.reaction.paralysis_spread.message": "%s 传播麻痹 (层数 %s)：范围 %s 格，影响 %s 个目标",
+
+  "debug.elementalcraft.reaction.freeze_spread.header": "[冻结传播]",
+  "debug.elementalcraft.reaction.freeze_spread.message": "%s 传播冻结 (层数 %s)：范围 %s 格，影响 %s 个目标",
+
+  "debug.elementalcraft.reaction.contagion.header": "[孢子传播]",
+  "debug.elementalcraft.reaction.contagion.message": "%s 传播孢子 (层数 %s)：转移 %s 层，范围 %s 格，影响 %s 个目标",
+
+  "debug.elementalcraft.reaction.frosted_steam_cloud.header": "[霜寒蒸汽云]",
+  "debug.elementalcraft.reaction.frosted_steam_cloud.message": "%s 霜寒化蒸汽云 (层数 %s)：云持续 %s tick，影响 %s 个目标",
+
+  "debug.elementalcraft.reaction.static_aura.message": "%s 受到静电光环 %s 点伤害 (来源: %s)",
+  "debug.elementalcraft.reaction.scorched_aura.message": "%s 受到灼烧光环 %s 点伤害 (来源: %s)",
+  "debug.elementalcraft.reaction.frostbite_aura.message": "%s 受到霜冻光环 %s 点伤害 (来源: %s)",
+
+  "debug.elementalcraft.cooldown.remaining": "§7(剩余 %s tick / %s秒)",
+
+  "debug.elementalcraft.reaction.nature_parasite.success": "§2[自然寄生] §f%s §7→ §f%s §7施加了 §2%s §7层孢子 (概率 §a%s%%)",
+  "debug.elementalcraft.reaction.nature_parasite.failed.chance": "§7[自然寄生] §f%s §7→ §f%s §7未触发 (概率 §e%s%%)",
+
+  "debug.elementalcraft.reaction.wildfire.failed.cooldown": "§6[自然反击] §7被阻止: 冷却中",
+
+  "debug.elementalcraft.reaction.scorched.success": "§c[灼烧] §f%s §7→ §f%s §7施加了 §c灼烧 §7(赤焰强度 %s, 概率 §a%s%%)",
+  "debug.elementalcraft.reaction.scorched.failed.chance": "§7[灼烧] §f%s §7→ §f%s §7未触发 (概率 §e%s%%)",
+
+  "debug.elementalcraft.reaction.static_shock.success": "§d[静电] §f%s §7→ §f%s §7施加了 §d%s §7层 (概率 §a%s%%)",
+  "debug.elementalcraft.reaction.static_shock.failed.chance": "§7[静电] §f%s §7→ §f%s §7未触发 (概率 §e%s%%)",
+
+  "debug.elementalcraft.reaction.thunder_counter.failed.cooldown": "§e[雷霆反击] §7被阻止: 目标冷却中",
+
+  "debug.elementalcraft.reaction.freeze.failed.cooldown": "§b[冻结] §7被阻止: 冷却中",
+  "debug.elementalcraft.reaction.freeze.failed.immune": "§7[冻结] %s §7被阻止: 目标免疫",
+
+  "debug.elementalcraft.reaction.steam.failed.cooldown": "§e[蒸汽反应] §7被阻止: 攻击者冷却中",
+
+  "debug.elementalcraft.reaction.paralysis.failed.cooldown": "§d[麻痹] §7被阻止: 冷却中",
+
+  "debug.elementalcraft.reaction.scorched_attack.failed.cooldown": "§c[灼烧攻击] §7被阻止: 攻击者冷却中",
 
   "jade.elementalcraft.attack_suffix": "属性攻击",
   "jade.elementalcraft.attack_title": "§l攻击属性",

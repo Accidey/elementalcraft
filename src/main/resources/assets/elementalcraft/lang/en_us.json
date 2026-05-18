@@ -106,6 +106,14 @@
   "command.elementalcraft.frostbite.blacklist.not_found": "§e%s §7is not in the Frostbite immunity blacklist.",
   "command.elementalcraft.frostbite.blacklist.removed": "§aSuccessfully removed §e%s §afrom Frostbite immunity blacklist.",
 
+  "command.elementalcraft.freeze.blacklist.added": "§aSuccessfully added §e%s §ato Freeze immunity blacklist.",
+  "command.elementalcraft.freeze.blacklist.already_exists": "§e%s §7is already in the Freeze immunity blacklist.",
+  "command.elementalcraft.freeze.blacklist.empty": "§eFreeze immunity blacklist is empty.",
+  "command.elementalcraft.freeze.blacklist.header": "§eCurrent Freeze immunity blacklist (%s):",
+  "command.elementalcraft.freeze.blacklist.no_egg": "§cPlease hold a spawn egg!",
+  "command.elementalcraft.freeze.blacklist.not_found": "§e%s §7is not in the Freeze immunity blacklist.",
+  "command.elementalcraft.freeze.blacklist.removed": "§aSuccessfully removed §e%s §afrom Freeze immunity blacklist.",
+
   "command.elementalcraft.steam.blacklist.added": "§aSuccessfully added §e%s §ato Steam immunity blacklist.",
   "command.elementalcraft.steam.blacklist.already_exists": "§e%s §7already exists in Steam immunity blacklist.",
   "command.elementalcraft.steam.blacklist.empty": "§eSteam immunity blacklist is empty.",
@@ -178,11 +186,32 @@
   "debug.elementalcraft.reaction.frostbite.header": "[Frostbite]",
   "debug.elementalcraft.reaction.frostbite.message": "%s applied Frostbite to %s (%s stacks, total %s, chance %s%%)",
   "debug.elementalcraft.reaction.freeze.header": "[Freeze]",
-  "debug.elementalcraft.reaction.freeze.message": "%s is frozen! Frostbite stacks %s, duration %s tick %s, settlement damage %s",
+  "debug.elementalcraft.reaction.freeze.message": "%s is frozen! Frostbite stacks %s, freeze stacks %s, duration %s tick %s, settlement damage %s",
   "debug.elementalcraft.reaction.freeze.normal": "(Normal Freeze)",
   "debug.elementalcraft.reaction.freeze.with_wetness": "(Wetness Bonus)",
   "debug.elementalcraft.reaction.thermal_shock.header": "[Thermal Shock]",
   "debug.elementalcraft.reaction.thermal_shock.message": "%s triggered Thermal Shock on %s! Frostbite stacks %s, damage %s",
+
+  "debug.elementalcraft.cooldown.remaining": "§7(%s ticks / %ss remaining)",
+
+  "debug.elementalcraft.reaction.nature_parasite.success": "§2[Nature Parasite] §f%s §7→ §f%s §7inflicted §2%s §7spore stacks (chance §a%s%%)",
+  "debug.elementalcraft.reaction.nature_parasite.failed.chance": "§7[Nature Parasite] §f%s §7→ §f%s §7failed (chance §e%s%%)",
+
+  "debug.elementalcraft.reaction.wildfire.failed.cooldown": "§6[Nature Counter] §7blocked: cooldown active",
+
+  "debug.elementalcraft.reaction.scorched.success": "§c[Scorched] §f%s §7→ §f%s §7applied §cScorched §7(fire power %s, chance §a%s%%)",
+  "debug.elementalcraft.reaction.scorched.failed.chance": "§7[Scorched] §f%s §7→ §f%s §7failed (chance §e%s%%)",
+
+  "debug.elementalcraft.reaction.thunder_counter.failed.cooldown": "§e[Thunder Counter] §7blocked: per-target cooldown active",
+
+  "debug.elementalcraft.reaction.freeze.failed.cooldown": "§b[Freeze] §7blocked: cooldown active",
+  "debug.elementalcraft.reaction.freeze.failed.immune": "§7[Freeze] %s §7blocked: target immune",
+
+  "debug.elementalcraft.reaction.steam.failed.cooldown": "§e[Steam Reaction] §7blocked: attacker cooldown active",
+
+  "debug.elementalcraft.reaction.paralysis.failed.cooldown": "§d[Paralysis] §7blocked: cooldown active",
+
+  "debug.elementalcraft.reaction.scorched_attack.failed.cooldown": "§c[Scorched] §7blocked: attacker cooldown active",
 
   "jade.elementalcraft.attack_suffix": "Elemental Attack",
   "jade.elementalcraft.attack_title": "§lAttack Attribute",
