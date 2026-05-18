@@ -18,6 +18,7 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
 public class ElementalBookDropHandler {
@@ -26,6 +27,8 @@ public class ElementalBookDropHandler {
     private static final String NBT_DROP_ATTACK_TYPE = "EC_DropAttackType";
     private static final String NBT_DROP_ENHANCE_POINTS = "EC_DropEnhancePoints";
     private static final String NBT_DROP_RESIST_POINTS = "EC_DropResistPoints";
+    private static final String NBT_DROP_RESIST_TYPE = "EC_DropResistType";
+    private static final Random RANDOM = new Random();
 
     private enum BookType {
         ATTACK, ENHANCE, RESIST
@@ -45,10 +48,14 @@ public class ElementalBookDropHandler {
 
         String elementId = data.getString(NBT_DROP_ELEMENT);
         ElementType elementType = ElementType.fromId(elementId);
-        if (elementType == null || elementType == ElementType.NONE) return;
 
         String attackTypeId = data.getString(NBT_DROP_ATTACK_TYPE);
         ElementType attackType = ElementType.fromId(attackTypeId);
+
+        String resistTypeId = data.contains(NBT_DROP_RESIST_TYPE)
+                ? data.getString(NBT_DROP_RESIST_TYPE)
+                : elementId;
+        ElementType resistType = ElementType.fromId(resistTypeId);
 
         int enhancePoints = data.getInt(NBT_DROP_ENHANCE_POINTS);
         int resistPoints = data.getInt(NBT_DROP_RESIST_POINTS);
@@ -62,13 +69,17 @@ public class ElementalBookDropHandler {
         if (attackType != null && attackType != ElementType.NONE) {
             candidates.add(new BookCandidate(BookType.ATTACK, attackType, 1));
         }
-        if (enhancePoints > 0) {
-            int level = Math.max(1, Math.min(maxEnhanceLevel, Math.round((float) enhancePoints / 4 / strengthPerLevel)));
+        if (elementType != null && elementType != ElementType.NONE && enhancePoints > 0) {
+            float quality = (float) enhancePoints / 4 / strengthPerLevel;
+            int maxLevel = Math.max(1, Math.min(maxEnhanceLevel, Math.round(quality)));
+            int level = rollRandomLevel(quality, maxLevel, ElementalConfig.enchantedBookLevelSpread);
             candidates.add(new BookCandidate(BookType.ENHANCE, elementType, level));
         }
-        if (resistPoints > 0) {
-            int level = Math.max(1, Math.min(maxResistLevel, Math.round((float) resistPoints / 4 / resistPerLevel)));
-            candidates.add(new BookCandidate(BookType.RESIST, elementType, level));
+        if (resistType != null && resistType != ElementType.NONE && resistPoints > 0) {
+            float quality = (float) resistPoints / 4 / resistPerLevel;
+            int maxLevel = Math.max(1, Math.min(maxResistLevel, Math.round(quality)));
+            int level = rollRandomLevel(quality, maxLevel, ElementalConfig.enchantedBookLevelSpread);
+            candidates.add(new BookCandidate(BookType.RESIST, resistType, level));
         }
 
         if (candidates.isEmpty()) return;
@@ -113,6 +124,31 @@ public class ElementalBookDropHandler {
                 default -> null;
             };
         };
+    }
+
+    private static int rollRandomLevel(float quality, int maxLevel, double spread) {
+        if (maxLevel <= 1) {
+            return maxLevel;
+        }
+
+        double[] weights = new double[maxLevel];
+        double totalWeight = 0.0;
+        for (int i = 0; i < maxLevel; i++) {
+            int level = i + 1;
+            double distance = Math.abs(quality - level);
+            weights[i] = 1.0 / (1.0 + distance * spread);
+            totalWeight += weights[i];
+        }
+
+        double roll = RANDOM.nextDouble() * totalWeight;
+        double cumulative = 0.0;
+        for (int i = 0; i < maxLevel; i++) {
+            cumulative += weights[i];
+            if (roll < cumulative) {
+                return i + 1;
+            }
+        }
+        return maxLevel;
     }
 
     private record BookCandidate(BookType type, ElementType element, int level) {}

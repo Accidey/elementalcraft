@@ -1,6 +1,7 @@
 package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
+import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
@@ -52,6 +53,7 @@ public class ScorchedHandler {
             if (attackerData.contains(NBT_ATTACKER_SCORCHED_COOLDOWN)) {
                 long cd = attackerData.getLong(NBT_ATTACKER_SCORCHED_COOLDOWN);
                 if (gameTime < cd) {
+                    DebugCommand.sendReactionCooldownBlock(attacker, "scorched_attack", cd - gameTime);
                     return;
                 }
             }
@@ -319,6 +321,12 @@ public class ScorchedHandler {
                 auraDamage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierSpore;
             }
             ElementDamageHelper.applyDamage(target, auraDamage, ModDamageTypes.source(level, ModDamageTypes.STEAM_SCALDING));
+            DebugCommand.AuraDamageLogContext sactx = new DebugCommand.AuraDamageLogContext();
+            sactx.source = source;
+            sactx.target = target;
+            sactx.damage = auraDamage;
+            sactx.reactionKey = "scorched";
+            DebugCommand.sendAuraDamageLog(sactx);
             level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.1, target.getZ(), 5, 0.3, 0.1, 0.3, 0.01);
         }
     }

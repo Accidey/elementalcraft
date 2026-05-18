@@ -32,9 +32,9 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue SPORE_PHYS_RESIST;
     public static final ForgeConfigSpec.DoubleValue SPORE_FIRE_VULN_PER_STACK;
     public static final ForgeConfigSpec.IntValue SPORE_DURATION_PER_STACK;
-    public static final ForgeConfigSpec.DoubleValue SPORE_THUNDER_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue SPORE_FIRE_DURATION_REDUCTION;
     public static final ForgeConfigSpec.DoubleValue SPORE_NATURE_DURATION_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue SPORE_THUNDER_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue SPORE_FROST_DURATION_MULTIPLIER;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SPORE_ENTITY_BLACKLIST;
     public static final ForgeConfigSpec.IntValue CONTAGION_CHECK_INTERVAL;
@@ -117,10 +117,10 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue SCORCHED_FIRE_PROT_REDUCTION;
     public static final ForgeConfigSpec.DoubleValue SCORCHED_SHOCK_DAMAGE_RATIO;
     public static final ForgeConfigSpec.DoubleValue SCORCHED_GEN_PROT_REDUCTION;
-    public static final ForgeConfigSpec.DoubleValue SCORCHED_NATURE_DURATION_MULTIPLIER;
-    public static final ForgeConfigSpec.DoubleValue SCORCHED_FROST_DURATION_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue SCORCHED_FIRE_DURATION_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue SCORCHED_NATURE_DURATION_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue SCORCHED_THUNDER_DURATION_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue SCORCHED_FROST_DURATION_MULTIPLIER;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SCORCHED_ENTITY_BLACKLIST;
     public static final ForgeConfigSpec.BooleanValue FROST_SCORCHED_STEAM_ENABLED;
     public static final ForgeConfigSpec.BooleanValue SCORCHED_AURA_ENABLED;
@@ -631,6 +631,13 @@ public class ElementalFireNatureReactionsConfig {
             .defineInRange("scorched_shock_damage_ratio", 0.5, 0.0, 10.0);
     BUILDER.comment("");
 
+        SCORCHED_FIRE_DURATION_MULTIPLIER = BUILDER
+                .comment("赤焰属性生物获得灼烧时，持续时间的倍率（1.0 表示不改变）。",
+                    "Duration multiplier for Scorched effect on Fire entities (1.0 = no change).",
+                    "Default: 1.0")
+            .defineInRange("scorched_fire_duration_multiplier", 1.0, 0.1, 100.0);
+    BUILDER.comment("");
+
     SCORCHED_NATURE_DURATION_MULTIPLIER = BUILDER
             .comment("自然属性生物获得灼烧时，持续时间的倍率（1.5 表示增加 50% 时长）。",
                     "Duration multiplier for Scorched effect on Nature entities (1.5 = +50% duration).",
@@ -638,25 +645,18 @@ public class ElementalFireNatureReactionsConfig {
             .defineInRange("scorched_nature_duration_multiplier", 1.5, 0.1, 100.0);
     BUILDER.comment("");
 
+        SCORCHED_THUNDER_DURATION_MULTIPLIER = BUILDER
+            .comment("雷霆属性生物获得灼烧时，持续时间的倍率（1.0 表示不改变）。",
+                    "Duration multiplier for Scorched effect on Thunder entities (1.0 = no change).",
+                    "Default: 1.0")
+            .defineInRange("scorched_thunder_duration_multiplier", 1.0, 0.1, 100.0);
+    BUILDER.comment("");
+
     SCORCHED_FROST_DURATION_MULTIPLIER = BUILDER
             .comment("冰霜属性生物获得灼烧时，持续时间的倍率（0.5 表示减少 50% 时长）。",
                     "Duration multiplier for Scorched effect on Frost entities (0.5 = -50% duration).",
                     "Default: 0.5")
             .defineInRange("scorched_frost_duration_multiplier", 0.5, 0.1, 100.0);
-    BUILDER.comment("");
-
-    SCORCHED_FIRE_DURATION_MULTIPLIER = BUILDER
-            .comment("赤焰属性生物获得灼烧时，持续时间的倍率（1.0 表示不改变）。",
-                    "Duration multiplier for Scorched effect on Fire entities (1.0 = no change).",
-                    "Default: 1.0")
-            .defineInRange("scorched_fire_duration_multiplier", 1.0, 0.1, 100.0);
-    BUILDER.comment("");
-
-    SCORCHED_THUNDER_DURATION_MULTIPLIER = BUILDER
-            .comment("雷霆属性生物获得灼烧时，持续时间的倍率（1.0 表示不改变）。",
-                    "Duration multiplier for Scorched effect on Thunder entities (1.0 = no change).",
-                    "Default: 1.0")
-            .defineInRange("scorched_thunder_duration_multiplier", 1.0, 0.1, 100.0);
     BUILDER.comment("");
 
     SCORCHED_ENTITY_BLACKLIST = BUILDER
@@ -845,13 +845,6 @@ public class ElementalFireNatureReactionsConfig {
             .defineInRange("spore_duration_per_stack", 5, 1, 6000);
     BUILDER.comment("");
 
-    SPORE_THUNDER_MULTIPLIER = BUILDER
-            .comment("雷霆属性宿主的持续时间倍率。(2.0 = 时间翻倍)",
-                    "Duration multiplier for Thunder hosts. (2.0 = Doubled duration)",
-                    "Default: 2.0")
-            .defineInRange("spore_thunder_multiplier", 2.0, 1.0, 5.0);
-    BUILDER.comment("");
-
     SPORE_FIRE_DURATION_REDUCTION = BUILDER
             .comment("赤焰属性宿主的持续时间缩减比例。(0.5 = 时间减半)",
                     "Duration reduction multiplier for Fire hosts. (0.5 = Halved duration)",
@@ -864,6 +857,13 @@ public class ElementalFireNatureReactionsConfig {
                     "Duration multiplier for Nature hosts. (1.0 = no change)",
                     "Default: 1.0")
             .defineInRange("spore_nature_duration_multiplier", 1.0, 0.1, 100.0);
+    BUILDER.comment("");
+
+    SPORE_THUNDER_MULTIPLIER = BUILDER
+            .comment("雷霆属性宿主的持续时间倍率。(2.0 = 时间翻倍)",
+                    "Duration multiplier for Thunder hosts. (2.0 = Doubled duration)",
+                    "Default: 2.0")
+            .defineInRange("spore_thunder_multiplier", 2.0, 1.0, 5.0);
     BUILDER.comment("");
 
     SPORE_FROST_DURATION_MULTIPLIER = BUILDER
@@ -1230,10 +1230,10 @@ public class ElementalFireNatureReactionsConfig {
     public static double scorchedFireProtReduction;
     public static double scorchedShockDamageRatio;
     public static double scorchedGenProtReduction;
-    public static double scorchedNatureDurationMultiplier;
-    public static double scorchedFrostDurationMultiplier;
     public static double scorchedFireDurationMultiplier;
+    public static double scorchedNatureDurationMultiplier;
     public static double scorchedThunderDurationMultiplier;
+    public static double scorchedFrostDurationMultiplier;
     public static List<? extends String> cachedScorchedBlacklist;
     public static boolean frostScorchedSteamEnabled;
     public static boolean scorchedAuraEnabled;
@@ -1268,9 +1268,9 @@ public class ElementalFireNatureReactionsConfig {
         sporePhysResist = SPORE_PHYS_RESIST.get();
         sporeFireVulnPerStack = SPORE_FIRE_VULN_PER_STACK.get();
         sporeDurationPerStack = SPORE_DURATION_PER_STACK.get();
-        sporeThunderMultiplier = SPORE_THUNDER_MULTIPLIER.get();
         sporeFireDurationReduction = SPORE_FIRE_DURATION_REDUCTION.get();
         sporeNatureDurationMultiplier = SPORE_NATURE_DURATION_MULTIPLIER.get();
+        sporeThunderMultiplier = SPORE_THUNDER_MULTIPLIER.get();
         sporeFrostDurationMultiplier = SPORE_FROST_DURATION_MULTIPLIER.get();
         cachedSporeBlacklist = SPORE_ENTITY_BLACKLIST.get();
         contagionCheckInterval = CONTAGION_CHECK_INTERVAL.get();
@@ -1353,10 +1353,10 @@ public class ElementalFireNatureReactionsConfig {
         scorchedFireProtReduction = SCORCHED_FIRE_PROT_REDUCTION.get();
         scorchedShockDamageRatio = SCORCHED_SHOCK_DAMAGE_RATIO.get();
         scorchedGenProtReduction = SCORCHED_GEN_PROT_REDUCTION.get();
-        scorchedNatureDurationMultiplier = SCORCHED_NATURE_DURATION_MULTIPLIER.get();
-        scorchedFrostDurationMultiplier = SCORCHED_FROST_DURATION_MULTIPLIER.get();
         scorchedFireDurationMultiplier = SCORCHED_FIRE_DURATION_MULTIPLIER.get();
+        scorchedNatureDurationMultiplier = SCORCHED_NATURE_DURATION_MULTIPLIER.get();
         scorchedThunderDurationMultiplier = SCORCHED_THUNDER_DURATION_MULTIPLIER.get();
+        scorchedFrostDurationMultiplier = SCORCHED_FROST_DURATION_MULTIPLIER.get();
         cachedScorchedBlacklist = SCORCHED_ENTITY_BLACKLIST.get();
         frostScorchedSteamEnabled = FROST_SCORCHED_STEAM_ENABLED.get();
         scorchedAuraEnabled = SCORCHED_AURA_ENABLED.get();

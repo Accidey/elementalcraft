@@ -37,6 +37,7 @@ public final class ElementalConfig {
 
     public static final ForgeConfigSpec.DoubleValue ENCHANTED_BOOK_DROP_CHANCE;
     public static final ForgeConfigSpec.DoubleValue ENCHANTED_BOOK_LOOTING_BONUS;
+    public static final ForgeConfigSpec.DoubleValue ENCHANTED_BOOK_LEVEL_SPREAD;
 
     public static final ForgeConfigSpec.BooleanValue NETHER_DIMENSION_FORCED_FIRE;
     public static final ForgeConfigSpec.IntValue NETHER_FIRE_POINTS;
@@ -555,8 +556,8 @@ public final class ElementalConfig {
                         "",
                         "属性生物死亡时掉落附魔书的基础概率。",
                         "",
-                        "Default: 0.05 (5%) / 默认：0.05（5%）")
-                .defineInRange("enchanted_book_drop_chance", 0.05, 0.0, 1.0);
+                        "Default: 0.05 (5%) / 默认：0.5（50%）")
+                .defineInRange("enchanted_book_drop_chance", 0.5, 0.0, 1.0);
 
         ENCHANTED_BOOK_LOOTING_BONUS = BUILDER
                 .comment("Additional drop chance per level of Looting enchantment.",
@@ -565,6 +566,27 @@ public final class ElementalConfig {
                         "",
                         "Default: 0.10 (10%) / 默认：0.10（10%）")
                 .defineInRange("enchanted_book_looting_bonus", 0.10, 0.0, 1.0);
+
+        ENCHANTED_BOOK_LEVEL_SPREAD = BUILDER
+                .comment("Controls how concentrated the enchanted book level is around the mob's natural level.",
+                        "The natural level is calculated from the mob's attribute points: level = points / 4 / pointsPerLevel.",
+                        "0.0 = all levels equally likely (pure random).",
+                        "1.0 = default, moderate concentration around the natural level.",
+                        "Higher values = levels close to the natural level become much more likely.",
+                        "",
+                        "控制附魔书掉落等级在生物自然等级附近的集中程度。",
+                        "自然等级由属性点数计算：等级 = 点数 / 4 / 每级点数。",
+                        "0.0 = 所有等级概率均等（纯随机）。",
+                        "1.0 = 默认值，适度集中在自然等级附近。",
+                        "数值越高 = 越集中在自然等级附近。",
+                        "",
+                        "Example with 100 points, strength_per_level=5 → natural level ≈ 5, max level = 5:",
+                        "  spread=0.0: Lv.1~5 each 20%",
+                        "  spread=1.0: Lv.5≈40%, Lv.4≈20%, Lv.3≈13%, Lv.2≈10%, Lv.1≈8%",
+                        "  spread=3.0: Lv.5≈60%, Lv.4≈21%, Lv.3≈12%, Lv.2≈5%, Lv.1≈2%",
+                        "",
+                        "Default: 1.0 / 默认：1.0")
+                .defineInRange("enchanted_book_level_spread", 1.0, 0.0, 10.0);
 
         BUILDER.pop();
 
@@ -686,6 +708,7 @@ public final class ElementalConfig {
 
     public static double enchantedBookDropChance = 0.05;
     public static double enchantedBookLootingBonus = 0.10;
+    public static double enchantedBookLevelSpread = 1.0;
 
     public static void refreshCache() {
         restraintMultiplier = RESTRAINT_MULTIPLIER.get();
@@ -725,6 +748,7 @@ public final class ElementalConfig {
 
         enchantedBookDropChance = ENCHANTED_BOOK_DROP_CHANCE.get();
         enchantedBookLootingBonus = ENCHANTED_BOOK_LOOTING_BONUS.get();
+        enchantedBookLevelSpread = ENCHANTED_BOOK_LEVEL_SPREAD.get();
     }
 
     public static int getStrengthPerHalfDamage() {

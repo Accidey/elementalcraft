@@ -86,7 +86,13 @@ public class BlacklistCommandHelper {
                         ElementalFireNatureReactionsConfig.SPEC,
                         () -> ElementalFireNatureReactionsConfig.cachedWetnessBlacklist,
                         ElementalFireNatureReactionsConfig::refreshCache,
-                        "command.elementalcraft.wetness.blacklist")
+                        "command.elementalcraft.wetness.blacklist"),
+                new BlacklistEntry("freeze",
+                        ElementalThunderFrostReactionsConfig.FREEZE_IMMUNITY_BLACKLIST,
+                        ElementalThunderFrostReactionsConfig.SPEC,
+                        () -> ElementalThunderFrostReactionsConfig.cachedFreezeImmunityBlacklist,
+                        ElementalThunderFrostReactionsConfig::refreshCache,
+                        "command.elementalcraft.freeze.blacklist")
         );
 
         for (BlacklistEntry entry : entries) {

@@ -12,7 +12,9 @@ import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
 import com.xulai.elementalcraft.event.SteamReactionHandler;
 import com.xulai.elementalcraft.util.DebugMode;
+import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -323,6 +325,7 @@ public class CombatEvents {
                 long currentGameTime = attacker.level().getGameTime();
                 long cooldownEndTime = target.getPersistentData().getLong(NBT_NATURE_ATTACK_COOLDOWN);
                 if (currentGameTime < cooldownEndTime) {
+                    DebugCommand.sendReactionCooldownBlock(target, "thunder_counter", cooldownEndTime - currentGameTime);
                     return;
                 }
 
@@ -424,6 +427,16 @@ public class CombatEvents {
             int duration = ElementalFireNatureReactionsConfig.scorchedDuration;
             ScorchedHandler.applyScorched(target, attacker, firePower, duration, firePower);
             target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0f, 0.8f);
+            DebugCommand.sendReactionSuccess(target, "scorched",
+                    attacker.getDisplayName(),
+                    target.getDisplayName(),
+                    Component.literal(String.valueOf(firePower)).withStyle(ChatFormatting.RED),
+                    String.format("%.0f", totalChance * 100));
+        } else if (totalChance > 0.01) {
+            DebugCommand.sendReactionFailed(target, "scorched", "chance",
+                    attacker.getDisplayName(),
+                    target.getDisplayName(),
+                    String.format("%.0f", totalChance * 100));
         }
     }
 }

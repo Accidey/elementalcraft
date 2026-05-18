@@ -1,5 +1,6 @@
 package com.xulai.elementalcraft.potion;
 
+import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.event.WetnessHandler;
 import com.xulai.elementalcraft.potion.ModMobEffects;
@@ -19,7 +20,9 @@ import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -31,8 +34,8 @@ public class ParalysisEffect extends MobEffect {
     private static final String NBT_STATIC_DAMAGE_TIMER = "EC_StaticDamageTimer";
     private static final String NBT_PARALYSIS_STACKS = "EC_ParalysisStacks";
     private static final String NBT_PARALYSIS_TIMER = "EC_ParalysisTimer";
-    private static final String NBT_ORIGINAL_NO_AI = "EC_OriginalNoAI";
     private static final String NBT_AI_DISABLED = "EC_AIDisabled";
+    private static final String NBT_SHARED_ORIGINAL_NO_AI = "EC_SharedOriginalNoAI";
 
     private static final String NBT_SPREADED = "EC_ParalysisSpreaded";
     private static final String NBT_INFECTED = "EC_ParalysisInfected";
@@ -50,8 +53,19 @@ public class ParalysisEffect extends MobEffect {
             checkAndSpreadStaticShock(pLivingEntity, pAmplifier);
 
             if (pLivingEntity.isInWater()) {
+                pLivingEntity.move(MoverType.SELF, new Vec3(0, -0.05, 0));
                 pLivingEntity.setDeltaMovement(
-                    pLivingEntity.getDeltaMovement().x, -0.07, pLivingEntity.getDeltaMovement().z);
+                    pLivingEntity.getDeltaMovement().x, 0, pLivingEntity.getDeltaMovement().z);
+
+                CompoundTag data = pLivingEntity.getPersistentData();
+                int drownTimer = data.getInt("EC_DrownTimer") + 1;
+                if (drownTimer >= 20) {
+                    drownTimer = 0;
+                    pLivingEntity.hurt(pLivingEntity.damageSources().drown(), 2.0F);
+                }
+                data.putInt("EC_DrownTimer", drownTimer);
+            } else {
+                pLivingEntity.getPersistentData().remove("EC_DrownTimer");
             }
         }
     }
@@ -85,7 +99,9 @@ public class ParalysisEffect extends MobEffect {
         if (!(entity instanceof Mob mob)) return;
         CompoundTag data = entity.getPersistentData();
         if (data.getBoolean(NBT_AI_DISABLED)) return;
-        data.putBoolean(NBT_ORIGINAL_NO_AI, mob.isNoAi());
+        if (!data.contains(NBT_SHARED_ORIGINAL_NO_AI)) {
+            data.putBoolean(NBT_SHARED_ORIGINAL_NO_AI, mob.isNoAi());
+        }
         mob.setNoAi(true);
         data.putBoolean(NBT_AI_DISABLED, true);
     }
@@ -94,10 +110,11 @@ public class ParalysisEffect extends MobEffect {
         if (!(entity instanceof Mob mob)) return;
         CompoundTag data = entity.getPersistentData();
         if (!data.getBoolean(NBT_AI_DISABLED)) return;
-        boolean wasNoAi = data.getBoolean(NBT_ORIGINAL_NO_AI);
-        mob.setNoAi(wasNoAi);
-        data.remove(NBT_ORIGINAL_NO_AI);
         data.remove(NBT_AI_DISABLED);
+        if (entity.hasEffect(ModMobEffects.FREEZE.get())) return;
+        boolean wasNoAi = data.getBoolean(NBT_SHARED_ORIGINAL_NO_AI);
+        mob.setNoAi(wasNoAi);
+        data.remove(NBT_SHARED_ORIGINAL_NO_AI);
     }
 
     private void checkAndSpreadStaticShock(LivingEntity entity, int amplifier) {
@@ -218,6 +235,13 @@ public class ParalysisEffect extends MobEffect {
         if (entity.level() instanceof ServerLevel) {
             EffectHelper.playParalysisSpread(entity, infectedTargets, spreadRange);
         }
+
+        DebugCommand.ParalysisSpreadLogContext pctx = new DebugCommand.ParalysisSpreadLogContext();
+        pctx.source = entity;
+        pctx.sourceStacks = paralysisStacks;
+        pctx.spreadRange = spreadRange;
+        pctx.affectedCount = validTargets.size();
+        DebugCommand.sendParalysisSpreadLog(pctx);
 
         data.putInt(NBT_SPREAD_COOLDOWN, 20);
     }

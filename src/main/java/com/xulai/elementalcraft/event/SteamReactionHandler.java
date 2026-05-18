@@ -155,6 +155,8 @@ public class SteamReactionHandler {
 
     private static void processTriggerLogic(LivingDamageEvent event, LivingEntity attacker, LivingEntity target) {
         if (attacker.getPersistentData().contains(NBT_STEAM_ATTACKER_COOLDOWN)) {
+            int remaining = DebugCommand.getRemainingCooldownCountdown(attacker, NBT_STEAM_ATTACKER_COOLDOWN);
+            DebugCommand.sendReactionCooldownBlock(attacker, "steam", remaining);
             return;
         }
 
@@ -398,45 +400,73 @@ public class SteamReactionHandler {
                 CompoundTag data = entity.getPersistentData();
                 int staticStacks = data.getInt("ec_static_stacks");
                 if (staticStacks >= ElementalThunderFrostReactionsConfig.staticSteamCloudTriggerStacks) {
-                    // Electrify all condensing clouds this entity is inside
+                    int sourceTimer = data.getInt("ec_static_timer");
+                    int interval = ElementalThunderFrostReactionsConfig.staticDamageIntervalTicks;
+                    if (interval < 1) interval = 1;
+                    int remainingHits = (sourceTimer + interval - 1) / interval;
+                    float settlementDamage = 0;
+                    for (int i = 0; i < remainingHits; i++) {
+                        settlementDamage += StaticShockHandler.getRandomStaticDamage(entity);
+                    }
                     for (AreaEffectCloud cloud : clouds) {
                         if (!isEntityInCloud(entity, cloud)) continue;
                         if (!cloud.getTags().contains(TAG_HIGH_HEAT) && !cloud.getTags().contains(TAG_STATIC_CHARGED)) {
                             cloud.addTag(TAG_STATIC_CHARGED);
+                            cloud.addTag("EC_StaticDmg_" + String.format("%.2f", settlementDamage));
                         }
                     }
                     isStaticCharged = true;
-                    // Clear entity's static shock effect
                     data.remove("ec_static_stacks");
                     data.remove("ec_static_timer");
                     data.remove("ec_static_damage_timer");
                     if (entity.hasEffect(ModMobEffects.STATIC_SHOCK.get())) {
                         entity.removeEffect(ModMobEffects.STATIC_SHOCK.get());
                     }
-                    // Play sound
                     if (!entity.level().isClientSide) {
                         entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
                                 net.minecraft.sounds.SoundEvents.TRIDENT_THUNDER, SoundSource.PLAYERS, 0.5f, 1.2f);
                     }
+                    int cloudDuration = 0;
+                    for (AreaEffectCloud cloud : clouds) {
+                        if (isEntityInCloud(entity, cloud) && cloud.getTags().contains(TAG_STATIC_CHARGED)) {
+                            cloudDuration = cloud.getDuration();
+                            break;
+                        }
+                    }
+                    DebugCommand.StaticSteamCloudLogContext sctx = new DebugCommand.StaticSteamCloudLogContext();
+                    sctx.source = entity;
+                    sctx.triggerStacks = staticStacks;
+                    sctx.settlementDamage = settlementDamage;
+                    sctx.cloudDuration = cloudDuration;
+                    DebugCommand.sendStaticSteamCloudLog(sctx);
                 }
             }
 
-            // Static Steam Cloud Reaction: static-charged cloud continuously paralyzes entities
             if (isStaticCharged && ElementalThunderFrostReactionsConfig.staticSteamCloudReactionEnabled) {
-                if (!isImmuneToThunderResist(entity) && !isImmuneToParalysis(entity)) {
-                    CompoundTag data = entity.getPersistentData();
-                    int paralysisDuration = 40; // 2 seconds, refreshed each check
-                    int paralysisAmplifier = 2; // level 3 (0-indexed = 2)
-                    MobEffectInstance currentParalysis = entity.getEffect(ModMobEffects.PARALYSIS.get());
-                    if (currentParalysis == null || currentParalysis.getDuration() < 30) {
-                        entity.addEffect(new MobEffectInstance(
-                                ModMobEffects.PARALYSIS.get(), paralysisDuration, paralysisAmplifier, false, false, true
-                        ));
-                        data.putBoolean(NBT_STATIC_CHARGED_PARALYSIS, true);
+                if (isImmuneToThunderResist(entity)) {
+                    if (entity.getPersistentData().contains(NBT_STATIC_CHARGED_PARALYSIS)) {
+                        entity.removeEffect(ModMobEffects.PARALYSIS.get());
+                        entity.getPersistentData().remove(NBT_STATIC_CHARGED_PARALYSIS);
                     }
-                } else if (entity.getPersistentData().contains(NBT_STATIC_CHARGED_PARALYSIS)) {
-                    entity.removeEffect(ModMobEffects.PARALYSIS.get());
-                    entity.getPersistentData().remove(NBT_STATIC_CHARGED_PARALYSIS);
+                } else {
+                    float settlementDamage = getCloudStaticDamage(clouds, entity);
+                    if (settlementDamage > 0) {
+                        ElementDamageHelper.applyDamage(entity, settlementDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK));
+                    }
+                    if (!isImmuneToParalysis(entity)) {
+                        int paralysisDuration = getStaticCloudRemainingDuration(clouds, entity);
+                        if (paralysisDuration > 0) {
+                            CompoundTag data = entity.getPersistentData();
+                            int paralysisAmplifier = 2;
+                            MobEffectInstance currentParalysis = entity.getEffect(ModMobEffects.PARALYSIS.get());
+                            if (currentParalysis == null || currentParalysis.getDuration() < paralysisDuration) {
+                                entity.addEffect(new MobEffectInstance(
+                                        ModMobEffects.PARALYSIS.get(), paralysisDuration, paralysisAmplifier, false, false, true
+                                ));
+                                data.putBoolean(NBT_STATIC_CHARGED_PARALYSIS, true);
+                            }
+                        }
+                    }
                 }
             } else {
                 if (entity.getPersistentData().contains(NBT_STATIC_CHARGED_PARALYSIS)) {
@@ -456,6 +486,19 @@ public class SteamReactionHandler {
                     }
                     isFrosted = true;
                     FrostbiteHandler.clearFrostbite(entity);
+                    int fcloudDuration = 0;
+                    for (AreaEffectCloud cloud : clouds) {
+                        if (isEntityInCloud(entity, cloud) && cloud.getTags().contains(TAG_FROSTED)) {
+                            fcloudDuration = cloud.getDuration();
+                            break;
+                        }
+                    }
+                    DebugCommand.FrostedSteamCloudLogContext fsctx = new DebugCommand.FrostedSteamCloudLogContext();
+                    fsctx.source = entity;
+                    fsctx.triggerStacks = frostbiteStacks;
+                    fsctx.cloudDuration = fcloudDuration;
+                    fsctx.affectedCount = 0;
+                    DebugCommand.sendFrostedSteamCloudLog(fsctx);
                     if (!entity.level().isClientSide) {
                         entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
                                 SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8f, 0.6f);
@@ -469,8 +512,12 @@ public class SteamReactionHandler {
                         FrostbiteHandler.triggerFreeze(entity, null);
                     } else {
                         MobEffectInstance currentFreeze = entity.getEffect(ModMobEffects.FREEZE.get());
-                        if (currentFreeze != null && currentFreeze.getDuration() < ElementalThunderFrostReactionsConfig.freezeDurationTicks - 20) {
-                            entity.addEffect(new MobEffectInstance(ModMobEffects.FREEZE.get(), ElementalThunderFrostReactionsConfig.freezeDurationTicks, 0, false, false, true));
+                        if (currentFreeze != null) {
+                            int currentAmplifier = currentFreeze.getAmplifier();
+                            int fullDuration = (currentAmplifier + 1) * ElementalThunderFrostReactionsConfig.freezeDurationPerStackTicks;
+                            if (currentFreeze.getDuration() < fullDuration - 20) {
+                                entity.addEffect(new MobEffectInstance(ModMobEffects.FREEZE.get(), fullDuration, currentAmplifier, false, false, true));
+                            }
                         }
                     }
                 }
@@ -523,6 +570,30 @@ public class SteamReactionHandler {
                 entity.getPersistentData().putInt(NBT_SPORE_GROWTH_TIMER, sporeTimer);
             }
         }
+    }
+
+    private static float getCloudStaticDamage(List<AreaEffectCloud> clouds, LivingEntity entity) {
+        for (AreaEffectCloud cloud : clouds) {
+            if (!isEntityInCloud(entity, cloud)) continue;
+            for (String tag : cloud.getTags()) {
+                if (tag.startsWith("EC_StaticDmg_")) {
+                    try {
+                        return Float.parseFloat(tag.substring("EC_StaticDmg_".length()));
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+        return 0;
+    }
+
+    private static int getStaticCloudRemainingDuration(List<AreaEffectCloud> clouds, LivingEntity entity) {
+        for (AreaEffectCloud cloud : clouds) {
+            if (!isEntityInCloud(entity, cloud)) continue;
+            if (cloud.getTags().contains(TAG_STATIC_CHARGED)) {
+                return cloud.getDuration();
+            }
+        }
+        return 0;
     }
 
     private static boolean isEntityInCloud(LivingEntity entity, AreaEffectCloud cloud) {

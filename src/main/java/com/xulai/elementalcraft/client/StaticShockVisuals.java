@@ -130,12 +130,6 @@ public class StaticShockVisuals {
     }
 
     private static double getShockRange(int stacks) {
-        int baseRange = ElementalThunderFrostReactionsConfig.staticSplashBaseRange;
-        int perStack = ElementalThunderFrostReactionsConfig.staticSplashRangePerStack;
-        int maxRange = ElementalThunderFrostReactionsConfig.staticSplashMaxRange;
-        int range = baseRange + (stacks - 1) * perStack;
-        if (range > maxRange) range = maxRange;
-        if (range < 1) range = 1;
-        return range;
+        return stacks * ElementalThunderFrostReactionsConfig.staticAuraBaseRange;
     }
 }

@@ -27,20 +27,10 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_MAX;
     public static final ForgeConfigSpec.IntValue STATIC_DAMAGE_INTERVAL_TICKS;
 
-    public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_NATURE_MULTIPLIER;
-    public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_FROST_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_FIRE_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_NATURE_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_THUNDER_MULTIPLIER;
-
-    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_ENABLED;
-    public static final ForgeConfigSpec.DoubleValue STATIC_SPLASH_DAMAGE_PERCENTAGE;
-    public static final ForgeConfigSpec.IntValue STATIC_SPLASH_BASE_RANGE;
-    public static final ForgeConfigSpec.IntValue STATIC_SPLASH_RANGE_PER_STACK;
-    public static final ForgeConfigSpec.IntValue STATIC_SPLASH_MAX_RANGE;
-    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_SKIP_IF_TARGET_HAS_STATIC;
-    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_EXCLUDE_FRIENDLY_ENTITIES;
-    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_ONLY_HOSTILE;
-    public static final ForgeConfigSpec.BooleanValue STATIC_SPLASH_TRIGGER_PARALYSIS_ON_WET;
+    public static final ForgeConfigSpec.DoubleValue STATIC_DAMAGE_FROST_MULTIPLIER;
 
     public static final ForgeConfigSpec.IntValue STATIC_AURA_THRESHOLD;
     public static final ForgeConfigSpec.DoubleValue STATIC_AURA_BASE_RANGE;
@@ -74,6 +64,15 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue STATIC_MAX_PROT_CAP;
     public static final ForgeConfigSpec.DoubleValue STATIC_MAX_PROJECTILE_PROT_CAP;
 
+    public static final ForgeConfigSpec.BooleanValue STATIC_STEAM_CLOUD_REACTION_ENABLED;
+    public static final ForgeConfigSpec.IntValue STATIC_STEAM_CLOUD_TRIGGER_STACKS;
+
+    public static final ForgeConfigSpec.BooleanValue WATER_ELECTRIFICATION_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue WATER_ELECTRIFICATION_RANGE_BASE;
+    public static final ForgeConfigSpec.DoubleValue WATER_ELECTRIFICATION_RANGE_PER_STACK;
+    public static final ForgeConfigSpec.DoubleValue WATER_ELECTRIFICATION_MAX_RANGE;
+    public static final ForgeConfigSpec.IntValue WATER_ELECTRIFICATION_PARALYSIS_DURATION;
+
     public static final ForgeConfigSpec.DoubleValue FROST_STRENGTH_THRESHOLD;
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_BASE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_SCALING_STEP;
@@ -89,18 +88,29 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.IntValue FROSTBITE_DAMAGE_INTERVAL_TICKS;
     public static final ForgeConfigSpec.IntValue FROSTBITE_RESIST_IMMUNITY_THRESHOLD;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> FROSTBITE_IMMUNITY_BLACKLIST;
-    public static final ForgeConfigSpec.DoubleValue FROSTBITE_FIRE_DURATION_MULTIPLIER;
+
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_NETHER_DURATION_MULTIPLIER;
 
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_DAMAGE_FIRE_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_DAMAGE_NATURE_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_DAMAGE_THUNDER_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_DAMAGE_FROST_MULTIPLIER;
 
-    public static final ForgeConfigSpec.IntValue FREEZE_DURATION_TICKS;
+    public static final ForgeConfigSpec.IntValue FREEZE_MAX_STACKS;
+    public static final ForgeConfigSpec.IntValue FREEZE_DURATION_PER_STACK_TICKS;
+
     public static final ForgeConfigSpec.DoubleValue FREEZE_ELEMENTAL_VULNERABILITY;
     public static final ForgeConfigSpec.DoubleValue FREEZE_SETTLEMENT_DAMAGE_PER_STACK;
     public static final ForgeConfigSpec.IntValue FREEZE_COOLDOWN_TICKS;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> FREEZE_IMMUNITY_BLACKLIST;
+
+    public static final ForgeConfigSpec.IntValue FREEZE_SPREAD_THRESHOLD_STACKS;
+    public static final ForgeConfigSpec.IntValue FREEZE_SPREAD_BASE_RANGE;
+    public static final ForgeConfigSpec.IntValue FREEZE_SPREAD_RANGE_PER_EXTRA_STACK;
+    public static final ForgeConfigSpec.BooleanValue FREEZE_SPREAD_ALLOW_CHAIN;
+    public static final ForgeConfigSpec.BooleanValue FREEZE_SPREAD_ALLOW_TO_SOURCE;
+    public static final ForgeConfigSpec.BooleanValue FREEZE_SPREAD_EXCLUDE_FRIENDLY_ENTITIES;
+    public static final ForgeConfigSpec.BooleanValue FREEZE_SPREAD_ONLY_HOSTILE;
 
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_THERMAL_SHOCK_BASE_DAMAGE;
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_THERMAL_SHOCK_PER_STACK;
@@ -108,6 +118,11 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_STEAM_CLOUD_BONUS_CHANCE;
 
     public static final ForgeConfigSpec.BooleanValue FROSTBITE_CLEAR_SPORES_ENABLED;
+
+    public static final ForgeConfigSpec.BooleanValue FROSTBITE_CLEAR_BY_HEAT_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue FROSTBITE_NETHER_CLEAR_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_HEAT_SEARCH_RADIUS;
+    public static final ForgeConfigSpec.IntValue FROSTBITE_FIRE_STAND_CLEARING_TIME;
 
     public static final ForgeConfigSpec.IntValue FROSTBITE_AURA_THRESHOLD;
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_AURA_BASE_RANGE;
@@ -118,23 +133,8 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.BooleanValue FROSTBITE_AURA_ONLY_HOSTILE;
     public static final ForgeConfigSpec.BooleanValue FROSTBITE_AURA_SCORCHED_STEAM_ENABLED;
 
-    public static final ForgeConfigSpec.BooleanValue STATIC_STEAM_CLOUD_REACTION_ENABLED;
-    public static final ForgeConfigSpec.IntValue STATIC_STEAM_CLOUD_TRIGGER_STACKS;
-
-    public static final ForgeConfigSpec.BooleanValue WATER_ELECTRIFICATION_ENABLED;
-    public static final ForgeConfigSpec.DoubleValue WATER_ELECTRIFICATION_RANGE_BASE;
-    public static final ForgeConfigSpec.DoubleValue WATER_ELECTRIFICATION_RANGE_PER_STACK;
-    public static final ForgeConfigSpec.DoubleValue WATER_ELECTRIFICATION_MAX_RANGE;
-    public static final ForgeConfigSpec.IntValue WATER_ELECTRIFICATION_PARALYSIS_DURATION;
-
     public static final ForgeConfigSpec.BooleanValue FROSTED_STEAM_CLOUD_REACTION_ENABLED;
     public static final ForgeConfigSpec.IntValue FROSTED_STEAM_CLOUD_TRIGGER_STACKS;
-
-    public static final ForgeConfigSpec.BooleanValue FREEZE_COLD_CLOUD_ENABLED;
-    public static final ForgeConfigSpec.IntValue FREEZE_COLD_CLOUD_TRIGGER_STACKS;
-    public static final ForgeConfigSpec.DoubleValue FREEZE_COLD_CLOUD_BASE_RADIUS;
-    public static final ForgeConfigSpec.DoubleValue FREEZE_COLD_CLOUD_RADIUS_PER_STACK;
-    public static final ForgeConfigSpec.IntValue FREEZE_COLD_CLOUD_DURATION;
 
     static {
         ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
@@ -267,27 +267,19 @@ public final class ElementalThunderFrostReactionsConfig {
         BUILDER.comment("Elemental Attribute Modifiers", "元素属性修正")
                 .push("elemental_modifiers");
 
-        STATIC_DAMAGE_NATURE_MULTIPLIER = BUILDER
-                .comment("Damage multiplier for Nature attribute mobs when taking Static Shock damage . 0.5 = 50% damage.",
-                         "自然属性生物受到静电伤害时的伤害倍率。0.5 = 50%伤害。",
-                         "Default: 0.5")
-                .defineInRange("static_damage_nature_multiplier", 0.5, 0.0, 10.0);
-
-        BUILDER.comment("");
-
-        STATIC_DAMAGE_FROST_MULTIPLIER = BUILDER
-                .comment("Damage multiplier for Frost attribute mobs when taking Static Shock damage . 1.5 = 150% damage.",
-                         "冰霜属性生物受到静电伤害时的伤害倍率。2.0 = 200%伤害。",
-                         "Default: 2.0")
-                .defineInRange("static_damage_frost_multiplier", 2.0, 0.0, 10.0);
-
-        BUILDER.comment("");
-
         STATIC_DAMAGE_FIRE_MULTIPLIER = BUILDER
                 .comment("Damage multiplier for Fire attribute mobs when taking Static Shock damage.",
                          "赤焰属性生物受到静电伤害时的伤害倍率。",
                          "Default: 1.0")
                 .defineInRange("static_damage_fire_multiplier", 1.0, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        STATIC_DAMAGE_NATURE_MULTIPLIER = BUILDER
+                .comment("Damage multiplier for Nature attribute mobs when taking Static Shock damage . 0.5 = 50% damage.",
+                         "自然属性生物受到静电伤害时的伤害倍率。0.5 = 50%伤害。",
+                         "Default: 0.5")
+                .defineInRange("static_damage_nature_multiplier", 0.5, 0.0, 10.0);
 
         BUILDER.comment("");
 
@@ -297,81 +289,13 @@ public final class ElementalThunderFrostReactionsConfig {
                          "Default: 1.0")
                 .defineInRange("static_damage_thunder_multiplier", 1.0, 0.0, 10.0);
 
-        BUILDER.pop();
-
-        BUILDER.comment("Static Splash (Chain Lightning) Configuration",
-                        "静电传导配置")
-                .push("static_splash");
-
-        STATIC_SPLASH_ENABLED = BUILDER
-                .comment("Enable static splash effect. When enabled, entities with Static Shock will damage nearby entities when taking periodic damage.",
-                         "启用静电传导效果。启用后，带有静电效果的实体受到周期性伤害时会对周围实体造成溅射伤害。",
-                         "Default: true")
-                .define("static_splash_enabled", true);
-
         BUILDER.comment("");
 
-        STATIC_SPLASH_DAMAGE_PERCENTAGE = BUILDER
-                .comment("Percentage of the original damage dealt to splash targets. 0.5 = 50% damage.",
-                         "溅射伤害占原始伤害的百分比。0.5 = 50%伤害。",
-                         "Default: 0.5")
-                .defineInRange("static_splash_damage_percentage", 0.5, 0.0, 1.0);
-
-        BUILDER.comment("");
-
-        STATIC_SPLASH_BASE_RANGE = BUILDER
-                .comment("Base splash range (in blocks) when target has 1 stack of Static Shock.",
-                         "1层静电时的基础溅射范围（以方块为单位）。",
-                         "Default: 1")
-                .defineInRange("static_splash_base_range", 1, 1, 20);
-
-        BUILDER.comment("");
-
-        STATIC_SPLASH_RANGE_PER_STACK = BUILDER
-                .comment("Additional range (in blocks) per extra stack of Static Shock beyond the first.",
-                         "超过1层后，每层静电增加的范围（以方块为单位）。",
-                         "Default: 1")
-                .defineInRange("static_splash_range_per_stack", 1, 0, 10);
-
-        BUILDER.comment("");
-
-        STATIC_SPLASH_MAX_RANGE = BUILDER
-                .comment("Maximum splash range (in blocks) regardless of stacks.",
-                         "溅射最大范围限制（以方块为单位）。",
-                         "Default: 10")
-                .defineInRange("static_splash_max_range", 10, 1, 50);
-
-        BUILDER.comment("");
-
-        STATIC_SPLASH_SKIP_IF_TARGET_HAS_STATIC = BUILDER
-                .comment("If true, splash damage will not affect entities that already have Static Shock effect.",
-                         "如果为 true，溅射伤害不会影响已经带有静电效果的实体。",
-                         "Default: true")
-                .define("static_splash_skip_if_target_has_static", true);
-
-        BUILDER.comment("");
-
-        STATIC_SPLASH_EXCLUDE_FRIENDLY_ENTITIES = BUILDER
-                .comment("If true, players and tamed pets are immune to static splash damage.",
-                         "如果为 true，玩家与已驯服的宠物免疫静电传导伤害。",
-                         "Default: true")
-                .define("static_splash_exclude_friendly_entities", true);
-
-        BUILDER.comment("");
-
-        STATIC_SPLASH_ONLY_HOSTILE = BUILDER
-                .comment("If true, only hostile mobs (MobCategory.MONSTER) are affected by static splash damage.",
-                         "如果为 true，只有敌对生物会受到静电传导伤害，中立/被动生物将被忽略。",
-                         "Default: false")
-                .define("static_splash_only_hostile", true);
-
-        BUILDER.comment("");
-
-        STATIC_SPLASH_TRIGGER_PARALYSIS_ON_WET = BUILDER
-                .comment("If true, splash on a wet target will trigger Paralysis reaction (instead of dealing splash damage).",
-                         "如果为 true，溅射到潮湿目标时触发麻痹反应（而不是造成溅射伤害）。",
-                         "Default: true")
-                .define("static_splash_trigger_paralysis_on_wet", true);
+        STATIC_DAMAGE_FROST_MULTIPLIER = BUILDER
+                .comment("Damage multiplier for Frost attribute mobs when taking Static Shock damage . 1.5 = 150% damage.",
+                         "冰霜属性生物受到静电伤害时的伤害倍率。2.0 = 200%伤害。",
+                         "Default: 2.0")
+                .defineInRange("static_damage_frost_multiplier", 2.0, 0.0, 10.0);
 
         BUILDER.pop();
 
@@ -623,6 +547,82 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
+        BUILDER.comment("Static Steam Cloud Reaction (Static Shock + Condensing Steam Cloud)",
+                        "静电蒸汽云反应（静电+低温蒸汽云）")
+                .push("static_steam_cloud");
+
+        STATIC_STEAM_CLOUD_REACTION_ENABLED = BUILDER
+                .comment("Global toggle for the Static Steam Cloud reaction.",
+                         "When enabled, a static-charged entity entering a condensing steam cloud will trigger Paralysis and electrify the cloud.",
+                         "开启/关闭静电蒸汽云反应的全局开关。",
+                         "启用后，带静电的实体进入低温蒸汽云时会触发麻痹并将蒸汽云变为感电云。",
+                         "Default: true")
+                .define("static_steam_cloud_reaction_enabled", true);
+
+        BUILDER.comment("");
+
+        STATIC_STEAM_CLOUD_TRIGGER_STACKS = BUILDER
+                .comment("Minimum Static Shock stacks required on an entity to trigger the Static Steam Cloud reaction.",
+                         "触发电静蒸汽云反应所需的最低静电层数。",
+                         "Default: 3")
+                .defineInRange("static_steam_cloud_trigger_stacks", 3, 1, 1000);
+
+        BUILDER.comment("");
+
+        BUILDER.pop();
+
+        BUILDER.comment("Water Electrification (Static Shock + Water)",
+                        "感电水域（静电+水体）")
+                .push("water_electrification");
+
+        WATER_ELECTRIFICATION_ENABLED = BUILDER
+                .comment("Global toggle for water electrification.",
+                         "When enabled, a static-shocked entity entering water will electrify the surrounding water,",
+                         "paralyzing all entities in the water and dealing static damage to those with static stacks.",
+                         "开启/关闭感电水域的全局开关。",
+                         "启用后，带静电的实体进入水中会使周围感电水域，",
+                         "麻痹水中所有生物，并对带有静电的生物造成静电伤害。",
+                         "Default: true")
+                .define("water_electrification_enabled", true);
+
+        BUILDER.comment("");
+
+        WATER_ELECTRIFICATION_RANGE_BASE = BUILDER
+                .comment("Base range (in blocks) of water electrification.",
+                         "感电水域的基础范围（以方块为单位）。",
+                         "Default: 3.0")
+                .defineInRange("water_electrification_range_base", 3.0, 1.0, 50.0);
+
+        BUILDER.comment("");
+
+        WATER_ELECTRIFICATION_RANGE_PER_STACK = BUILDER
+                .comment("Additional range per static stack of the source entity.",
+                         "源实体每层静电增加的范围。",
+                         "Default: 1.0")
+                .defineInRange("water_electrification_range_per_stack", 1.0, 0.0, 10.0);
+
+        BUILDER.comment("");
+
+        WATER_ELECTRIFICATION_MAX_RANGE = BUILDER
+                .comment("Maximum range of water electrification regardless of stacks.",
+                         "感电水域的最大范围限制。",
+                         "Default: 16.0")
+                .defineInRange("water_electrification_max_range", 16.0, 1.0, 64.0);
+
+        BUILDER.comment("");
+
+        WATER_ELECTRIFICATION_PARALYSIS_DURATION = BUILDER
+                .comment("Duration (in ticks) of paralysis applied to entities in electrified water.",
+                         "Set to 0 to disable paralysis (damage only). 20 ticks = 1 second.",
+                         "感电水域对水中生物施加的麻痹持续时间（以刻为单位）。",
+                         "设为0则只造成伤害，不附加麻痹。20刻 = 1秒。",
+                         "Default: 100 (5 seconds)")
+                .defineInRange("water_electrification_paralysis_duration", 100, 0, 200);
+
+        BUILDER.comment("");
+
+        BUILDER.pop();
+
         BUILDER.comment("Frostbite (Frost) Reaction Configuration",
                         "霜冻（冰霜）效果配置")
                 .push("frostbite");
@@ -750,14 +750,6 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.comment("");
 
-        FROSTBITE_FIRE_DURATION_MULTIPLIER = BUILDER
-                .comment("Duration multiplier for Fire attribute mobs when receiving Frostbite. 1.5 = 150% duration.",
-                         "赤焰属性生物受到霜冻时的持续时间倍率。1.5 = 150%持续时间。",
-                         "Default: 1.5")
-                .defineInRange("frostbite_fire_duration_multiplier", 1.5, 0.0, 10.0);
-
-        BUILDER.comment("");
-
         FROSTBITE_NETHER_DURATION_MULTIPLIER = BUILDER
                 .comment("Duration multiplier for Frostbite in the Nether dimension. 0.5 = 50% duration.",
                          "下界维度中霜冻的持续时间倍率。0.5 = 50%持续时间。",
@@ -784,6 +776,14 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.comment("");
 
+        FROSTBITE_DAMAGE_THUNDER_MULTIPLIER = BUILDER
+                .comment("Damage multiplier for Thunder attribute mobs when taking Frostbite periodic/aura damage.",
+                         "雷霆属性生物受到霜冻周期性/光环伤害时的伤害倍率。",
+                         "Default: 1.0")
+                .defineInRange("frostbite_damage_thunder_multiplier", 1.0, 0.0, 10.0);
+
+        BUILDER.comment("");
+
         FROSTBITE_DAMAGE_FROST_MULTIPLIER = BUILDER
                 .comment("Damage multiplier for Frost attribute mobs when taking Frostbite periodic/aura damage.",
                          "冰霜属性生物受到霜冻周期性/光环伤害时的伤害倍率。",
@@ -797,11 +797,19 @@ public final class ElementalThunderFrostReactionsConfig {
         BUILDER.comment("Freeze Reaction Configuration", "冻结反应配置（霜冻+潮湿触发）")
                 .push("freeze");
 
-        FREEZE_DURATION_TICKS = BUILDER
-                .comment("Duration (in ticks) of the Freeze effect. 20 ticks = 1 second.",
-                         "冻结效果的持续时间（以刻为单位）。20刻 = 1秒。",
-                         "Default: 60 (3 seconds)")
-                .defineInRange("freeze_duration_ticks", 60, 1, 72000);
+        FREEZE_MAX_STACKS = BUILDER
+                .comment("Maximum total stacks of Freeze a target can have.",
+                         "目标身上冻结的最大总层数。",
+                         "Default: 5")
+                .defineInRange("freeze_max_stacks", 5, 1, 1000);
+
+        BUILDER.comment("");
+
+        FREEZE_DURATION_PER_STACK_TICKS = BUILDER
+                .comment("Base duration (in ticks) per stack of Freeze. 20 ticks = 1 second.",
+                         "每层冻结的基础持续时间（以刻为单位）。20刻 = 1秒。",
+                         "Default: 20 (1 second)")
+                .defineInRange("freeze_duration_per_stack_ticks", 20, 1, 72000);
 
         BUILDER.comment("");
 
@@ -837,44 +845,65 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.pop();
+        BUILDER.comment("Freeze Spread (Contagion to nearby wet entities)",
+                        "冻结传播（传染给附近的潮湿生物）")
+                .push("freeze_spread");
 
-        BUILDER.comment("Freeze Cold Cloud (冻结触发的低温蒸汽云)",
-                        "冻结效果触发后，以目标为中心生成低温蒸汽云")
-                .push("freeze_cold_cloud");
-
-        FREEZE_COLD_CLOUD_ENABLED = BUILDER
-                .comment("启用/禁用冻结触发低温蒸汽云",
-                         "Default: true")
-                .define("freeze_cold_cloud_enabled", true);
-
-        BUILDER.comment("");
-
-        FREEZE_COLD_CLOUD_TRIGGER_STACKS = BUILDER
-                .comment("触发低温蒸汽云所需的最低霜冻层数",
+        FREEZE_SPREAD_THRESHOLD_STACKS = BUILDER
+                .comment("Minimum Freeze stacks required before an entity can spread Freeze to nearby wet entities.",
+                         "生物可传播冻结前所需的最低冻结层数。",
                          "Default: 3")
-                .defineInRange("freeze_cold_cloud_trigger_stacks", 3, 1, 100);
+                .defineInRange("freeze_spread_threshold_stacks", 3, 1, 1000);
 
         BUILDER.comment("");
 
-        FREEZE_COLD_CLOUD_BASE_RADIUS = BUILDER
-                .comment("基础蒸汽云半径（霜冻层数等于触发层数时）",
-                         "Default: 3.0")
-                .defineInRange("freeze_cold_cloud_base_radius", 3.0, 1.0, 50.0);
+        FREEZE_SPREAD_BASE_RANGE = BUILDER
+                .comment("Base spread range in blocks (radius from source entity).",
+                         "基础传播范围（以源实体为中心半径的方块数）。",
+                         "Default: 3")
+                .defineInRange("freeze_spread_base_range", 3, 1, 32);
 
         BUILDER.comment("");
 
-        FREEZE_COLD_CLOUD_RADIUS_PER_STACK = BUILDER
-                .comment("每超过触发层数一层，蒸汽云半径增加的值",
-                         "Default: 1.0")
-                .defineInRange("freeze_cold_cloud_radius_per_stack", 1.0, 0.0, 10.0);
+        FREEZE_SPREAD_RANGE_PER_EXTRA_STACK = BUILDER
+                .comment("Extra range in blocks per Freeze stack beyond the threshold.",
+                         "超出阈值后每层冻结额外增加的范围。",
+                         "Default: 1")
+                .defineInRange("freeze_spread_range_per_extra_stack", 1, 0, 16);
 
         BUILDER.comment("");
 
-        FREEZE_COLD_CLOUD_DURATION = BUILDER
-                .comment("蒸汽云持续时间（刻）",
-                         "Default: 100 (5秒)")
-                .defineInRange("freeze_cold_cloud_duration", 100, 20, 72000);
+        FREEZE_SPREAD_ALLOW_CHAIN = BUILDER
+                .comment("If true, entities infected by spread can further spread Freeze to others.",
+                         "启用后，通过传播感染的生物可继续传播冻结。",
+                         "Default: false")
+                .define("freeze_spread_allow_chain", false);
+
+        BUILDER.comment("");
+
+        FREEZE_SPREAD_ALLOW_TO_SOURCE = BUILDER
+                .comment("If true, Freeze can spread back to the original contagion source entity.",
+                         "启用后，冻结可回传给原始传染源生物。",
+                         "Default: true")
+                .define("freeze_spread_allow_to_source", true);
+
+        BUILDER.comment("");
+
+        FREEZE_SPREAD_EXCLUDE_FRIENDLY_ENTITIES = BUILDER
+                .comment("If true, players and tamed pets are immune to Freeze spread.",
+                         "启用后，玩家和已驯服的宠物免疫冻结传播。",
+                         "Default: true")
+                .define("freeze_spread_exclude_friendly_entities", true);
+
+        BUILDER.comment("");
+
+        FREEZE_SPREAD_ONLY_HOSTILE = BUILDER
+                .comment("If true, only hostile mobs (MobCategory.MONSTER) are affected by Freeze spread.",
+                         "启用后，仅敌对生物受冻结传播影响。",
+                         "Default: true")
+                .define("freeze_spread_only_hostile", true);
+
+        BUILDER.pop();
 
         BUILDER.pop();
 
@@ -926,77 +955,39 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Static Steam Cloud Reaction (Static Shock + Condensing Steam Cloud)",
-                        "静电蒸汽云反应（静电+低温蒸汽云）")
-                .push("static_steam_cloud");
+        BUILDER.comment("Frostbite Heat Clearing (Heat Sources Remove Frostbite)",
+                        "霜冻热源清除（热源清除霜冻效果）")
+                .push("frostbite_heat_clearing");
 
-        STATIC_STEAM_CLOUD_REACTION_ENABLED = BUILDER
-                .comment("Global toggle for the Static Steam Cloud reaction.",
-                         "When enabled, a static-charged entity entering a condensing steam cloud will trigger Paralysis and electrify the cloud.",
-                         "开启/关闭静电蒸汽云反应的全局开关。",
-                         "启用后，带静电的实体进入低温蒸汽云时会触发麻痹并将蒸汽云变为带电云。",
+        FROSTBITE_CLEAR_BY_HEAT_ENABLED = BUILDER
+                .comment("Master toggle: when enabled, heat sources (fire, lava, magma blocks, Nether) will remove Frostbite.",
+                         "总开关：启用后，热源（火焰、熔岩、岩浆块、下界）会清除霜冻效果。",
                          "Default: true")
-                .define("static_steam_cloud_reaction_enabled", true);
+                .define("frostbite_clear_by_heat_enabled", true);
 
         BUILDER.comment("");
 
-        STATIC_STEAM_CLOUD_TRIGGER_STACKS = BUILDER
-                .comment("Minimum Static Shock stacks required on an entity to trigger the Static Steam Cloud reaction.",
-                         "触发电静蒸汽云反应所需的最低静电层数。",
-                         "Default: 3")
-                .defineInRange("static_steam_cloud_trigger_stacks", 3, 1, 1000);
-
-        BUILDER.comment("");
-
-        BUILDER.pop();
-
-        BUILDER.comment("Water Electrification (Static Shock + Water)",
-                        "感电水域（静电+水体）")
-                .push("water_electrification");
-
-        WATER_ELECTRIFICATION_ENABLED = BUILDER
-                .comment("Global toggle for water electrification.",
-                         "When enabled, a static-shocked entity entering water will electrify the surrounding water,",
-                         "paralyzing all entities in the water and dealing static damage to those with static stacks.",
-                         "开启/关闭感电水域的全局开关。",
-                         "启用后，带静电的实体进入水中会使周围感电水域，",
-                         "麻痹水中所有生物，并对带有静电的生物造成静电伤害。",
+        FROSTBITE_NETHER_CLEAR_ENABLED = BUILDER
+                .comment("When enabled, Frostbite is cleared immediately upon entering the Nether dimension.",
+                         "启用后，进入下界维度时霜冻效果会被立即清除。",
                          "Default: true")
-                .define("water_electrification_enabled", true);
+                .define("frostbite_nether_clear_enabled", true);
 
         BUILDER.comment("");
 
-        WATER_ELECTRIFICATION_RANGE_BASE = BUILDER
-                .comment("Base range (in blocks) of water electrification.",
-                         "感电水域的基础范围（以方块为单位）。",
-                         "Default: 3.0")
-                .defineInRange("water_electrification_range_base", 3.0, 1.0, 50.0);
+        FROSTBITE_HEAT_SEARCH_RADIUS = BUILDER
+                .comment("Radius (blocks) to search for nearby heat sources (Lava/Magma) that clear Frostbite. Magma Block detection radius is reduced by 1.",
+                         "检测周围热源（熔岩/岩浆块）清除霜冻的半径范围（格）。岩浆块的检测半径会减少1格。",
+                         "Default: 2.0")
+                .defineInRange("frostbite_heat_search_radius", 2.0, 1.0, 16.0);
 
         BUILDER.comment("");
 
-        WATER_ELECTRIFICATION_RANGE_PER_STACK = BUILDER
-                .comment("Additional range per static stack of the source entity.",
-                         "源实体每层静电增加的范围。",
-                         "Default: 1.0")
-                .defineInRange("water_electrification_range_per_stack", 1.0, 0.0, 10.0);
-
-        BUILDER.comment("");
-
-        WATER_ELECTRIFICATION_MAX_RANGE = BUILDER
-                .comment("Maximum range of water electrification regardless of stacks.",
-                         "感电水域的最大范围限制。",
-                         "Default: 16.0")
-                .defineInRange("water_electrification_max_range", 16.0, 1.0, 64.0);
-
-        BUILDER.comment("");
-
-        WATER_ELECTRIFICATION_PARALYSIS_DURATION = BUILDER
-                .comment("Duration (in ticks) of paralysis applied to entities in electrified water.",
-                         "Set to 0 to disable paralysis (damage only). 20 ticks = 1 second.",
-                         "感电水域对水中生物施加的麻痹持续时间（以刻为单位）。",
-                         "设为0则只造成伤害，不附加麻痹。20刻 = 1秒。",
-                         "Default: 100 (5 seconds)")
-                .defineInRange("water_electrification_paralysis_duration", 100, 0, 200);
+        FROSTBITE_FIRE_STAND_CLEARING_TIME = BUILDER
+                .comment("Seconds required to stand on a fire block (Fire or Soul Fire) to clear all Frostbite.",
+                         "站在火中（普通火或灵魂火）清除所有霜冻效果所需的秒数。",
+                         "Default: 2")
+                .defineInRange("frostbite_fire_stand_clearing_time", 2, 1, 600);
 
         BUILDER.comment("");
 
@@ -1106,20 +1097,10 @@ public final class ElementalThunderFrostReactionsConfig {
     public static double staticDamageMin;
     public static double staticDamageMax;
     public static int staticDamageIntervalTicks;
-    public static double staticDamageNatureMultiplier;
-    public static double staticDamageFrostMultiplier;
     public static double staticDamageFireMultiplier;
+    public static double staticDamageNatureMultiplier;
     public static double staticDamageThunderMultiplier;
-
-    public static boolean staticSplashEnabled;
-    public static double staticSplashDamagePercentage;
-    public static int staticSplashBaseRange;
-    public static int staticSplashRangePerStack;
-    public static int staticSplashMaxRange;
-    public static boolean staticSplashSkipIfTargetHasStatic;
-    public static boolean staticSplashExcludeFriendlyEntities;
-    public static boolean staticSplashOnlyHostile;
-    public static boolean staticSplashTriggerParalysisOnWet;
+    public static double staticDamageFrostMultiplier;
 
     public static int staticAuraThreshold;
     public static double staticAuraBaseRange;
@@ -1171,18 +1152,29 @@ public final class ElementalThunderFrostReactionsConfig {
     public static int frostbiteDamageIntervalTicks;
     public static int frostbiteResistImmunityThreshold;
     public static List<? extends String> cachedFrostbiteImmunityBlacklist;
-    public static double frostbiteFireDurationMultiplier;
+
     public static double frostbiteNetherDurationMultiplier;
 
     public static double frostbiteDamageFireMultiplier;
     public static double frostbiteDamageNatureMultiplier;
+    public static double frostbiteDamageThunderMultiplier;
     public static double frostbiteDamageFrostMultiplier;
 
-    public static int freezeDurationTicks;
+    public static int freezeMaxStacks;
+    public static int freezeDurationPerStackTicks;
+
     public static double freezeElementalVulnerability;
     public static double freezeSettlementDamagePerStack;
     public static int freezeCooldownTicks;
     public static List<? extends String> cachedFreezeImmunityBlacklist;
+
+    public static int freezeSpreadThresholdStacks;
+    public static int freezeSpreadBaseRange;
+    public static int freezeSpreadRangePerExtraStack;
+    public static boolean freezeSpreadAllowChain;
+    public static boolean freezeSpreadAllowToSource;
+    public static boolean freezeSpreadExcludeFriendlyEntities;
+    public static boolean freezeSpreadOnlyHostile;
 
     public static double frostbiteThermalShockBaseDamage;
     public static double frostbiteThermalShockPerStack;
@@ -1190,15 +1182,10 @@ public final class ElementalThunderFrostReactionsConfig {
     public static double frostbiteSteamCloudBonusChance;
 
     public static boolean frostbiteClearSporesEnabled;
-
-    public static int frostbiteAuraThreshold;
-    public static double frostbiteAuraBaseRange;
-    public static double frostbiteAuraRangePerStack;
-    public static double frostbiteAuraMaxRange;
-    public static int frostbiteAuraDamageIntervalTicks;
-    public static boolean frostbiteAuraExcludeFriendly;
-    public static boolean frostbiteAuraOnlyHostile;
-    public static boolean frostbiteAuraScorchedSteamEnabled;
+    public static boolean frostbiteClearByHeatEnabled;
+    public static boolean frostbiteNetherClearEnabled;
+    public static double frostbiteHeatSearchRadius;
+    public static int frostbiteFireStandClearingTime;
 
     public static boolean staticSteamCloudReactionEnabled;
     public static int staticSteamCloudTriggerStacks;
@@ -1209,14 +1196,17 @@ public final class ElementalThunderFrostReactionsConfig {
     public static double waterElectrificationMaxRange;
     public static int waterElectrificationParalysisDuration;
 
+    public static int frostbiteAuraThreshold;
+    public static double frostbiteAuraBaseRange;
+    public static double frostbiteAuraRangePerStack;
+    public static double frostbiteAuraMaxRange;
+    public static int frostbiteAuraDamageIntervalTicks;
+    public static boolean frostbiteAuraExcludeFriendly;
+    public static boolean frostbiteAuraOnlyHostile;
+    public static boolean frostbiteAuraScorchedSteamEnabled;
+
     public static boolean frostedSteamCloudReactionEnabled;
     public static int frostedSteamCloudTriggerStacks;
-
-    public static boolean freezeColdCloudEnabled;
-    public static int freezeColdCloudTriggerStacks;
-    public static double freezeColdCloudBaseRadius;
-    public static double freezeColdCloudRadiusPerStack;
-    public static int freezeColdCloudDuration;
 
     public static void register(String configPath) {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, SPEC, configPath);
@@ -1239,20 +1229,10 @@ public final class ElementalThunderFrostReactionsConfig {
         staticDamageMax = STATIC_DAMAGE_MAX.get();
         staticDamageIntervalTicks = STATIC_DAMAGE_INTERVAL_TICKS.get();
 
-        staticDamageNatureMultiplier = STATIC_DAMAGE_NATURE_MULTIPLIER.get();
-        staticDamageFrostMultiplier = STATIC_DAMAGE_FROST_MULTIPLIER.get();
         staticDamageFireMultiplier = STATIC_DAMAGE_FIRE_MULTIPLIER.get();
+        staticDamageNatureMultiplier = STATIC_DAMAGE_NATURE_MULTIPLIER.get();
         staticDamageThunderMultiplier = STATIC_DAMAGE_THUNDER_MULTIPLIER.get();
-
-        staticSplashEnabled = STATIC_SPLASH_ENABLED.get();
-        staticSplashDamagePercentage = STATIC_SPLASH_DAMAGE_PERCENTAGE.get();
-        staticSplashBaseRange = STATIC_SPLASH_BASE_RANGE.get();
-        staticSplashRangePerStack = STATIC_SPLASH_RANGE_PER_STACK.get();
-        staticSplashMaxRange = STATIC_SPLASH_MAX_RANGE.get();
-        staticSplashSkipIfTargetHasStatic = STATIC_SPLASH_SKIP_IF_TARGET_HAS_STATIC.get();
-        staticSplashExcludeFriendlyEntities = STATIC_SPLASH_EXCLUDE_FRIENDLY_ENTITIES.get();
-        staticSplashOnlyHostile = STATIC_SPLASH_ONLY_HOSTILE.get();
-        staticSplashTriggerParalysisOnWet = STATIC_SPLASH_TRIGGER_PARALYSIS_ON_WET.get();
+        staticDamageFrostMultiplier = STATIC_DAMAGE_FROST_MULTIPLIER.get();
 
         staticAuraThreshold = STATIC_AURA_THRESHOLD.get();
         staticAuraBaseRange = STATIC_AURA_BASE_RANGE.get();
@@ -1300,18 +1280,29 @@ public final class ElementalThunderFrostReactionsConfig {
         frostbiteDamageIntervalTicks = FROSTBITE_DAMAGE_INTERVAL_TICKS.get();
         frostbiteResistImmunityThreshold = FROSTBITE_RESIST_IMMUNITY_THRESHOLD.get();
         cachedFrostbiteImmunityBlacklist = FROSTBITE_IMMUNITY_BLACKLIST.get();
-        frostbiteFireDurationMultiplier = FROSTBITE_FIRE_DURATION_MULTIPLIER.get();
+
         frostbiteNetherDurationMultiplier = FROSTBITE_NETHER_DURATION_MULTIPLIER.get();
 
         frostbiteDamageFireMultiplier = FROSTBITE_DAMAGE_FIRE_MULTIPLIER.get();
         frostbiteDamageNatureMultiplier = FROSTBITE_DAMAGE_NATURE_MULTIPLIER.get();
+        frostbiteDamageThunderMultiplier = FROSTBITE_DAMAGE_THUNDER_MULTIPLIER.get();
         frostbiteDamageFrostMultiplier = FROSTBITE_DAMAGE_FROST_MULTIPLIER.get();
 
-        freezeDurationTicks = FREEZE_DURATION_TICKS.get();
+        freezeMaxStacks = FREEZE_MAX_STACKS.get();
+        freezeDurationPerStackTicks = FREEZE_DURATION_PER_STACK_TICKS.get();
+
         freezeElementalVulnerability = FREEZE_ELEMENTAL_VULNERABILITY.get();
         freezeSettlementDamagePerStack = FREEZE_SETTLEMENT_DAMAGE_PER_STACK.get();
         freezeCooldownTicks = FREEZE_COOLDOWN_TICKS.get();
         cachedFreezeImmunityBlacklist = FREEZE_IMMUNITY_BLACKLIST.get();
+
+        freezeSpreadThresholdStacks = FREEZE_SPREAD_THRESHOLD_STACKS.get();
+        freezeSpreadBaseRange = FREEZE_SPREAD_BASE_RANGE.get();
+        freezeSpreadRangePerExtraStack = FREEZE_SPREAD_RANGE_PER_EXTRA_STACK.get();
+        freezeSpreadAllowChain = FREEZE_SPREAD_ALLOW_CHAIN.get();
+        freezeSpreadAllowToSource = FREEZE_SPREAD_ALLOW_TO_SOURCE.get();
+        freezeSpreadExcludeFriendlyEntities = FREEZE_SPREAD_EXCLUDE_FRIENDLY_ENTITIES.get();
+        freezeSpreadOnlyHostile = FREEZE_SPREAD_ONLY_HOSTILE.get();
 
         frostbiteThermalShockBaseDamage = FROSTBITE_THERMAL_SHOCK_BASE_DAMAGE.get();
         frostbiteThermalShockPerStack = FROSTBITE_THERMAL_SHOCK_PER_STACK.get();
@@ -1319,15 +1310,10 @@ public final class ElementalThunderFrostReactionsConfig {
         frostbiteSteamCloudBonusChance = FROSTBITE_STEAM_CLOUD_BONUS_CHANCE.get();
 
         frostbiteClearSporesEnabled = FROSTBITE_CLEAR_SPORES_ENABLED.get();
-
-        frostbiteAuraThreshold = FROSTBITE_AURA_THRESHOLD.get();
-        frostbiteAuraBaseRange = FROSTBITE_AURA_BASE_RANGE.get();
-        frostbiteAuraRangePerStack = FROSTBITE_AURA_RANGE_PER_STACK.get();
-        frostbiteAuraMaxRange = FROSTBITE_AURA_MAX_RANGE.get();
-        frostbiteAuraDamageIntervalTicks = FROSTBITE_AURA_DAMAGE_INTERVAL_TICKS.get();
-        frostbiteAuraExcludeFriendly = FROSTBITE_AURA_EXCLUDE_FRIENDLY.get();
-        frostbiteAuraOnlyHostile = FROSTBITE_AURA_ONLY_HOSTILE.get();
-        frostbiteAuraScorchedSteamEnabled = FROSTBITE_AURA_SCORCHED_STEAM_ENABLED.get();
+        frostbiteClearByHeatEnabled = FROSTBITE_CLEAR_BY_HEAT_ENABLED.get();
+        frostbiteNetherClearEnabled = FROSTBITE_NETHER_CLEAR_ENABLED.get();
+        frostbiteHeatSearchRadius = FROSTBITE_HEAT_SEARCH_RADIUS.get();
+        frostbiteFireStandClearingTime = FROSTBITE_FIRE_STAND_CLEARING_TIME.get();
 
         staticSteamCloudReactionEnabled = STATIC_STEAM_CLOUD_REACTION_ENABLED.get();
         staticSteamCloudTriggerStacks = STATIC_STEAM_CLOUD_TRIGGER_STACKS.get();
@@ -1338,14 +1324,18 @@ public final class ElementalThunderFrostReactionsConfig {
         waterElectrificationMaxRange = WATER_ELECTRIFICATION_MAX_RANGE.get();
         waterElectrificationParalysisDuration = WATER_ELECTRIFICATION_PARALYSIS_DURATION.get();
 
+        frostbiteAuraThreshold = FROSTBITE_AURA_THRESHOLD.get();
+        frostbiteAuraBaseRange = FROSTBITE_AURA_BASE_RANGE.get();
+        frostbiteAuraRangePerStack = FROSTBITE_AURA_RANGE_PER_STACK.get();
+        frostbiteAuraMaxRange = FROSTBITE_AURA_MAX_RANGE.get();
+        frostbiteAuraDamageIntervalTicks = FROSTBITE_AURA_DAMAGE_INTERVAL_TICKS.get();
+        frostbiteAuraExcludeFriendly = FROSTBITE_AURA_EXCLUDE_FRIENDLY.get();
+        frostbiteAuraOnlyHostile = FROSTBITE_AURA_ONLY_HOSTILE.get();
+        frostbiteAuraScorchedSteamEnabled = FROSTBITE_AURA_SCORCHED_STEAM_ENABLED.get();
+
         frostedSteamCloudReactionEnabled = FROSTED_STEAM_CLOUD_REACTION_ENABLED.get();
         frostedSteamCloudTriggerStacks = FROSTED_STEAM_CLOUD_TRIGGER_STACKS.get();
 
-        freezeColdCloudEnabled = FREEZE_COLD_CLOUD_ENABLED.get();
-        freezeColdCloudTriggerStacks = FREEZE_COLD_CLOUD_TRIGGER_STACKS.get();
-        freezeColdCloudBaseRadius = FREEZE_COLD_CLOUD_BASE_RADIUS.get();
-        freezeColdCloudRadiusPerStack = FREEZE_COLD_CLOUD_RADIUS_PER_STACK.get();
-        freezeColdCloudDuration = FREEZE_COLD_CLOUD_DURATION.get();
     }
 
     private ElementalThunderFrostReactionsConfig() {}

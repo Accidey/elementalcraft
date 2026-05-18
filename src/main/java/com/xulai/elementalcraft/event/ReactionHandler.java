@@ -13,7 +13,9 @@ import com.xulai.elementalcraft.util.ElementUtils;
 import com.xulai.elementalcraft.event.ScorchedHandler;
 import com.xulai.elementalcraft.event.WetnessHandler;
 import com.xulai.elementalcraft.util.ElementDamageHelper;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -125,6 +127,16 @@ public class ReactionHandler {
                 if (triggered) {
                     stackSporeEffect(target, ElementalFireNatureReactionsConfig.natureParasiteAmount, attacker);
                     EffectHelper.playSporeAmbient(target);
+                    DebugCommand.sendReactionSuccess(target, "nature_parasite",
+                            attacker.getDisplayName(),
+                            target.getDisplayName(),
+                            Component.literal(String.valueOf(ElementalFireNatureReactionsConfig.natureParasiteAmount)).withStyle(ChatFormatting.GREEN),
+                            String.format("%.0f", chance * 100));
+                } else {
+                    DebugCommand.sendReactionFailed(target, "nature_parasite", "chance",
+                            attacker.getDisplayName(),
+                            target.getDisplayName(),
+                            String.format("%.0f", chance * 100));
                 }
             }
         } else if (attackType == ElementType.FIRE) {
@@ -143,6 +155,9 @@ public class ReactionHandler {
 
             if (isNatureTarget && powerOk && hasScorched && cooldownOk) {
                 triggerWildfireEjection(target, attacker);
+            } else if (isNatureTarget && powerOk && hasScorched && !cooldownOk) {
+                long remaining = DebugCommand.getRemainingCooldown(target, NBT_WILDFIRE_COOLDOWN);
+                DebugCommand.sendReactionCooldownBlock(target, "wildfire", remaining);
             }
         }
     }
@@ -304,6 +319,14 @@ public class ReactionHandler {
         }
 
         EffectHelper.playSporeContagion(source, infectedTargets, radius);
+
+        DebugCommand.ContagionLogContext cctx = new DebugCommand.ContagionLogContext();
+        cctx.source = source;
+        cctx.sourceStacks = stacks;
+        cctx.transferStacks = transferStacks;
+        cctx.radius = radius;
+        cctx.affectedCount = validTargets.size();
+        DebugCommand.sendContagionLog(cctx);
     }
 
 

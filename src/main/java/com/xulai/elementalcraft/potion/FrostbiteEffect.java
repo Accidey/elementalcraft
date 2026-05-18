@@ -44,6 +44,8 @@ public class FrostbiteEffect extends MobEffect {
                 damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFireMultiplier;
             } else if (element == ElementType.NATURE) {
                 damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageNatureMultiplier;
+            } else if (element == ElementType.THUNDER) {
+                damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageThunderMultiplier;
             } else if (element == ElementType.FROST) {
                 damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFrostMultiplier;
             }
