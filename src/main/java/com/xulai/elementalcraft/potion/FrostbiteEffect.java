@@ -1,6 +1,7 @@
 package com.xulai.elementalcraft.potion;
 
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
+import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
 import net.minecraft.sounds.SoundEvents;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class FrostbiteEffect extends MobEffect {
 
     private static final UUID SPEED_MODIFIER_UUID = UUID.fromString("7107DE5E-7CE8-403C-8064-03E786A055C8");
+    private static final UUID ATTACK_SPEED_MODIFIER_UUID = UUID.fromString("7107DE5E-7CE8-403C-8064-03E786A055C9");
 
     public FrostbiteEffect() {
         super(MobEffectCategory.HARMFUL, 0x66CCFF);
@@ -25,11 +27,19 @@ public class FrostbiteEffect extends MobEffect {
                 0.0,
                 AttributeModifier.Operation.MULTIPLY_BASE
         );
+        this.addAttributeModifier(
+                Attributes.ATTACK_SPEED,
+                ATTACK_SPEED_MODIFIER_UUID.toString(),
+                0.0,
+                AttributeModifier.Operation.MULTIPLY_BASE
+        );
     }
 
     @Override
     public double getAttributeModifierValue(int amplifier, AttributeModifier modifier) {
-        return -ElementalThunderFrostReactionsConfig.frostbiteSpeedReductionPerStack * (amplifier + 1);
+        double reduction = ElementalThunderFrostReactionsConfig.frostbiteSpeedReductionPerStack;
+        if (reduction <= 0) return 0.0;
+        return Math.max(-reduction * (amplifier + 1), -0.9);
     }
 
     @Override
@@ -49,7 +59,7 @@ public class FrostbiteEffect extends MobEffect {
             } else if (element == ElementType.FROST) {
                 damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFrostMultiplier;
             }
-            entity.hurt(entity.damageSources().freeze(), damage);
+            entity.hurt(ModDamageTypes.source(entity.level(), ModDamageTypes.FROSTBITE_THERMAL_SHOCK), damage);
 
             entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
                     SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.3f, 1.8f);
@@ -57,7 +67,13 @@ public class FrostbiteEffect extends MobEffect {
     }
 
     @Override
+    public void removeAttributeModifiers(LivingEntity entity, net.minecraft.world.entity.ai.attributes.AttributeMap pAttributeMap, int pAmplifier) {
+        super.removeAttributeModifiers(entity, pAttributeMap, pAmplifier);
+        entity.setTicksFrozen(0);
+    }
+
+    @Override
     public boolean isDurationEffectTick(int duration, int amplifier) {
-        return true; 
+        return true;
     }
 }

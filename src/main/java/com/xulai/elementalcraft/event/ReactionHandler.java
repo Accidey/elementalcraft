@@ -19,8 +19,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.core.BlockPos;
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.OwnableEntity;
@@ -35,6 +38,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -77,6 +81,85 @@ public class ReactionHandler {
                 if (data.contains(NBT_CONTAGION_SOURCE)) {
                     data.remove(NBT_CONTAGION_SOURCE);
                     changed = true;
+                }
+            }
+        }
+
+        if (entity.hasEffect(ModMobEffects.PARALYSIS.get())) {
+            if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
+                    && entity.hasEffect(ModMobEffects.SPORES.get())) {
+                double firePower = ElementalFireNatureReactionsConfig.blastTriggerThreshold;
+                triggerStaticSporeBlast(entity, firePower);
+            }
+        }
+
+        if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
+                && entity.hasEffect(ModMobEffects.SPORES.get())
+                && entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+            MobEffectInstance sporeEffect = entity.getEffect(ModMobEffects.SPORES.get());
+            if (sporeEffect != null) {
+                int stacks = sporeEffect.getAmplifier() + 1;
+                int sourceFirePower = entity.getPersistentData().getInt(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
+                triggerToxicBlastFromScorched(entity, stacks, sourceFirePower, entity);
+            }
+        }
+
+        if (ElementalFireNatureReactionsConfig.sporeEnvironmentalBlastEnabled
+                && ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
+                && entity.hasEffect(ModMobEffects.SPORES.get())) {
+            boolean triggered = false;
+            if (entity.level().dimension() == Level.NETHER) {
+                triggerToxicBlast(entity.level(), entity, entity,
+                        ElementalFireNatureReactionsConfig.blastTriggerThreshold, entity,
+                        ElementalFireNatureReactionsConfig.sporeMaxStacks);
+                triggered = true;
+            }
+            if (!triggered) {
+                BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
+                BlockPos entityPos = entity.blockPosition();
+                for (int x = -2; x <= 2 && !triggered; x++) {
+                    for (int y = -2; y <= 2 && !triggered; y++) {
+                        for (int z = -2; z <= 2 && !triggered; z++) {
+                            mutablePos.set(entityPos.getX() + x, entityPos.getY() + y, entityPos.getZ() + z);
+                            if (entity.level().getFluidState(mutablePos).is(FluidTags.LAVA)) {
+                                triggerToxicBlast(entity.level(), entity, entity,
+                                        ElementalFireNatureReactionsConfig.blastTriggerThreshold, entity,
+                                        ElementalFireNatureReactionsConfig.sporeMaxStacks);
+                                triggered = true;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!triggered) {
+                BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
+                BlockPos entityPos = entity.blockPosition();
+                for (int x = -1; x <= 1 && !triggered; x++) {
+                    for (int y = -1; y <= 1 && !triggered; y++) {
+                        for (int z = -1; z <= 1 && !triggered; z++) {
+                            mutablePos.set(entityPos.getX() + x, entityPos.getY() + y, entityPos.getZ() + z);
+                            if (entity.level().getBlockState(mutablePos).is(Blocks.MAGMA_BLOCK)) {
+                                boolean inWater = false;
+                                BlockPos.MutableBlockPos waterCheck = new BlockPos.MutableBlockPos();
+                                for (int wx = -1; wx <= 1 && !inWater; wx++) {
+                                    for (int wy = -1; wy <= 1 && !inWater; wy++) {
+                                        for (int wz = -1; wz <= 1 && !inWater; wz++) {
+                                            waterCheck.set(mutablePos.getX() + wx, mutablePos.getY() + wy, mutablePos.getZ() + wz);
+                                            if (entity.level().getFluidState(waterCheck).is(FluidTags.WATER)) {
+                                                inWater = true;
+                                            }
+                                        }
+                                    }
+                                }
+                                if (!inWater) {
+                                    triggerToxicBlast(entity.level(), entity, entity,
+                                            ElementalFireNatureReactionsConfig.blastTriggerThreshold, entity,
+                                            ElementalFireNatureReactionsConfig.sporeMaxStacks);
+                                    triggered = true;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -140,7 +223,7 @@ public class ReactionHandler {
                 }
             }
         } else if (attackType == ElementType.FIRE) {
-            if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null && target.hasEffect(ModMobEffects.SPORES.get()) && !event.getSource().is(DamageTypeTags.IS_EXPLOSION)) {
+            if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null && target.hasEffect(ModMobEffects.SPORES.get()) && !event.getSource().is(DamageTypeTags.IS_EXPLOSION) && !(ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled && (FrostbiteHandler.hasFrostbite(target) || target.getPersistentData().getBoolean("EC_FireFrostMeltResolved")))) {
                 if (WetnessHandler.getWetnessLevel(target) > 0 && ElementUtils.getConsistentAttackElement(target) == ElementType.NATURE) {
                 } else if (firePower >= ElementalFireNatureReactionsConfig.blastTriggerThreshold) {
                     triggerToxicBlast(level, attacker, target, firePower);
@@ -158,6 +241,21 @@ public class ReactionHandler {
             } else if (isNatureTarget && powerOk && hasScorched && !cooldownOk) {
                 long remaining = DebugCommand.getRemainingCooldown(target, NBT_WILDFIRE_COOLDOWN);
                 DebugCommand.sendReactionCooldownBlock(target, "wildfire", remaining);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingHurt(LivingHurtEvent event) {
+        if (event.getEntity().level().isClientSide) return;
+        if (!ElementalFireNatureReactionsConfig.sporeEnvironmentalBlastEnabled) return;
+        LivingEntity target = event.getEntity();
+        if (event.getSource().is(DamageTypeTags.IS_FIRE) && event.getSource().getEntity() == null) {
+            if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
+                    && target.hasEffect(ModMobEffects.SPORES.get())) {
+                triggerToxicBlast(target.level(), target, target,
+                        ElementalFireNatureReactionsConfig.blastTriggerThreshold, target,
+                        ElementalFireNatureReactionsConfig.sporeMaxStacks);
             }
         }
     }
@@ -188,6 +286,10 @@ public class ReactionHandler {
 
         double natureResistance = ElementUtils.getDisplayResistance(target, ElementType.NATURE);
         if (natureResistance >= ElementalFireNatureReactionsConfig.natureImmunityThreshold) {
+            return;
+        }
+
+        if (ElementalThunderFrostReactionsConfig.freezeClearSporesEnabled && target.hasEffect(ModMobEffects.FREEZE.get())) {
             return;
         }
 
@@ -235,12 +337,6 @@ public class ReactionHandler {
                 int sourceFirePower = target.getPersistentData().getInt(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
                 triggerToxicBlastFromScorched(target, newStacks, sourceFirePower, applier);
             }
-            if (ElementalThunderFrostReactionsConfig.frostbiteClearSporesEnabled && FrostbiteHandler.hasFrostbite(target)) {
-                target.removeEffect(ModMobEffects.SPORES.get());
-                if (!target.level().isClientSide) {
-                    target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SNOW_PLACE, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 0.5f);
-                }
-            }
         }
     }
 
@@ -255,8 +351,7 @@ public class ReactionHandler {
         }
 
         double radius = ElementalFireNatureReactionsConfig.contagionBaseRadius + ((stacks - ElementalFireNatureReactionsConfig.sporeReactionThreshold) * ElementalFireNatureReactionsConfig.contagionRadiusPerStack);
-        int transferStacks = (int) Math.floor(stacks * ElementalFireNatureReactionsConfig.contagionIntensityRatio);
-        if (transferStacks < 1) transferStacks = 1;
+        int transferStacks = Math.max(1, stacks - ElementalFireNatureReactionsConfig.contagionTransferBase);
 
         AABB sourceBox = source.getBoundingBox();
         if (sourceBox == null) return;
@@ -331,10 +426,14 @@ public class ReactionHandler {
 
 
     private static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower) {
-        triggerToxicBlast(level, attacker, target, firePower, attacker);
+        triggerToxicBlast(level, attacker, target, firePower, attacker, 0);
     }
 
     public static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower, LivingEntity killCredit) {
+        triggerToxicBlast(level, attacker, target, firePower, killCredit, 0);
+    }
+
+    public static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower, LivingEntity killCredit, int minStacks) {
         if (ModMobEffects.SPORES.get() == null) return;
         MobEffectInstance sporeEffect = target.getEffect(ModMobEffects.SPORES.get());
         int amplifier = (sporeEffect != null) ? sporeEffect.getAmplifier() : -1;
@@ -342,13 +441,14 @@ public class ReactionHandler {
 
         target.removeEffect(ModMobEffects.SPORES.get());
 
-        if (stacks < ElementalFireNatureReactionsConfig.sporeReactionThreshold) {
+        int effectiveStacks = Math.max(stacks, minStacks);
+        if (effectiveStacks < ElementalFireNatureReactionsConfig.sporeReactionThreshold) {
             int scorchDuration = (int) (ElementalFireNatureReactionsConfig.blastScorchBase * 20);
             float damageMultiplier = (float) ElementalFireNatureReactionsConfig.blastWeakIgniteMult;
             ScorchedHandler.applyScorched(target, attacker, (int) firePower, scorchDuration, (int) firePower, damageMultiplier, true);
             EffectHelper.playSound(level, target, SoundEvents.FIRECHARGE_USE, 1.0f, 1.2f);
         } else {
-            int extraStacks = stacks - ElementalFireNatureReactionsConfig.sporeReactionThreshold;
+            int extraStacks = effectiveStacks - ElementalFireNatureReactionsConfig.sporeReactionThreshold;
             double fireStep = ElementalFireNatureReactionsConfig.blastDmgStep;
             double dmgPerStep = ElementalFireNatureReactionsConfig.blastDmgAmount;
             double bonusFromStats = 0;
@@ -358,9 +458,9 @@ public class ReactionHandler {
             }
 
             float rawBaseDamage = (float) (ElementalFireNatureReactionsConfig.blastBaseDamage + (extraStacks * ElementalFireNatureReactionsConfig.blastGrowthDamage) + bonusFromStats);
-            double radius = ElementalFireNatureReactionsConfig.blastBaseRange + (extraStacks * ElementalFireNatureReactionsConfig.blastGrowthRange);
             int scorchDuration = (int) ((ElementalFireNatureReactionsConfig.blastBaseScorchTime + (extraStacks * ElementalFireNatureReactionsConfig.blastGrowthScorchTime)) * 20);
 
+            double blastRadius = ElementalFireNatureReactionsConfig.blastBaseRange + (extraStacks * ElementalFireNatureReactionsConfig.blastGrowthRange);
             level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, net.minecraft.sounds.SoundSource.BLOCKS, 4.0F, (1.0F + (level.random.nextFloat() - level.random.nextFloat()) * 0.2F) * 0.7F);
 
             if (level instanceof ServerLevel serverLevel) {
@@ -371,11 +471,11 @@ public class ReactionHandler {
                 serverLevel.getServer().execute(() -> {
                     AABB targetBox = target.getBoundingBox();
                     if (targetBox == null) return;
-                    AABB area = targetBox.inflate(radius);
+                    AABB area = targetBox.inflate(blastRadius);
                     List<LivingEntity> nearbyEntities = level.getEntitiesOfClass(LivingEntity.class, area);
                     int affectedCount = 0;
                     for (LivingEntity entity : nearbyEntities) {
-                        if (entity == attacker) continue;
+                        if (entity == target) continue;
                         boolean isPet = false;
                         if (entity instanceof OwnableEntity ownable && ownable.getOwnerUUID() != null && ownable.getOwnerUUID().equals(attacker.getUUID())) {
                             isPet = true;
@@ -389,8 +489,16 @@ public class ReactionHandler {
                         }
                         float mitigation = calculateBlastMitigation(entity);
                         float finalDamage = rawBaseDamage * (1.0f - mitigation);
-                        ElementDamageHelper.applyDamage(entity, finalDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.LAVA_MAGIC, killCredit));
+                        ElementDamageHelper.applyDamage(entity, finalDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.TOXIC_BLAST, killCredit));
                         ScorchedHandler.applyScorched(entity, killCredit, (int) firePower, scorchDuration, (int) firePower, 1.0f, true);
+                        affectedCount++;
+                    }
+
+                    if (attacker == target) {
+                        float targetMitigation = calculateBlastMitigation(target);
+                        float targetDamage = rawBaseDamage * (1.0f - targetMitigation);
+                        ElementDamageHelper.applyDamage(target, targetDamage, ModDamageTypes.source(target.level(), ModDamageTypes.TOXIC_BLAST, killCredit));
+                        ScorchedHandler.applyScorched(target, killCredit, (int) firePower, scorchDuration, (int) firePower, 1.0f, true);
                         affectedCount++;
                     }
 
@@ -398,7 +506,7 @@ public class ReactionHandler {
                     blastCtx.attacker = attacker;
                     blastCtx.target = target;
                     blastCtx.stacks = stacks;
-                    blastCtx.radius = radius;
+                    blastCtx.radius = blastRadius;
                     blastCtx.affectedCount = affectedCount;
                     blastCtx.rawBaseDamage = rawBaseDamage;
                     DebugCommand.sendToxicBlastLog(blastCtx);
@@ -494,13 +602,19 @@ public class ReactionHandler {
         if (killCredit == null) {
             killCredit = target;
         }
-        triggerToxicBlast(level, killCredit, target, sourceFirePower, killCredit);
+        triggerToxicBlast(level, killCredit, target, sourceFirePower, killCredit, ElementalFireNatureReactionsConfig.sporeReactionThreshold);
 
-        target.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_TICKS);
-        target.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_STRENGTH);
-        target.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
-        target.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_DAMAGE_MULT);
-        target.clearFire();
+        if (stacks >= ElementalFireNatureReactionsConfig.sporeReactionThreshold) {
+            target.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_TICKS);
+            target.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_STRENGTH);
+            target.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
+            target.getPersistentData().remove(ScorchedHandler.NBT_SCORCHED_DAMAGE_MULT);
+            target.clearFire();
+
+            int scorchDuration = (int) ((ElementalFireNatureReactionsConfig.blastBaseScorchTime
+                    + ((stacks - ElementalFireNatureReactionsConfig.sporeReactionThreshold) * ElementalFireNatureReactionsConfig.blastGrowthScorchTime)) * 20);
+            ScorchedHandler.applyScorched(target, killCredit, (int) sourceFirePower, scorchDuration, (int) sourceFirePower, 1.0f, true);
+        }
 
         DebugCommand.ScorchedSporeReactionLogContext scorchedCtx = new DebugCommand.ScorchedSporeReactionLogContext();
         scorchedCtx.target = target;

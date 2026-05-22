@@ -52,9 +52,6 @@ public class DebugCommand {
         public Entity directEntity;
         public float originalPhysicalDamage;
         public float physicalDamage;
-        public int sporeStacksForPhysReduce;
-        public float sporePhysResistPerStack;
-        public float sporePhysReduceRatio;
         public ElementType attackElement;
         public int attackerEnhancement;
         public int targetResistance;
@@ -63,6 +60,7 @@ public class DebugCommand {
         public float restraintMult;
         public float sporeVulnMult;
         public float freezeVulnMult;
+        public float scorchVulnMult;
         public float wetnessBaseMult;
         public float selfDryingPenaltyMult;
         public float combinedWetnessMult;
@@ -73,6 +71,8 @@ public class DebugCommand {
         public boolean isFloored;
         public double minPercent;
         public int wetnessLevel;
+        public float frostMeltMult;
+        public boolean frostMelted;
 
         public MutableComponent buildFormulaComponent() {
             MutableComponent formula = Component.literal(" (");
@@ -89,6 +89,12 @@ public class DebugCommand {
             }
             if (Math.abs(freezeVulnMult - 1.0f) > 0.001f) {
                 formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.freeze_vuln", String.format("%.2f", freezeVulnMult)).withStyle(ChatFormatting.AQUA));
+            }
+            if (Math.abs(scorchVulnMult - 1.0f) > 0.001f) {
+                formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.scorch_vuln", String.format("%.2f", scorchVulnMult)).withStyle(ChatFormatting.DARK_RED));
+            }
+            if (Math.abs(frostMeltMult - 1.0f) > 0.001f) {
+                formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.frost_melt", String.format("%.1f", frostMeltMult)).withStyle(ChatFormatting.AQUA));
             }
             if (Math.abs(wetnessBaseMult - 1.0f) > 0.001f) {
                 formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.wetness_base", String.format("%.2f", wetnessBaseMult)).withStyle(ChatFormatting.AQUA));
@@ -119,10 +125,6 @@ public class DebugCommand {
             if (wetnessLevel > 0) {
                 details.append(Component.literal(", "));
                 details.append(Component.translatable("debug.elementalcraft.combat.details.wetness", wetnessLevel).withStyle(ChatFormatting.AQUA));
-            }
-            if (sporeStacksForPhysReduce > 0) {
-                details.append(Component.literal(", "));
-                details.append(Component.translatable("debug.elementalcraft.combat.details.spores", sporeStacksForPhysReduce).withStyle(ChatFormatting.DARK_GREEN));
             }
             return details;
         }
@@ -214,32 +216,11 @@ public class DebugCommand {
         public float damage;
     }
 
-    public static class ThermalShockLogContext {
-        public LivingEntity target;
-        public LivingEntity attacker;
-        public int frostbiteStacks;
-        public float damage;
-    }
-
     public static class StaticSteamCloudLogContext {
         public LivingEntity source;
         public int triggerStacks;
         public float settlementDamage;
         public int cloudDuration;
-    }
-
-    public static class ParalysisSpreadLogContext {
-        public LivingEntity source;
-        public int sourceStacks;
-        public int spreadRange;
-        public int affectedCount;
-    }
-
-    public static class FreezeSpreadLogContext {
-        public LivingEntity source;
-        public int sourceStacks;
-        public int spreadRange;
-        public int affectedCount;
     }
 
     public static class ContagionLogContext {
@@ -282,25 +263,11 @@ public class DebugCommand {
                 String.format("%.2f", ctx.finalElemDmg)
         ).withStyle(ChatFormatting.WHITE);
 
-        MutableComponent physicalDetail = Component.empty();
-        if (ctx.sporeStacksForPhysReduce > 0) {
-            physicalDetail = Component.translatable("debug.elementalcraft.physical.spore_reduce",
-                    String.format("%.2f", ctx.originalPhysicalDamage),
-                    ctx.sporeStacksForPhysReduce,
-                    String.format("%.0f", ctx.sporePhysResistPerStack * 100),
-                    String.format("%.0f", ctx.sporePhysReduceRatio * 100),
-                    String.format("%.2f", ctx.physicalDamage)
-            ).withStyle(ChatFormatting.GRAY);
-        }
-
         MutableComponent fullMessage = Component.literal("")
                 .append(prefix)
                 .append(Component.literal(" "))
                 .append(overview)
                 .append(ctx.buildFormulaComponent());
-        if (!physicalDetail.getString().isEmpty()) {
-            fullMessage.append(Component.literal("\n")).append(physicalDetail);
-        }
         fullMessage.append(Component.literal("\n")).append(ctx.buildDetailsComponent());
 
         sendDebugMessage(ctx.attacker, fullMessage);
@@ -437,16 +404,17 @@ public class DebugCommand {
         sendDebugMessage(ctx.target, prefix.append(Component.literal(" ")).append(content));
     }
 
-    public static void sendThermalShockLog(ThermalShockLogContext ctx) {
+    public static void sendFireFrostMeltLog(LivingEntity target, LivingEntity attacker, int frostbiteStacks, int firePower, int requiredPoints) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
-        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.thermal_shock.header").withStyle(ChatFormatting.GOLD);
-        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.thermal_shock.message",
-                ctx.attacker.getDisplayName(),
-                ctx.target.getDisplayName(),
-                Component.literal(String.valueOf(ctx.frostbiteStacks)).withStyle(ChatFormatting.AQUA),
-                Component.literal(String.format("%.1f", ctx.damage)).withStyle(ChatFormatting.RED)
+        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.fire_frost_melt.header").withStyle(ChatFormatting.RED);
+        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.fire_frost_melt.message",
+                attacker.getDisplayName(),
+                target.getDisplayName(),
+                Component.literal(String.valueOf(frostbiteStacks)).withStyle(ChatFormatting.AQUA),
+                Component.literal(String.valueOf(requiredPoints)).withStyle(ChatFormatting.GOLD),
+                Component.literal(String.valueOf(firePower)).withStyle(ChatFormatting.RED)
         ).withStyle(ChatFormatting.WHITE);
-        sendDebugMessage(ctx.attacker, prefix.append(Component.literal(" ")).append(content));
+        sendDebugMessage(attacker, prefix.append(Component.literal(" ")).append(content));
     }
 
     public static void sendStaticSteamCloudLog(StaticSteamCloudLogContext ctx) {
@@ -457,30 +425,6 @@ public class DebugCommand {
                 Component.literal(String.valueOf(ctx.triggerStacks)).withStyle(ChatFormatting.LIGHT_PURPLE),
                 Component.literal(String.format("%.1f", ctx.settlementDamage)).withStyle(ChatFormatting.RED),
                 Component.literal(String.valueOf(ctx.cloudDuration)).withStyle(ChatFormatting.AQUA)
-        ).withStyle(ChatFormatting.WHITE);
-        sendDebugMessage(ctx.source, prefix.append(Component.literal(" ")).append(content));
-    }
-
-    public static void sendParalysisSpreadLog(ParalysisSpreadLogContext ctx) {
-        if (!DebugMode.hasAnyDebugEnabled()) return;
-        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.paralysis_spread.header").withStyle(ChatFormatting.LIGHT_PURPLE);
-        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.paralysis_spread.message",
-                ctx.source.getDisplayName(),
-                Component.literal(String.valueOf(ctx.sourceStacks)).withStyle(ChatFormatting.LIGHT_PURPLE),
-                ctx.spreadRange,
-                ctx.affectedCount
-        ).withStyle(ChatFormatting.WHITE);
-        sendDebugMessage(ctx.source, prefix.append(Component.literal(" ")).append(content));
-    }
-
-    public static void sendFreezeSpreadLog(FreezeSpreadLogContext ctx) {
-        if (!DebugMode.hasAnyDebugEnabled()) return;
-        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.freeze_spread.header").withStyle(ChatFormatting.AQUA);
-        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.freeze_spread.message",
-                ctx.source.getDisplayName(),
-                Component.literal(String.valueOf(ctx.sourceStacks)).withStyle(ChatFormatting.AQUA),
-                ctx.spreadRange,
-                ctx.affectedCount
         ).withStyle(ChatFormatting.WHITE);
         sendDebugMessage(ctx.source, prefix.append(Component.literal(" ")).append(content));
     }

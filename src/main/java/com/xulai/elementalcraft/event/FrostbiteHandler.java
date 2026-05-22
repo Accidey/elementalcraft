@@ -2,6 +2,8 @@ package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.sound.ModSounds;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
@@ -36,6 +38,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -161,6 +164,11 @@ public class FrostbiteHandler {
 
     public static boolean applyFrostbite(LivingEntity target, LivingEntity attacker, int layersToAdd) {
         if (target.level().isClientSide) return false;
+        if (target instanceof Player player && player.isCreative()) return false;
+
+        if (SteamReactionHandler.isInHighHeatCloud(target)) {
+            return false;
+        }
 
         if (isFrostbiteImmune(target)) {
             debugMsgAttacker(attacker, target, "目标免疫霜冻，跳过施加");
@@ -222,15 +230,6 @@ public class FrostbiteHandler {
 
         checkFreezeFromWetness(target, attacker);
 
-        if (ElementalThunderFrostReactionsConfig.frostbiteClearSporesEnabled) {
-            if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null && target.hasEffect(ModMobEffects.SPORES.get())) {
-                target.removeEffect(ModMobEffects.SPORES.get());
-                if (!target.level().isClientSide) {
-                    target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SNOW_PLACE, SoundSource.PLAYERS, 0.5f, 0.5f);
-                }
-            }
-        }
-
         return true;
     }
 
@@ -257,6 +256,7 @@ public class FrostbiteHandler {
 
     public static void triggerFreeze(LivingEntity target, LivingEntity attacker) {
         if (target.level().isClientSide) return;
+        if (target instanceof Player player && player.isCreative()) return;
         CompoundTag data = target.getPersistentData();
         long gameTime = target.level().getGameTime();
 
@@ -274,6 +274,13 @@ public class FrostbiteHandler {
             WetnessHandler.clearWetnessData(target);
             DebugCommand.sendReactionFailed(target, "freeze", "immune", target.getDisplayName());
             return;
+        }
+
+        if (ElementalThunderFrostReactionsConfig.freezeClearSporesEnabled) {
+            if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
+                    && target.hasEffect(ModMobEffects.SPORES.get())) {
+                target.removeEffect(ModMobEffects.SPORES.get());
+            }
         }
 
         int frostbiteStacks = data.getInt(NBT_FROSTBITE_STACKS);
@@ -312,6 +319,11 @@ public class FrostbiteHandler {
 
         target.addEffect(new MobEffectInstance(ModMobEffects.FREEZE.get(), freezeDuration, freezeStacks - 1, false, false, true));
 
+        if (!target.level().isClientSide) {
+            target.level().playSound(null, target.getX(), target.getY(), target.getZ(),
+                    ModSounds.ICE_SHATTER.get(), SoundSource.PLAYERS, 1.0f, 1.0f);
+        }
+
         data.putInt(NBT_FREEZE_STACKS, freezeStacks);
         data.putLong(NBT_FREEZE_COOLDOWN, gameTime + freezeDuration + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
 
@@ -334,13 +346,36 @@ public class FrostbiteHandler {
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
-        if (entity.level().isClientSide) return;
+        if (entity.level().isClientSide) {
+            if (entity.hasEffect(ModMobEffects.FROSTBITE.get())) {
+                MobEffectInstance effect = entity.getEffect(ModMobEffects.FROSTBITE.get());
+                if (effect != null) {
+                    int stacks = effect.getAmplifier() + 1;
+                    int maxStacks = ElementalThunderFrostReactionsConfig.frostbiteMaxTotalStacks;
+                    int ticksFrozen = Math.max(1, stacks * 300 / maxStacks);
+                    entity.setTicksFrozen(ticksFrozen);
+                }
+            } else if (entity instanceof Player) {
+                entity.setTicksFrozen(0);
+            }
+            return;
+        }
+
+        if (entity instanceof Player player && player.isCreative()) return;
 
         CompoundTag data = entity.getPersistentData();
         long gameTime = entity.level().getGameTime();
 
         if (data.contains(NBT_FREEZE_COOLDOWN) && gameTime >= data.getLong(NBT_FREEZE_COOLDOWN)) {
             data.remove(NBT_FREEZE_COOLDOWN);
+        }
+
+        if (data.contains(NBT_FREEZE_STACKS) && !entity.hasEffect(ModMobEffects.FREEZE.get())) {
+            if (!entity.level().isClientSide) {
+                entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),
+                        SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8f, 1.0f);
+            }
+            data.remove(NBT_FREEZE_STACKS);
         }
 
         if (!data.contains(NBT_FROSTBITE_STACKS)) {
@@ -374,12 +409,15 @@ public class FrostbiteHandler {
 
         if (ElementalThunderFrostReactionsConfig.frostbiteClearByHeatEnabled) {
             if (entity.isOnFire()) {
-                if (auraActive) {
-                    clearFrostbiteAuraEffects(entity, stacks);
+                boolean hasScorch = entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS);
+                if (!hasScorch) {
+                    if (auraActive) {
+                        clearFrostbiteAuraEffects(entity, stacks);
+                    }
+                    clearFrostbite(entity);
+                    entity.playSound(SoundEvents.FIRE_EXTINGUISH, 1.0f, 1.0f);
+                    return;
                 }
-                clearFrostbite(entity);
-                entity.playSound(SoundEvents.FIRE_EXTINGUISH, 1.0f, 1.0f);
-                return;
             }
 
             if (ElementalThunderFrostReactionsConfig.frostbiteNetherClearEnabled
@@ -445,6 +483,23 @@ public class FrostbiteHandler {
                 applyFrostbiteAuraDamage(entity, stacks);
             }
         }
+
+        if (ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled && hasFrostbite(entity)) {
+            MobEffectInstance sporeInstance = entity.getEffect(ModMobEffects.SPORES.get());
+            if (sporeInstance != null) {
+                int extraDecay = (int) ElementalThunderFrostReactionsConfig.frostbiteSporeDecaySpeed - 1;
+                if (extraDecay > 0) {
+                    int newDuration = sporeInstance.getDuration() - extraDecay;
+                    if (newDuration <= 0) {
+                        entity.removeEffect(ModMobEffects.SPORES.get());
+                    } else {
+                        entity.removeEffect(ModMobEffects.SPORES.get());
+                        entity.addEffect(new MobEffectInstance(ModMobEffects.SPORES.get(), newDuration,
+                                sporeInstance.getAmplifier(), sporeInstance.isAmbient(), sporeInstance.isVisible(), sporeInstance.showIcon()));
+                    }
+                }
+            }
+        }
     }
 
     public static void clearFrostbite(LivingEntity entity) {
@@ -457,6 +512,29 @@ public class FrostbiteHandler {
         if (entity.hasEffect(ModMobEffects.FROSTBITE.get())) {
             entity.removeEffect(ModMobEffects.FROSTBITE.get());
         }
+    }
+
+    public static void applyFireFrostMelt(LivingEntity target, LivingEntity attacker, int firePower) {
+        if (target.level().isClientSide) return;
+        int stacks = getFrostbiteStacks(target);
+        if (stacks <= 0) return;
+
+        clearFrostbite(target);
+
+        int maxWetness = ElementalFireNatureReactionsConfig.wetnessMaxLevel;
+        int newWetness = Math.min(stacks, maxWetness);
+        target.getPersistentData().putInt(WetnessHandler.NBT_WETNESS, newWetness);
+        target.getPersistentData().putInt(WetnessHandler.NBT_DECAY_TIMER, 0);
+
+        if (target.level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 1, target.getZ(), 15, 0.5, 0.5, 0.5, 0.05);
+        }
+        target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5f, 1.5f);
+
+        int required = ElementalThunderFrostReactionsConfig.fireFrostMeltBaseThreshold + (stacks - 1) * ElementalThunderFrostReactionsConfig.fireFrostMeltAdditionalCost;
+        DebugCommand.sendFireFrostMeltLog(target, attacker, stacks, firePower, required);
+
+        target.getPersistentData().putBoolean("EC_FireFrostMeltResolved", true);
     }
 
     private static boolean checkHeatSource(Level level, BlockPos center) {
@@ -499,37 +577,6 @@ public class FrostbiteHandler {
             }
         }
         return false;
-    }
-
-    public static void triggerThermalShock(LivingEntity target, LivingEntity attacker) {
-        if (target.level().isClientSide) return;
-        CompoundTag data = target.getPersistentData();
-        int stacks = data.getInt(NBT_FROZEN_FROSTBITE_STACKS);
-
-        float damage = (float) (ElementalThunderFrostReactionsConfig.frostbiteThermalShockBaseDamage + stacks * ElementalThunderFrostReactionsConfig.frostbiteThermalShockPerStack);
-
-        if (target.hasEffect(ModMobEffects.FREEZE.get())) {
-            target.removeEffect(ModMobEffects.FREEZE.get());
-        }
-        data.remove(NBT_FROZEN_FROSTBITE_STACKS);
-        data.putLong(NBT_FREEZE_COOLDOWN, target.level().getGameTime() + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
-
-        ElementDamageHelper.applyDamage(target, damage, ModDamageTypes.source(target.level(), ModDamageTypes.FROSTBITE_THERMAL_SHOCK, attacker));
-
-        SteamReactionHandler.spawnSteamCloud(target, true, stacks);
-
-        if (target.level() instanceof ServerLevel serverLevel) {
-            serverLevel.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 1, target.getZ(), 30, 1.0, 1.0, 1.0, 0.1);
-            serverLevel.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + 1, target.getZ(), 20, 0.5, 0.5, 0.5, 0.05);
-        }
-        target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 1.0f, 0.5f);
-
-        DebugCommand.ThermalShockLogContext tsctx = new DebugCommand.ThermalShockLogContext();
-        tsctx.target = target;
-        tsctx.attacker = attacker;
-        tsctx.frostbiteStacks = stacks;
-        tsctx.damage = damage;
-        DebugCommand.sendThermalShockLog(tsctx);
     }
 
     public static boolean isOnFreezeCooldown(LivingEntity entity) {
@@ -592,6 +639,15 @@ public class FrostbiteHandler {
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onLivingHurt(LivingHurtEvent event) {
+        if (event.getEntity().level().isClientSide) return;
+        if ((event.getEntity().hasEffect(ModMobEffects.FROSTBITE.get()) || event.getEntity().hasEffect(ModMobEffects.FREEZE.get()))
+                && event.getSource().is(DamageTypeTags.IS_FREEZING)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onLivingAttack(LivingAttackEvent event) {
         if (event.getEntity().level().isClientSide) return;
         LivingEntity target = event.getEntity();
@@ -616,19 +672,6 @@ public class FrostbiteHandler {
             }
         }
 
-        if (sourceIsFire(event.getSource()) && isFrozen(target)) {
-            event.setCanceled(true);
-            Entity attackerEntity = event.getSource().getEntity();
-            if (attackerEntity instanceof LivingEntity attacker) {
-                triggerThermalShock(target, attacker);
-            } else {
-                triggerThermalShock(target, target);
-            }
-        }
-    }
-
-    private static boolean sourceIsFire(DamageSource source) {
-        return source.is(DamageTypeTags.IS_FIRE);
     }
 
     public static void spawnSteamCloud(LivingEntity target, boolean isHighHeat, int fuelLevel) {
@@ -642,6 +685,26 @@ public class FrostbiteHandler {
         double maxRange = ElementalThunderFrostReactionsConfig.frostbiteAuraMaxRange;
         double range = base + (stacks - threshold) * perExtra;
         return Math.min(range, maxRange);
+    }
+
+    private static int targetInStaticAuraRange(LivingEntity target, LivingEntity exclude) {
+        double maxPossibleStaticRange = ElementalThunderFrostReactionsConfig.staticAuraBaseRange * ElementalThunderFrostReactionsConfig.staticMaxTotalStacks;
+        AABB searchArea = new AABB(
+                target.getX() - maxPossibleStaticRange, target.getY() - maxPossibleStaticRange, target.getZ() - maxPossibleStaticRange,
+                target.getX() + maxPossibleStaticRange, target.getY() + maxPossibleStaticRange, target.getZ() + maxPossibleStaticRange
+        );
+        int maxStacks = 0;
+        for (LivingEntity source : target.level().getEntitiesOfClass(LivingEntity.class, searchArea)) {
+            if (source == target || source == exclude) continue;
+            CompoundTag data = source.getPersistentData();
+            if (!data.contains(StaticShockHandler.NBT_STATIC_STACKS)) continue;
+            int stacks = data.getInt(StaticShockHandler.NBT_STATIC_STACKS);
+            if (stacks < ElementalThunderFrostReactionsConfig.staticAuraThreshold) continue;
+            double range = stacks * ElementalThunderFrostReactionsConfig.staticAuraBaseRange;
+            if (source.distanceToSqr(target) > range * range) continue;
+            if (stacks > maxStacks) maxStacks = stacks;
+        }
+        return maxStacks;
     }
 
     private static void applyFrostbiteAuraEffects(LivingEntity source, int stacks) {
@@ -662,16 +725,6 @@ public class FrostbiteHandler {
             double horizontalDist = Math.sqrt(dx * dx + dz * dz);
             if (horizontalDist > range) continue;
 
-            if (ElementalThunderFrostReactionsConfig.frostbiteAuraExcludeFriendly) {
-                if (target instanceof Player) continue;
-                if (target instanceof TamableAnimal pet && pet.isTame() && pet.getOwner() != null) continue;
-                if (target instanceof AbstractHorse horse && horse.getOwnerUUID() != null) continue;
-            }
-
-            if (ElementalThunderFrostReactionsConfig.frostbiteAuraOnlyHostile) {
-                if (target.getType().getCategory() != MobCategory.MONSTER) continue;
-            }
-
             if (WetnessHandler.getWetnessLevel(target) > 0 && !isFrostbiteImmune(target) && !isFreezeImmune(target)) {
                 boolean sourceHasStaticAura = source.getPersistentData().contains(StaticShockHandler.NBT_STATIC_STACKS)
                         && source.getPersistentData().getInt(StaticShockHandler.NBT_STATIC_STACKS) >= ElementalThunderFrostReactionsConfig.staticAuraThreshold;
@@ -681,6 +734,24 @@ public class FrostbiteHandler {
                         continue;
                     }
                     if (stacks == staticStacks && RANDOM.nextBoolean()) {
+                        continue;
+                    }
+                }
+                int targetStaticStacks = target.getPersistentData().getInt(StaticShockHandler.NBT_STATIC_STACKS);
+                if (targetStaticStacks >= ElementalThunderFrostReactionsConfig.staticAuraThreshold) {
+                    if (stacks < targetStaticStacks) {
+                        continue;
+                    }
+                    if (stacks == targetStaticStacks && RANDOM.nextBoolean()) {
+                        continue;
+                    }
+                }
+                int nearbyStaticStacks = targetInStaticAuraRange(target, source);
+                if (nearbyStaticStacks > 0) {
+                    if (stacks < nearbyStaticStacks) {
+                        continue;
+                    }
+                    if (stacks == nearbyStaticStacks && RANDOM.nextBoolean()) {
                         continue;
                     }
                 }
@@ -695,6 +766,25 @@ public class FrostbiteHandler {
                 if (existingStacks <= 0) existingStacks = 1;
                 target.addEffect(new MobEffectInstance(
                         ModMobEffects.FREEZE.get(), 60, existingStacks - 1, false, false, true));
+            }
+
+            if (ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled
+                    && ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
+                    && target.hasEffect(ModMobEffects.SPORES.get())) {
+                MobEffectInstance sporeInstance = target.getEffect(ModMobEffects.SPORES.get());
+                if (sporeInstance != null) {
+                    int extraDecay = (int) ElementalThunderFrostReactionsConfig.frostbiteSporeDecaySpeed - 1;
+                    if (extraDecay > 0) {
+                        int newDuration = sporeInstance.getDuration() - extraDecay;
+                        if (newDuration <= 0) {
+                            target.removeEffect(ModMobEffects.SPORES.get());
+                        } else {
+                            target.removeEffect(ModMobEffects.SPORES.get());
+                            target.addEffect(new MobEffectInstance(ModMobEffects.SPORES.get(), newDuration,
+                                    sporeInstance.getAmplifier(), sporeInstance.isAmbient(), sporeInstance.isVisible(), sporeInstance.showIcon()));
+                        }
+                    }
+                }
             }
         }
     }
@@ -719,16 +809,6 @@ public class FrostbiteHandler {
             double horizontalDist = Math.sqrt(dx * dx + dz * dz);
             if (horizontalDist > range) continue;
 
-            if (ElementalThunderFrostReactionsConfig.frostbiteAuraExcludeFriendly) {
-                if (target instanceof Player) continue;
-                if (target instanceof TamableAnimal pet && pet.isTame() && pet.getOwner() != null) continue;
-                if (target instanceof AbstractHorse horse && horse.getOwnerUUID() != null) continue;
-            }
-
-            if (ElementalThunderFrostReactionsConfig.frostbiteAuraOnlyHostile) {
-                if (target.getType().getCategory() != MobCategory.MONSTER) continue;
-            }
-
             float damage = baseDamage;
             ElementType targetElement = ElementUtils.getConsistentAttackElement(target);
             if (targetElement == ElementType.FIRE) {
@@ -741,6 +821,23 @@ public class FrostbiteHandler {
                 damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFrostMultiplier;
             }
             ElementDamageHelper.applyDamage(target, damage, target.damageSources().freeze());
+
+            if (ElementalThunderFrostReactionsConfig.frostScorchSteamReactionEnabled) {
+                CompoundTag targetData = target.getPersistentData();
+                if (targetData.contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+                    int firePower = targetData.getInt(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
+                    target.clearFire();
+                    targetData.remove(ScorchedHandler.NBT_SCORCHED_TICKS);
+                    targetData.remove(ScorchedHandler.NBT_SCORCHED_STRENGTH);
+                    targetData.remove(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
+                    targetData.remove(ScorchedHandler.NBT_SCORCHED_DAMAGE_MULT);
+
+                    int step = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
+                    int level = Math.max(1, Math.min(firePower / step + stacks, ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel));
+                    SteamReactionHandler.spawnSteamCloud(target, false, level);
+                }
+            }
+
             DebugCommand.AuraDamageLogContext actx = new DebugCommand.AuraDamageLogContext();
             actx.source = source;
             actx.target = target;

@@ -28,8 +28,6 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.IntValue SPORE_REACTION_THRESHOLD;
     public static final ForgeConfigSpec.DoubleValue SPORE_POISON_DAMAGE;
     public static final ForgeConfigSpec.IntValue SPORE_DAMAGE_INTERVAL;
-    public static final ForgeConfigSpec.DoubleValue SPORE_SPEED_REDUCTION;
-    public static final ForgeConfigSpec.DoubleValue SPORE_PHYS_RESIST;
     public static final ForgeConfigSpec.DoubleValue SPORE_FIRE_VULN_PER_STACK;
     public static final ForgeConfigSpec.IntValue SPORE_DURATION_PER_STACK;
     public static final ForgeConfigSpec.DoubleValue SPORE_FIRE_DURATION_REDUCTION;
@@ -37,10 +35,11 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue SPORE_THUNDER_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue SPORE_FROST_DURATION_MULTIPLIER;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SPORE_ENTITY_BLACKLIST;
+    public static final ForgeConfigSpec.IntValue SPORE_DURABILITY_DAMAGE;
     public static final ForgeConfigSpec.IntValue CONTAGION_CHECK_INTERVAL;
     public static final ForgeConfigSpec.DoubleValue CONTAGION_BASE_RADIUS;
     public static final ForgeConfigSpec.DoubleValue CONTAGION_RADIUS_PER_STACK;
-    public static final ForgeConfigSpec.DoubleValue CONTAGION_INTENSITY_RATIO;
+    public static final ForgeConfigSpec.IntValue CONTAGION_TRANSFER_BASE;
     public static final ForgeConfigSpec.BooleanValue CONTAGION_ONLY_HOSTILE;
     public static final ForgeConfigSpec.BooleanValue CONTAGION_ALLOW_INFECTED_SPREAD;
     public static final ForgeConfigSpec.BooleanValue CONTAGION_ALLOW_REINFECTED;
@@ -70,6 +69,7 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue BLAST_BASE_SCORCH_TIME;
     public static final ForgeConfigSpec.DoubleValue BLAST_GROWTH_SCORCH_TIME;
     public static final ForgeConfigSpec.BooleanValue BLAST_CHAIN_REACTION;
+    public static final ForgeConfigSpec.BooleanValue SPORE_ENVIRONMENTAL_BLAST_ENABLED;
     public static final ForgeConfigSpec.DoubleValue BLAST_MAX_BLAST_PROT_CAP;
     public static final ForgeConfigSpec.DoubleValue BLAST_MAX_GENERAL_PROT_CAP;
     public static final ForgeConfigSpec.DoubleValue ENCHANTMENT_CALCULATION_DENOMINATOR;
@@ -122,13 +122,17 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue SCORCHED_THUNDER_DURATION_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue SCORCHED_FROST_DURATION_MULTIPLIER;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SCORCHED_ENTITY_BLACKLIST;
-    public static final ForgeConfigSpec.BooleanValue FROST_SCORCHED_STEAM_ENABLED;
     public static final ForgeConfigSpec.BooleanValue SCORCHED_AURA_ENABLED;
     public static final ForgeConfigSpec.IntValue SCORCHED_AURA_FIRE_POWER_THRESHOLD;
     public static final ForgeConfigSpec.DoubleValue SCORCHED_AURA_RADIUS;
     public static final ForgeConfigSpec.IntValue SCORCHED_AURA_DAMAGE_INTERVAL;
     public static final ForgeConfigSpec.BooleanValue SCORCHED_AURA_STEAM_ENABLED;
     public static final ForgeConfigSpec.BooleanValue SCORCHED_AURA_SPORE_DETONATION_ENABLED;
+
+    public static final ForgeConfigSpec.DoubleValue SCORCHED_FROST_DMG_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue SCORCHED_NATURE_DMG_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue SCORCHED_FIRE_DMG_MULTIPLIER;
+    public static final ForgeConfigSpec.DoubleValue SCORCHED_THUNDER_DMG_MULTIPLIER;
 
     static {
     ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
@@ -375,8 +379,8 @@ public class ElementalFireNatureReactionsConfig {
     STEAM_CONDENSATION_DURATION_BASE = BUILDER
             .comment("低温蒸汽云的基础持续时间（Tick）。",
                     "Base duration (Ticks) for Low-Heat Steam clouds.",
-                    "Default: 100")
-            .defineInRange("steam_condensation_duration_base", 100, 20, 12000);
+                    "Default: 200")
+            .defineInRange("steam_condensation_duration_base", 200, 20, 12000);
     BUILDER.comment("");
 
     STEAM_CONDENSATION_DURATION_PER_LEVEL = BUILDER
@@ -666,15 +670,6 @@ public class ElementalFireNatureReactionsConfig {
             .defineListAllowEmpty("scorched_entity_blacklist", List.of(), o -> o instanceof String);
     BUILDER.comment("");
 
-    FROST_SCORCHED_STEAM_ENABLED = BUILDER
-            .comment("霜冻与灼烧同时存在时，是否触发高温蒸汽云反应？",
-                    "触发时会清除两种效果，并根据灼烧施加者的赤焰强化值和霜冻层数计算蒸汽等级。",
-                    "Whether to trigger High-Heat Steam cloud when Frostbite and Scorched coexist on the same entity.",
-                    "Clears both effects and calculates steam level based on the Scorched applier's Fire power and Frostbite stacks.",
-                    "Default: true")
-            .define("frost_scorched_steam_enabled", true);
-    BUILDER.comment("");
-
     BUILDER.push("scorched_aura");
     BUILDER.comment("灼烧光环 - Scorched Aura",
             "灼烧状态的生物对周围3x3范围（Y值一致）内的其他生物造成烫伤伤害，同时脚底出现火焰粒子光环。",
@@ -729,6 +724,36 @@ public class ElementalFireNatureReactionsConfig {
     BUILDER.comment("");
 
     BUILDER.pop();
+    BUILDER.pop();
+
+    BUILDER.push("scorched_damage_multipliers");
+    BUILDER.comment("Elemental Damage Multipliers against Scorched Targets",
+                    "对灼烧目标的元素伤害倍率");
+
+    SCORCHED_FROST_DMG_MULTIPLIER = BUILDER
+            .comment("Damage multiplier when Frost attacks a scorched target.",
+                    "冰霜属性攻击灼烧目标时的伤害倍率。",
+                    "Default: 0.5")
+            .defineInRange("scorched_frost_dmg_multiplier", 0.5, 0.0, 10.0);
+
+    SCORCHED_NATURE_DMG_MULTIPLIER = BUILDER
+            .comment("Damage multiplier when Nature attacks a scorched target.",
+                    "自然属性攻击灼烧目标时的伤害倍率。",
+                    "Default: 1.5")
+            .defineInRange("scorched_nature_dmg_multiplier", 1.5, 0.0, 10.0);
+
+    SCORCHED_FIRE_DMG_MULTIPLIER = BUILDER
+            .comment("Damage multiplier when Fire attacks a scorched target.",
+                    "赤焰属性攻击灼烧目标时的伤害倍率。",
+                    "Default: 1.0")
+            .defineInRange("scorched_fire_dmg_multiplier", 1.0, 0.0, 10.0);
+
+    SCORCHED_THUNDER_DMG_MULTIPLIER = BUILDER
+            .comment("Damage multiplier when Thunder attacks a scorched target.",
+                    "雷霆属性攻击灼烧目标时的伤害倍率。",
+                    "Default: 1.0")
+            .defineInRange("scorched_thunder_dmg_multiplier", 1.0, 0.0, 10.0);
+
     BUILDER.pop();
 
     BUILDER.push("nature_reaction");
@@ -817,19 +842,6 @@ public class ElementalFireNatureReactionsConfig {
             .defineInRange("spore_damage_interval", 40, 1, 12000);
     BUILDER.comment("");
 
-    SPORE_SPEED_REDUCTION = BUILDER
-            .comment("每一层易燃孢子效果造成的减速比例。(0.1 = 10%)",
-                    "Percentage of slowness applied per Flammable Spore stack. (0.1 = 10%)",
-                    "Default: 0.1")
-            .defineInRange("spore_speed_reduction", 0.1, 0.0, 0.5);
-    BUILDER.comment("");
-
-    SPORE_PHYS_RESIST = BUILDER
-            .comment("每一层易燃孢子提供的物理伤害减免比例。(0.05 = 5%)",
-                    "Percentage of physical resistance provided per Flammable Spore stack. (0.05 = 5%)",
-                    "Default: 0.05")
-            .defineInRange("spore_phys_resist", 0.05, 0.0, 0.5);
-    BUILDER.comment("");
 
     SPORE_FIRE_VULN_PER_STACK = BUILDER
             .comment("每一层孢子增加受到的赤焰属性伤害比例。(0.1 = 10%)",
@@ -878,6 +890,16 @@ public class ElementalFireNatureReactionsConfig {
                     "Flammable Spore immunity blacklist (Entity IDs, e.g., minecraft:creeper).",
                     "Default: []")
             .defineListAllowEmpty("spore_entity_blacklist", List.of(), o -> o instanceof String);
+    BUILDER.comment("");
+
+    SPORE_DURABILITY_DAMAGE = BUILDER
+            .comment("每秒对穿戴装备的耐久度侵蚀值。0 = 关闭此功能。",
+                     "例如设为 1：每秒减少1点耐久。",
+                     "层数决定侵蚀几件装备：1层→1件，2层→2件，5层→全部护甲+主手。",
+                     "Durability damage per second to worn equipment. 0 = disable.",
+                     "Stacks determine how many pieces are affected: 1→1, 2→2, 5→all armor+mainhand.",
+                     "Default: 1")
+            .defineInRange("spore_durability_damage", 1, 0, 100);
     BUILDER.pop();
 
     BUILDER.push("contagion_system");
@@ -914,11 +936,13 @@ public class ElementalFireNatureReactionsConfig {
             .defineInRange("contagion_radius_per_stack", 1.0, 0.0, 5.0);
     BUILDER.comment("");
 
-    CONTAGION_INTENSITY_RATIO = BUILDER
-            .comment("传染时，传递给受害者的易燃孢子层数比例。(0.2 = 20%)",
-                    "Ratio of Flammable Spore stacks transferred to the victim during contagion. (0.2 = 20%)",
-                    "Default: 0.2")
-            .defineInRange("contagion_intensity_ratio", 0.2, 0.0, 1.0);
+    CONTAGION_TRANSFER_BASE = BUILDER
+            .comment("传染时，孢子层数减去该值即为转移层数（最小为1）。",
+                     "例如设为 2：3层→1层，4层→2层，5层→3层。",
+                     "Transfer stacks = max(1, source_stacks - this_value).",
+                     "Example (value=2): 3 stacks→1, 4 stacks→2, 5 stacks→3.",
+                     "Default: 2")
+            .defineInRange("contagion_transfer_base", 2, 0, 10);
     BUILDER.comment("");
 
     CONTAGION_ONLY_HOSTILE = BUILDER
@@ -1016,6 +1040,13 @@ public class ElementalFireNatureReactionsConfig {
                     "Minimum Fire points required to trigger Toxic Blast (detonate Flammable Spores).",
                     "Default: 50.0")
             .defineInRange("blast_trigger_threshold", 50.0, 0.0, 10000.0);
+    BUILDER.comment("");
+
+     SPORE_ENVIRONMENTAL_BLAST_ENABLED = BUILDER
+            .comment("Environmentally triggered Toxic Blast (magma, lava, fire, Nether).",
+                     "生物在岩浆块/熔岩/火焰中受伤或进入下界时，直接触发毒火爆燃。",
+                     "Default: true")
+            .define("spore_environmental_blast_enabled", true);
     BUILDER.comment("");
 
     BLAST_WEAK_IGNITE_MULT = BUILDER
@@ -1138,11 +1169,10 @@ public class ElementalFireNatureReactionsConfig {
     public static boolean wetnessNetherDimensionImmune;
     public static List<? extends String> cachedWetnessBlacklist;
     public static int sporeMaxStacks;
+    public static boolean sporeEnvironmentalBlastEnabled;
     public static int sporeReactionThreshold;
     public static double sporePoisonDamage;
     public static int sporeDamageInterval;
-    public static double sporeSpeedReduction;
-    public static double sporePhysResist;
     public static double sporeFireVulnPerStack;
     public static int sporeDurationPerStack;
     public static double sporeThunderMultiplier;
@@ -1150,10 +1180,11 @@ public class ElementalFireNatureReactionsConfig {
     public static double sporeNatureDurationMultiplier;
     public static double sporeFrostDurationMultiplier;
     public static List<? extends String> cachedSporeBlacklist;
+    public static int sporeDurabilityDamage;
     public static int contagionCheckInterval;
+    public static int contagionTransferBase;
     public static double contagionBaseRadius;
     public static double contagionRadiusPerStack;
-    public static double contagionIntensityRatio;
     public static boolean contagionOnlyHostile;
     public static boolean contagionAllowInfectedSpread;
     public static boolean contagionAllowReinfected;
@@ -1235,13 +1266,16 @@ public class ElementalFireNatureReactionsConfig {
     public static double scorchedThunderDurationMultiplier;
     public static double scorchedFrostDurationMultiplier;
     public static List<? extends String> cachedScorchedBlacklist;
-    public static boolean frostScorchedSteamEnabled;
     public static boolean scorchedAuraEnabled;
     public static int scorchedAuraFirePowerThreshold;
     public static double scorchedAuraRadius;
     public static int scorchedAuraDamageInterval;
     public static boolean scorchedAuraSteamEnabled;
     public static boolean scorchedAuraSporeDetonationEnabled;
+    public static double scorchedFrostDmgMultiplier;
+    public static double scorchedNatureDmgMultiplier;
+    public static double scorchedFireDmgMultiplier;
+    public static double scorchedThunderDmgMultiplier;
 
     public static void refreshCache() {
         wetnessMaxLevel = WETNESS_MAX_LEVEL.get();
@@ -1261,11 +1295,10 @@ public class ElementalFireNatureReactionsConfig {
         wetnessNetherDimensionImmune = WETNESS_NETHER_DIMENSION_IMMUNE.get();
         cachedWetnessBlacklist = WETNESS_ENTITY_BLACKLIST.get();
         sporeMaxStacks = SPORE_MAX_STACKS.get();
+        sporeEnvironmentalBlastEnabled = SPORE_ENVIRONMENTAL_BLAST_ENABLED.get();
         sporeReactionThreshold = SPORE_REACTION_THRESHOLD.get();
         sporePoisonDamage = SPORE_POISON_DAMAGE.get();
         sporeDamageInterval = SPORE_DAMAGE_INTERVAL.get();
-        sporeSpeedReduction = SPORE_SPEED_REDUCTION.get();
-        sporePhysResist = SPORE_PHYS_RESIST.get();
         sporeFireVulnPerStack = SPORE_FIRE_VULN_PER_STACK.get();
         sporeDurationPerStack = SPORE_DURATION_PER_STACK.get();
         sporeFireDurationReduction = SPORE_FIRE_DURATION_REDUCTION.get();
@@ -1273,10 +1306,11 @@ public class ElementalFireNatureReactionsConfig {
         sporeThunderMultiplier = SPORE_THUNDER_MULTIPLIER.get();
         sporeFrostDurationMultiplier = SPORE_FROST_DURATION_MULTIPLIER.get();
         cachedSporeBlacklist = SPORE_ENTITY_BLACKLIST.get();
+        sporeDurabilityDamage = SPORE_DURABILITY_DAMAGE.get();
         contagionCheckInterval = CONTAGION_CHECK_INTERVAL.get();
+        contagionTransferBase = CONTAGION_TRANSFER_BASE.get();
         contagionBaseRadius = CONTAGION_BASE_RADIUS.get();
         contagionRadiusPerStack = CONTAGION_RADIUS_PER_STACK.get();
-        contagionIntensityRatio = CONTAGION_INTENSITY_RATIO.get();
         contagionOnlyHostile = CONTAGION_ONLY_HOSTILE.get();
         contagionAllowInfectedSpread = CONTAGION_ALLOW_INFECTED_SPREAD.get();
         contagionAllowReinfected = CONTAGION_ALLOW_REINFECTED.get();
@@ -1358,13 +1392,16 @@ public class ElementalFireNatureReactionsConfig {
         scorchedThunderDurationMultiplier = SCORCHED_THUNDER_DURATION_MULTIPLIER.get();
         scorchedFrostDurationMultiplier = SCORCHED_FROST_DURATION_MULTIPLIER.get();
         cachedScorchedBlacklist = SCORCHED_ENTITY_BLACKLIST.get();
-        frostScorchedSteamEnabled = FROST_SCORCHED_STEAM_ENABLED.get();
         scorchedAuraEnabled = SCORCHED_AURA_ENABLED.get();
         scorchedAuraFirePowerThreshold = SCORCHED_AURA_FIRE_POWER_THRESHOLD.get();
         scorchedAuraRadius = SCORCHED_AURA_RADIUS.get();
         scorchedAuraDamageInterval = SCORCHED_AURA_DAMAGE_INTERVAL.get();
         scorchedAuraSteamEnabled = SCORCHED_AURA_STEAM_ENABLED.get();
         scorchedAuraSporeDetonationEnabled = SCORCHED_AURA_SPORE_DETONATION_ENABLED.get();
+        scorchedFrostDmgMultiplier = SCORCHED_FROST_DMG_MULTIPLIER.get();
+        scorchedNatureDmgMultiplier = SCORCHED_NATURE_DMG_MULTIPLIER.get();
+        scorchedFireDmgMultiplier = SCORCHED_FIRE_DMG_MULTIPLIER.get();
+        scorchedThunderDmgMultiplier = SCORCHED_THUNDER_DMG_MULTIPLIER.get();
     }
 
     @SuppressWarnings("deprecation")

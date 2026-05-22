@@ -11,12 +11,14 @@ import com.xulai.elementalcraft.util.ElementUtils;
 import com.xulai.elementalcraft.util.ElementDamageHelper;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -40,6 +42,7 @@ public class ScorchedHandler {
 
     public static void applyScorched(LivingEntity target, LivingEntity attacker, int fireStrength, int duration, int sourceFirePower, float damageMultiplier, boolean bypassCooldown) {
         if (target.level().isClientSide) return;
+        if (target instanceof Player player && player.isCreative()) return;
         var key = ForgeRegistries.ENTITY_TYPES.getKey(target.getType());
         if (key == null) return;
         String entityId = key.toString();
@@ -122,6 +125,7 @@ public class ScorchedHandler {
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide) return;
+        if (entity instanceof Player player && player.isCreative()) return;
 
         CompoundTag data = entity.getPersistentData();
         if (data.contains(NBT_ATTACKER_SCORCHED_COOLDOWN)) {
@@ -153,11 +157,11 @@ public class ScorchedHandler {
             return;
         }
 
-        if (FrostbiteHandler.hasFrostbite(entity) && ElementalFireNatureReactionsConfig.frostScorchedSteamEnabled) {
+        if (FrostbiteHandler.hasFrostbite(entity) && ElementalThunderFrostReactionsConfig.frostScorchSteamReactionEnabled) {
             int sourceFirePower = data.getInt(NBT_SCORCHED_SOURCE_FIRE_POWER);
             int frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(entity);
             int fireStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
-            int level = Math.max(1, Math.min(sourceFirePower / fireStep + frostbiteStacks, ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel));
+            int level = Math.max(1, Math.min(sourceFirePower / fireStep + frostbiteStacks, ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel));
 
             FrostbiteHandler.clearFrostbite(entity);
             entity.clearFire();
@@ -166,7 +170,10 @@ public class ScorchedHandler {
             data.remove(NBT_SCORCHED_SOURCE_FIRE_POWER);
             data.remove(NBT_SCORCHED_DAMAGE_MULT);
 
-            SteamReactionHandler.spawnSteamCloud(entity, true, level);
+            SteamReactionHandler.spawnSteamCloud(entity, false, level);
+            DebugCommand.sendReactionSuccess(entity, "scorch_frost_steam",
+                    entity.getDisplayName(),
+                    Component.literal(String.valueOf(level)));
             return;
         }
 
@@ -222,7 +229,11 @@ public class ScorchedHandler {
         if (!entity.getPersistentData().contains(NBT_SCORCHED_TICKS)) return;
         DamageSource source = event.getSource();
         if (source.is(DamageTypeTags.IS_FIRE) && !source.is(ModDamageTypes.LAVA_MAGIC)) {
-            event.setCanceled(true);
+            if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null && entity.hasEffect(ModMobEffects.SPORES.get())) {
+                event.setAmount(0.001f);
+            } else {
+                event.setCanceled(true);
+            }
         }
     }
 
@@ -263,9 +274,14 @@ public class ScorchedHandler {
 
         for (LivingEntity target : nearby) {
             if (target.isDeadOrDying()) continue;
-            if (target.fireImmune()) continue;
+            boolean fireImmune = target.fireImmune();
+
             int resist = ElementUtils.getDisplayResistance(target, ElementType.FIRE);
             if (resist >= resistThreshold) continue;
+
+            double dx = target.getX() - source.getX();
+            double dz = target.getZ() - source.getZ();
+            if (Math.sqrt(dx * dx + dz * dz) > radius) continue;
 
             if (steamEnabled) {
                 CompoundTag targetData = target.getPersistentData();
@@ -296,7 +312,8 @@ public class ScorchedHandler {
 
             if (ElementalFireNatureReactionsConfig.scorchedAuraSporeDetonationEnabled
                     && ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
-                    && target.hasEffect(ModMobEffects.SPORES.get())) {
+                    && target.hasEffect(ModMobEffects.SPORES.get())
+                    && !(ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled && FrostbiteHandler.hasFrostbite(target))) {
                 MobEffectInstance sporeEffect = target.getEffect(ModMobEffects.SPORES.get());
                 int sporeStacks = sporeEffect.getAmplifier() + 1;
                 if (sporeStacks >= ElementalFireNatureReactionsConfig.sporeReactionThreshold) {
@@ -319,6 +336,9 @@ public class ScorchedHandler {
             }
             if (target.hasEffect(ModMobEffects.SPORES.get())) {
                 auraDamage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierSpore;
+            }
+            if (fireImmune) {
+                auraDamage *= (float) ElementalFireNatureReactionsConfig.scorchedImmuneModifier;
             }
             ElementDamageHelper.applyDamage(target, auraDamage, ModDamageTypes.source(level, ModDamageTypes.STEAM_SCALDING));
             DebugCommand.AuraDamageLogContext sactx = new DebugCommand.AuraDamageLogContext();

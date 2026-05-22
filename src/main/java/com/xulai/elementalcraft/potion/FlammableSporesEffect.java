@@ -1,34 +1,33 @@
 package com.xulai.elementalcraft.potion;
 
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
+import com.xulai.elementalcraft.event.FrostbiteHandler;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.util.EffectHelper;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FlammableSporesEffect extends MobEffect {
 
-    private static final UUID SPEED_MODIFIER_UUID = UUID.fromString("7107DE5E-7CE8-4030-940E-514C1F160890");
-    private static final UUID ATTACK_SPEED_MODIFIER_UUID = UUID.fromString("FA233E1C-4180-4865-B01B-BCCE9785ACA3");
-
     public FlammableSporesEffect() {
         super(MobEffectCategory.HARMFUL, 0x2E8B57);
-
-        this.addAttributeModifier(Attributes.MOVEMENT_SPEED, SPEED_MODIFIER_UUID.toString(),
-                -0.1, AttributeModifier.Operation.MULTIPLY_TOTAL);
-
-        this.addAttributeModifier(Attributes.ATTACK_SPEED, ATTACK_SPEED_MODIFIER_UUID.toString(),
-                -0.1, AttributeModifier.Operation.MULTIPLY_TOTAL);
     }
 
     @Override
     public void applyEffectTick(LivingEntity entity, int amplifier) {
         if (!entity.level().isClientSide) {
+            if (ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled
+                    && FrostbiteHandler.hasFrostbite(entity)) {
+                return;
+            }
+
             int damageInterval = ElementalFireNatureReactionsConfig.sporeDamageInterval;
             if (damageInterval <= 0) {
                 damageInterval = 100;
@@ -41,24 +40,45 @@ public class FlammableSporesEffect extends MobEffect {
                 }
             }
 
+            if (entity.tickCount % 20 == 0) {
+                int durabilityDamage = ElementalFireNatureReactionsConfig.sporeDurabilityDamage;
+                if (durabilityDamage > 0) {
+                    int stacks = amplifier + 1;
+                    if (stacks >= 5) {
+                        for (EquipmentSlot slot : new EquipmentSlot[]{
+                                EquipmentSlot.HEAD, EquipmentSlot.CHEST,
+                                EquipmentSlot.LEGS, EquipmentSlot.FEET,
+                                EquipmentSlot.MAINHAND}) {
+                            ItemStack stack = entity.getItemBySlot(slot);
+                            if (!stack.isEmpty() && stack.isDamageableItem()) {
+                                stack.hurtAndBreak(durabilityDamage, entity, s -> {});
+                            }
+                        }
+                    } else {
+                        List<EquipmentSlot> slots = new ArrayList<>();
+                        for (EquipmentSlot slot : EquipmentSlot.values()) {
+                            ItemStack stack = entity.getItemBySlot(slot);
+                            if (!stack.isEmpty() && stack.isDamageableItem()) {
+                                slots.add(slot);
+                            }
+                        }
+                        for (int i = 0; i < stacks && !slots.isEmpty(); i++) {
+                            EquipmentSlot targetSlot = slots.remove(entity.getRandom().nextInt(slots.size()));
+                            entity.getItemBySlot(targetSlot).hurtAndBreak(durabilityDamage, entity, s -> {});
+                        }
+                    }
+                }
+            }
+
             if (entity.tickCount % 2 == 0) {
                 EffectHelper.playSporeAmbient(entity);
             }
+
         }
     }
 
     @Override
     public boolean isDurationEffectTick(int pDuration, int pAmplifier) {
         return true;
-    }
-
-    @Override
-    public double getAttributeModifierValue(int pAmplifier, AttributeModifier pModifier) {
-        if (pModifier.getId().equals(SPEED_MODIFIER_UUID) || pModifier.getId().equals(ATTACK_SPEED_MODIFIER_UUID)) {
-            double reductionPerStack = ElementalFireNatureReactionsConfig.sporeSpeedReduction;
-            double totalReduction = -reductionPerStack * (pAmplifier + 1);
-            return Math.max(totalReduction, -0.95);
-        }
-        return super.getAttributeModifierValue(pAmplifier, pModifier);
     }
 }

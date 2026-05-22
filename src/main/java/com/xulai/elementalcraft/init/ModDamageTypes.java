@@ -40,6 +40,11 @@ public class ModDamageTypes {
             new ResourceLocation(ElementalCraft.MODID, "frostbite_thermal_shock")
     );
 
+    public static final ResourceKey<DamageType> TOXIC_BLAST = ResourceKey.create(
+            Registries.DAMAGE_TYPE,
+            new ResourceLocation(ElementalCraft.MODID, "toxic_blast")
+    );
+
     public static DamageSource source(Level level, ResourceKey<DamageType> key) {
         return new DamageSource(
                 level.registryAccess()

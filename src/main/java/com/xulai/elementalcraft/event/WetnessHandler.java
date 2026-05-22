@@ -161,6 +161,7 @@ public class WetnessHandler {
     }
 
     private static void handleWetnessLogic(LivingEntity entity) {
+        if (entity instanceof Player player && player.isCreative()) return;
         if (entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
             if (getWetnessLevel(entity) > 0) {
                 clearWetnessData(entity);
@@ -246,8 +247,6 @@ public class WetnessHandler {
                 }
             }
         }
-        syncEffect(entity, currentLevel, inWater || inPrecipitation || inCondensingCloud);
-
         if (currentLevel > 0 && !data.getBoolean(NBT_REACTION_RESOLVED)) {
             boolean hasStatic = data.getInt(StaticShockHandler.NBT_STATIC_STACKS) > 0;
             boolean hasFrostbite = FrostbiteHandler.hasFrostbite(entity);
@@ -257,6 +256,10 @@ public class WetnessHandler {
                 }
                 data.putBoolean(NBT_REACTION_RESOLVED, true);
             }
+        }
+
+        if (getWetnessLevel(entity) > 0) {
+            syncEffect(entity, currentLevel, inWater || inPrecipitation || inCondensingCloud);
         }
     }
 
@@ -371,8 +374,12 @@ public class WetnessHandler {
         }
 
         if (ModMobEffects.SPORES.isPresent() && entity.hasEffect(ModMobEffects.SPORES.get())) {
-            convertWetnessToSpores(entity);
-            return;
+            boolean hasStatic = entity.getPersistentData().getInt(StaticShockHandler.NBT_STATIC_STACKS) > 0;
+            boolean hasFrostbite = FrostbiteHandler.hasFrostbite(entity);
+            if (!hasStatic && !hasFrostbite) {
+                convertWetnessToSpores(entity);
+                return;
+            }
         }
 
         int amplifier = level - 1;
@@ -440,6 +447,7 @@ public class WetnessHandler {
 
         int staticStacks = data.getInt(StaticShockHandler.NBT_STATIC_STACKS);
         int frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(entity);
+        boolean hasSpores = ModMobEffects.SPORES.isPresent() && entity.hasEffect(ModMobEffects.SPORES.get());
 
         boolean hasStatic = staticStacks > 0;
         boolean hasFrostbite = frostbiteStacks > 0;
@@ -448,27 +456,43 @@ public class WetnessHandler {
 
         if (hasStatic && !hasFrostbite) {
             StaticShockHandler.triggerParalysisReaction(attacker, entity);
+            if (hasSpores) {
+                StaticShockHandler.tryTriggerSporeBlast(entity);
+            }
             return;
         }
 
         if (!hasStatic && hasFrostbite) {
             FrostbiteHandler.triggerFreeze(entity, attacker);
+            if (hasSpores) {
+                entity.removeEffect(ModMobEffects.SPORES.get());
+            }
             return;
         }
 
-        // Both have effects - compare levels
         if (staticStacks > frostbiteStacks) {
             StaticShockHandler.triggerParalysisReaction(attacker, entity);
+            if (hasSpores) {
+                StaticShockHandler.tryTriggerSporeBlast(entity);
+            }
         } else if (frostbiteStacks > staticStacks) {
             FrostbiteHandler.triggerFreeze(entity, attacker);
             FrostbiteHandler.clearFrostbite(entity);
+            if (hasSpores) {
+                entity.removeEffect(ModMobEffects.SPORES.get());
+            }
         } else {
-            // Equal - random choice
             if (RANDOM.nextBoolean()) {
                 StaticShockHandler.triggerParalysisReaction(attacker, entity);
+                if (hasSpores) {
+                    StaticShockHandler.tryTriggerSporeBlast(entity);
+                }
             } else {
                 FrostbiteHandler.triggerFreeze(entity, attacker);
                 FrostbiteHandler.clearFrostbite(entity);
+                if (hasSpores) {
+                    entity.removeEffect(ModMobEffects.SPORES.get());
+                }
             }
         }
     }

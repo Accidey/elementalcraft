@@ -37,6 +37,7 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.IntValue STATIC_AURA_DAMAGE_INTERVAL_TICKS;
     public static final ForgeConfigSpec.BooleanValue STATIC_AURA_EXCLUDE_FRIENDLY;
     public static final ForgeConfigSpec.BooleanValue STATIC_AURA_ONLY_HOSTILE;
+    public static final ForgeConfigSpec.DoubleValue STATIC_AURA_HEIGHT_CEILING;
 
     public static final ForgeConfigSpec.IntValue THUNDER_COUNTER_MIN_SPORE_STACKS;
     public static final ForgeConfigSpec.IntValue NATURE_ATTACK_COOLDOWN_TICKS;
@@ -47,14 +48,6 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.IntValue PARALYSIS_DURATION_PER_STACK_TICKS;
     public static final ForgeConfigSpec.DoubleValue PARALYSIS_DAMAGE_PERCENTAGE;
     public static final ForgeConfigSpec.IntValue PARALYSIS_COOLDOWN_TICKS;
-
-    public static final ForgeConfigSpec.IntValue PARALYSIS_SPREAD_THRESHOLD_STACKS;
-    public static final ForgeConfigSpec.IntValue PARALYSIS_SPREAD_BASE_RANGE;
-    public static final ForgeConfigSpec.IntValue PARALYSIS_SPREAD_RANGE_PER_EXTRA_STACK;
-    public static final ForgeConfigSpec.BooleanValue PARALYSIS_SPREAD_ALLOW_CHAIN;
-    public static final ForgeConfigSpec.BooleanValue PARALYSIS_SPREAD_ALLOW_TO_SOURCE;
-    public static final ForgeConfigSpec.BooleanValue PARALYSIS_SPREAD_EXCLUDE_FRIENDLY_ENTITIES;
-    public static final ForgeConfigSpec.BooleanValue PARALYSIS_SPREAD_ONLY_HOSTILE;
 
     public static final ForgeConfigSpec.DoubleValue STATIC_SPORE_BLAST_BASE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue STATIC_SPORE_BLAST_PER_STATIC_STACK;
@@ -104,20 +97,24 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.IntValue FREEZE_COOLDOWN_TICKS;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> FREEZE_IMMUNITY_BLACKLIST;
 
-    public static final ForgeConfigSpec.IntValue FREEZE_SPREAD_THRESHOLD_STACKS;
-    public static final ForgeConfigSpec.IntValue FREEZE_SPREAD_BASE_RANGE;
-    public static final ForgeConfigSpec.IntValue FREEZE_SPREAD_RANGE_PER_EXTRA_STACK;
-    public static final ForgeConfigSpec.BooleanValue FREEZE_SPREAD_ALLOW_CHAIN;
-    public static final ForgeConfigSpec.BooleanValue FREEZE_SPREAD_ALLOW_TO_SOURCE;
-    public static final ForgeConfigSpec.BooleanValue FREEZE_SPREAD_EXCLUDE_FRIENDLY_ENTITIES;
-    public static final ForgeConfigSpec.BooleanValue FREEZE_SPREAD_ONLY_HOSTILE;
+    public static final ForgeConfigSpec.DoubleValue THUNDER_BREAK_FREEZE_CHANCE;
+    public static final ForgeConfigSpec.IntValue THUNDER_BREAK_FREEZE_WETNESS_LAYERS;
 
-    public static final ForgeConfigSpec.DoubleValue FROSTBITE_THERMAL_SHOCK_BASE_DAMAGE;
-    public static final ForgeConfigSpec.DoubleValue FROSTBITE_THERMAL_SHOCK_PER_STACK;
+    public static final ForgeConfigSpec.IntValue FROSTBITE_FIRE_STEAM_THRESHOLD;
+
+    public static final ForgeConfigSpec.BooleanValue FIRE_FROST_MELT_ENABLED;
+    public static final ForgeConfigSpec.IntValue FIRE_FROST_MELT_BASE_THRESHOLD;
+    public static final ForgeConfigSpec.IntValue FIRE_FROST_MELT_ADDITIONAL_COST;
+    public static final ForgeConfigSpec.DoubleValue FIRE_FROST_MELT_DAMAGE_MULT;
 
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_STEAM_CLOUD_BONUS_CHANCE;
 
-    public static final ForgeConfigSpec.BooleanValue FROSTBITE_CLEAR_SPORES_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue FROSTBITE_REDUCE_SPORES_ENABLED;
+    public static final ForgeConfigSpec.DoubleValue FROSTBITE_SPORE_DECAY_SPEED;
+
+    public static final ForgeConfigSpec.BooleanValue FREEZE_CLEAR_SPORES_ENABLED;
+
+    public static final ForgeConfigSpec.BooleanValue FROST_SCORCH_STEAM_REACTION_ENABLED;
 
     public static final ForgeConfigSpec.BooleanValue FROSTBITE_CLEAR_BY_HEAT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue FROSTBITE_NETHER_CLEAR_ENABLED;
@@ -341,6 +338,14 @@ public final class ElementalThunderFrostReactionsConfig {
                          "Default: false")
                 .define("static_aura_only_hostile", false);
 
+        BUILDER.comment("");
+
+        STATIC_AURA_HEIGHT_CEILING = BUILDER
+                .comment("Maximum height difference (blocks) for the Static Aura to affect entities above the source. Entities above this Y offset are immune to aura damage and effects.",
+                         "静电光环可影响生物的最大高度差（格）。超过此 Y 偏移量的目标免疫光环伤害和效果。",
+                         "Default: 3.0")
+                .defineInRange("static_aura_height_ceiling", 3.0, 0.0, 64.0);
+
         BUILDER.pop();
 
         BUILDER.comment("Static Shock + Spores -> Toxic Blast Configuration",
@@ -449,8 +454,8 @@ public final class ElementalThunderFrostReactionsConfig {
         PARALYSIS_DURATION_PER_STACK_TICKS = BUILDER
                 .comment("Base duration (in ticks) per stack of Paralysis. 20 ticks = 1 second.",
                          "每层麻痹的基础持续时间（以刻为单位）。20刻 = 1秒。",
-                         "Default: 10 (0.5 seconds)")
-                .defineInRange("paralysis_duration_per_stack_ticks", 10, 1, 72000);
+                         "Default: 40 (2 seconds)")
+                .defineInRange("paralysis_duration_per_stack_ticks", 40, 1, 72000);
 
         BUILDER.comment("");
 
@@ -477,75 +482,11 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Paralysis Spread Configuration",
-                        "麻痹传染配置")
-                .push("paralysis_spread");
-
-        PARALYSIS_SPREAD_THRESHOLD_STACKS = BUILDER
-                .comment("Minimum paralysis stacks required for an entity to trigger paralysis spread.",
-                         "触发麻痹传染所需的最小麻痹层数。",
-                         "Default: 3")
-                .defineInRange("paralysis_spread_threshold_stacks", 3, 1, 1000);
-
-        BUILDER.comment("");
-
-        PARALYSIS_SPREAD_BASE_RANGE = BUILDER
-                .comment("Base spread range (in blocks) for paralysis from paralyzed entities. 3 = 3x3 area.",
-                         "麻痹生物传染麻痹的基础范围（以方块为单位）。3 = 3x3区域。",
-                         "Default: 3")
-                .defineInRange("paralysis_spread_base_range", 3, 1, 20);
-
-        BUILDER.comment("");
-
-        PARALYSIS_SPREAD_RANGE_PER_EXTRA_STACK = BUILDER
-                .comment("Additional spread range per extra paralysis stack beyond threshold.",
-                         "超过阈值后，每层额外麻痹增加的传染范围。",
-                         "Default: 1")
-                .defineInRange("paralysis_spread_range_per_extra_stack", 1, 0, 10);
-
-        BUILDER.comment("");
-
-        PARALYSIS_SPREAD_ALLOW_CHAIN = BUILDER
-                .comment("Whether infected entities can further spread paralysis to others.",
-                         "被传染的实体是否能够继续传染麻痹给其他生物。",
-                         "Default: false")
-                .define("paralysis_spread_allow_chain", false);
-
-        BUILDER.comment("");
-
-        PARALYSIS_SPREAD_ALLOW_TO_SOURCE = BUILDER
-                .comment("If true, paralysis can spread back to the original source entity.",
-                         "如果为 true，麻痹可以传染回原始的父源实体。",
-                         "If false, the original source entity will be skipped during contagion.",
-                         "如果为 false，传染过程中会跳过父源实体。",
-                         "Default: true")
-                .define("paralysis_spread_allow_to_source", true);
-
-        BUILDER.comment("");
-
-        PARALYSIS_SPREAD_EXCLUDE_FRIENDLY_ENTITIES = BUILDER
-                .comment("If true, players and tamed pets are immune to paralysis spread.",
-                         "如果为 true，玩家和已驯服的宠物免疫麻痹传染。",
-                         "Default: true")
-                .define("paralysis_spread_exclude_friendly_entities", true);
-
-        BUILDER.comment("");
-
-        PARALYSIS_SPREAD_ONLY_HOSTILE = BUILDER
-                .comment("If true, paralysis spread only affects hostile mobs (MobCategory.MONSTER).",
-                         "如果为 true，麻痹传染仅影响敌对生物，忽略中立/被动生物。",
-                         "Default: false")
-                .define("paralysis_spread_only_hostile", true);
-
-        BUILDER.comment("");
-
         PARALYSIS_IMMUNITY_BLACKLIST = BUILDER
                 .comment("Entities in this blacklist are completely immune to Paralysis effect (cannot be applied).",
                          "处于此黑名单中的实体完全免疫麻痹效果（无法被施加）。",
                          "Example: [\"minecraft:iron_golem\", \"minecraft:wither\"]")
                 .defineListAllowEmpty("paralysis_immunity_blacklist", List.of(), o -> o instanceof String);
-
-        BUILDER.pop();
 
         BUILDER.comment("Static Steam Cloud Reaction (Static Shock + Condensing Steam Cloud)",
                         "静电蒸汽云反应（静电+低温蒸汽云）")
@@ -711,10 +652,10 @@ public final class ElementalThunderFrostReactionsConfig {
         BUILDER.comment("");
 
         FROSTBITE_SPEED_REDUCTION_PER_STACK = BUILDER
-                .comment("Movement speed reduction per stack of Frostbite. 0.1 = 10% reduction.",
-                         "每层霜冻降低的移动速度比例。0.1 = 10%减速。",
+                .comment("Movement speed and attack speed reduction per stack of Frostbite. 0.1 = 10% reduction. 0 = disable. Max 90%.",
+                         "每层霜冻降低的移动速度和攻击速度比例。0.1 = 10%减速。0 = 关闭。上限90%。",
                          "Default: 0.1 (10%)")
-                .defineInRange("frostbite_speed_reduction_per_stack", 0.1, 0.0, 1.0);
+                .defineInRange("frostbite_speed_reduction_per_stack", 0.1, 0.0, 0.9);
 
         BUILDER.comment("");
 
@@ -843,87 +784,76 @@ public final class ElementalThunderFrostReactionsConfig {
                          "Example: [\"minecraft:ender_dragon\", \"minecraft:wither\"]")
                 .defineListAllowEmpty("freeze_immunity_blacklist", List.of(), o -> o instanceof String);
 
-        BUILDER.pop();
+        BUILDER.comment("");
 
-        BUILDER.comment("Freeze Spread (Contagion to nearby wet entities)",
-                        "冻结传播（传染给附近的潮湿生物）")
-                .push("freeze_spread");
-
-        FREEZE_SPREAD_THRESHOLD_STACKS = BUILDER
-                .comment("Minimum Freeze stacks required before an entity can spread Freeze to nearby wet entities.",
-                         "生物可传播冻结前所需的最低冻结层数。",
-                         "Default: 3")
-                .defineInRange("freeze_spread_threshold_stacks", 3, 1, 1000);
+        THUNDER_BREAK_FREEZE_CHANCE = BUILDER
+                .comment("Chance for Static Shock to break Freeze when stacks >= max/2. 0 = disabled.",
+                         "静电层数达到最大值一半时解除冰冻的概率。0 = 关闭。",
+                         "Default: 0.5")
+                .defineInRange("thunder_break_freeze_chance", 0.5, 0.0, 1.0);
 
         BUILDER.comment("");
 
-        FREEZE_SPREAD_BASE_RANGE = BUILDER
-                .comment("Base spread range in blocks (radius from source entity).",
-                         "基础传播范围（以源实体为中心半径的方块数）。",
-                         "Default: 3")
-                .defineInRange("freeze_spread_base_range", 3, 1, 32);
-
-        BUILDER.comment("");
-
-        FREEZE_SPREAD_RANGE_PER_EXTRA_STACK = BUILDER
-                .comment("Extra range in blocks per Freeze stack beyond the threshold.",
-                         "超出阈值后每层冻结额外增加的范围。",
-                         "Default: 1")
-                .defineInRange("freeze_spread_range_per_extra_stack", 1, 0, 16);
-
-        BUILDER.comment("");
-
-        FREEZE_SPREAD_ALLOW_CHAIN = BUILDER
-                .comment("If true, entities infected by spread can further spread Freeze to others.",
-                         "启用后，通过传播感染的生物可继续传播冻结。",
-                         "Default: false")
-                .define("freeze_spread_allow_chain", false);
-
-        BUILDER.comment("");
-
-        FREEZE_SPREAD_ALLOW_TO_SOURCE = BUILDER
-                .comment("If true, Freeze can spread back to the original contagion source entity.",
-                         "启用后，冻结可回传给原始传染源生物。",
-                         "Default: true")
-                .define("freeze_spread_allow_to_source", true);
-
-        BUILDER.comment("");
-
-        FREEZE_SPREAD_EXCLUDE_FRIENDLY_ENTITIES = BUILDER
-                .comment("If true, players and tamed pets are immune to Freeze spread.",
-                         "启用后，玩家和已驯服的宠物免疫冻结传播。",
-                         "Default: true")
-                .define("freeze_spread_exclude_friendly_entities", true);
-
-        BUILDER.comment("");
-
-        FREEZE_SPREAD_ONLY_HOSTILE = BUILDER
-                .comment("If true, only hostile mobs (MobCategory.MONSTER) are affected by Freeze spread.",
-                         "启用后，仅敌对生物受冻结传播影响。",
-                         "Default: true")
-                .define("freeze_spread_only_hostile", true);
+        THUNDER_BREAK_FREEZE_WETNESS_LAYERS = BUILDER
+                .comment("Wetness layers to apply after breaking Freeze via Static Shock. 0 = disabled.",
+                         "静电解冻后赋予的潮湿层数。0 = 关闭此功能。",
+                         "Default: 2")
+                .defineInRange("thunder_break_freeze_wetness_layers", 2, 0, 100);
 
         BUILDER.pop();
 
         BUILDER.pop();
 
-        BUILDER.comment("Frostbite + Fire (Thermal Shock)",
-                        "霜冻+赤焰（热震蒸汽）")
-                .push("frostbite_fire");
+        BUILDER.comment("Frozen + Fire (High-Heat Steam on Fire attack Frozen target)",
+                        "冻结+赤焰（火攻击冻结目标触发高温蒸汽云）")
+                .push("frostbite_fire_steam");
 
-        FROSTBITE_THERMAL_SHOCK_BASE_DAMAGE = BUILDER
-                .comment("Base damage dealt by Thermal Shock when a Fire attack hits a Frozen target.",
-                         "火攻击命中冻结目标时热震的基础伤害。",
-                         "Default: 5.0")
-                .defineInRange("frostbite_thermal_shock_base_damage", 5.0, 0.0, 10000.0);
+        FROSTBITE_FIRE_STEAM_THRESHOLD = BUILDER
+                .comment("When a Fire attack hits a Frozen target, scorch can be triggered. If Fire enhancement >= this value, the triggered scorch will break the freeze and create a High-Heat Steam cloud instead of applying normal scorch. Below this value, scorch cannot be triggered on frozen targets.",
+                         "赤焰属性攻击冰冻目标时可以触发灼烧。若赤焰强化 ≥ 此值，触发的灼烧会解除冰冻并生成高温蒸汽云（不保留灼烧效果）。低于此值时无法对冰冻目标触发灼烧。",
+                         "Default: 50")
+                .defineInRange("frostbite_fire_steam_threshold", 50, 1, 10000);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Fire + Frostbite -> Wetness (Fire Melts Frost)",
+                        "赤焰+霜冻->潮湿（赤焰融霜）")
+                .push("fire_frost_melt");
+
+        FIRE_FROST_MELT_ENABLED = BUILDER
+                .comment("Global toggle for the Fire + Frostbite melt reaction.",
+                         "When enabled, a Fire attack on a Frostbitten target will consume 50% of elemental damage",
+                         "to clear all Frostbite stacks and convert them into Wetness layers.",
+                         "开启/关闭赤焰融霜反应的全局开关。",
+                         "启用后，赤焰攻击霜冻目标时，消耗50%属性伤害清除所有霜冻层数并转化为潮湿层数。",
+                         "Default: true")
+                .define("fire_frost_melt_enabled", true);
 
         BUILDER.comment("");
 
-        FROSTBITE_THERMAL_SHOCK_PER_STACK = BUILDER
-                .comment("Additional Thermal Shock damage per remaining Frostbite stack.",
-                         "每层剩余霜冻层数增加的热震伤害。",
-                         "Default: 2.0")
-                .defineInRange("frostbite_thermal_shock_per_stack", 2.0, 0.0, 10000.0);
+        FIRE_FROST_MELT_BASE_THRESHOLD = BUILDER
+                .comment("Base Fire Enhancement points needed to melt 1 layer of Frostbite.",
+                         "赤焰融霜的基础门槛——清除1层霜冻所需的赤焰属性强化点数。",
+                         "Default: 20")
+                .defineInRange("fire_frost_melt_base_threshold", 20, 1, 10000);
+
+        BUILDER.comment("");
+
+        FIRE_FROST_MELT_ADDITIONAL_COST = BUILDER
+                .comment("Additional Fire Enhancement points needed per extra Frostbite layer beyond the first.",
+                         "超过首层后，每多一层霜冻额外需要的赤焰属性强化点数。",
+                         "Default: 10")
+                .defineInRange("fire_frost_melt_additional_cost", 10, 1, 10000);
+
+        BUILDER.comment("");
+
+        FIRE_FROST_MELT_DAMAGE_MULT = BUILDER
+                .comment("Damage multiplier when Fire attacks a Frostbitten target.",
+                         "0.5 = 50% of original elemental damage (50% reduction).",
+                         "赤焰攻击霜冻目标时，属性伤害的倍率。",
+                         "0.5 = 原本属性伤害的50%（降低50%）。",
+                         "Default: 0.5")
+                .defineInRange("fire_frost_melt_damage_mult", 0.5, 0.0, 1.0);
 
         BUILDER.pop();
 
@@ -941,17 +871,50 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Frostbite + Flammable Spores (Frost Kills Spores)",
-                        "霜冻+易燃孢子（冻死孢子）")
+        BUILDER.comment("Frostbite + Flammable Spores (Frost Reduces Spore Duration)",
+                        "霜冻+易燃孢子（霜冻削减孢子持续时间）")
                 .push("frostbite_spores");
 
-        FROSTBITE_CLEAR_SPORES_ENABLED = BUILDER
-                .comment("When enabled, applying Frostbite to a target with Flammable Spores will remove the Spores effect. The cold kills the spores.",
-                         "启用后，对带有易燃孢子的目标施加霜冻效果时，会清除孢子效果——低温冻死了易燃孢子。",
+        FROSTBITE_REDUCE_SPORES_ENABLED = BUILDER
+                .comment("When enabled, applying Frostbite to a target with Flammable Spores will reduce the remaining duration of the Spores effect.",
+                         "启用后，对带有易燃孢子的目标施加霜冻效果时，会削减孢子效果的剩余持续时间。",
                          "Default: true")
-                .define("frostbite_clear_spores_enabled", true);
+                .define("frostbite_reduce_spores_enabled", true);
 
         BUILDER.comment("");
+
+        FROSTBITE_SPORE_DECAY_SPEED = BUILDER
+                .comment("When Frostbite and Flammable Spores coexist, the Spores duration ticks down at this speed multiplier. 2 = 2x speed (half duration), 1 = normal speed.",
+                         "霜冻和易燃孢子同时存在时，孢子剩余时间的流逝速度倍率。2 = 2倍速流逝，1 = 正常速度。",
+                         "Default: 10.0")
+                .defineInRange("frostbite_spore_decay_speed", 10.0, 1.0, 100.0);
+
+        BUILDER.comment("");
+
+        BUILDER.pop();
+
+        BUILDER.comment("Freeze + Flammable Spores (Freeze Clears Spores)",
+                        "冻结+易燃孢子（冻结清除孢子）")
+                .push("freeze_spores");
+
+        FREEZE_CLEAR_SPORES_ENABLED = BUILDER
+                .comment("When enabled, frozen entities cannot gain Flammable Spores. Existing spores are cleared on freeze.",
+                         "启用后，冻结状态的生物无法获得易燃孢子效果，已有孢子会在进入冻结时被清除。",
+                         "Default: true")
+                .define("freeze_clear_spores_enabled", true);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Frost-Scorch Steam Reaction (Scorched + Frostbite triggers Low-Heat Steam)",
+                        "灼烧-霜冻蒸汽反应（灼烧与霜冻同时存在时触发低温蒸汽云）")
+                .push("frost_scorch_steam_reaction");
+
+        FROST_SCORCH_STEAM_REACTION_ENABLED = BUILDER
+                .comment("When enabled, Scorched + Frostbite on the same entity triggers a Low-Heat Steam Cloud, clearing both effects.",
+                         "启用后，灼烧与霜冻同时存在时触发低温蒸汽云，清除两种效果。",
+                         "Steam level = sourceFirePower / step + frostbiteStacks",
+                         "Default: true")
+                .define("frost_scorch_steam_reaction_enabled", true);
 
         BUILDER.pop();
 
@@ -1107,6 +1070,7 @@ public final class ElementalThunderFrostReactionsConfig {
     public static int staticAuraDamageIntervalTicks;
     public static boolean staticAuraExcludeFriendly;
     public static boolean staticAuraOnlyHostile;
+    public static double staticAuraHeightCeiling;
 
     public static int thunderCounterMinSporeStacks;
     public static int natureAttackCooldownTicks;
@@ -1121,13 +1085,7 @@ public final class ElementalThunderFrostReactionsConfig {
     public static double paralysisDamagePercentage;
     public static int paralysisCooldownTicks;
 
-    public static int paralysisSpreadThresholdStacks;
-    public static int paralysisSpreadBaseRange;
-    public static int paralysisSpreadRangePerExtraStack;
-    public static boolean paralysisSpreadAllowChain;
-    public static boolean paralysisSpreadAllowToSource;
-    public static boolean paralysisSpreadExcludeFriendlyEntities;
-    public static boolean paralysisSpreadOnlyHostile;
+
 
     public static double staticSporeBlastBaseChance;
     public static double staticSporeBlastPerStaticStack;
@@ -1168,20 +1126,22 @@ public final class ElementalThunderFrostReactionsConfig {
     public static int freezeCooldownTicks;
     public static List<? extends String> cachedFreezeImmunityBlacklist;
 
-    public static int freezeSpreadThresholdStacks;
-    public static int freezeSpreadBaseRange;
-    public static int freezeSpreadRangePerExtraStack;
-    public static boolean freezeSpreadAllowChain;
-    public static boolean freezeSpreadAllowToSource;
-    public static boolean freezeSpreadExcludeFriendlyEntities;
-    public static boolean freezeSpreadOnlyHostile;
+    public static double thunderBreakFreezeChance;
+    public static int thunderBreakFreezeWetnessLayers;
 
-    public static double frostbiteThermalShockBaseDamage;
-    public static double frostbiteThermalShockPerStack;
+    public static int frostbiteFireSteamThreshold;
+
+    public static boolean fireFrostMeltEnabled;
+    public static int fireFrostMeltBaseThreshold;
+    public static int fireFrostMeltAdditionalCost;
+    public static double fireFrostMeltDamageMult;
 
     public static double frostbiteSteamCloudBonusChance;
 
-    public static boolean frostbiteClearSporesEnabled;
+    public static boolean frostbiteReduceSporesEnabled;
+    public static double frostbiteSporeDecaySpeed;
+    public static boolean freezeClearSporesEnabled;
+    public static boolean frostScorchSteamReactionEnabled;
     public static boolean frostbiteClearByHeatEnabled;
     public static boolean frostbiteNetherClearEnabled;
     public static double frostbiteHeatSearchRadius;
@@ -1239,6 +1199,7 @@ public final class ElementalThunderFrostReactionsConfig {
         staticAuraDamageIntervalTicks = STATIC_AURA_DAMAGE_INTERVAL_TICKS.get();
         staticAuraExcludeFriendly = STATIC_AURA_EXCLUDE_FRIENDLY.get();
         staticAuraOnlyHostile = STATIC_AURA_ONLY_HOSTILE.get();
+        staticAuraHeightCeiling = STATIC_AURA_HEIGHT_CEILING.get();
 
         thunderCounterMinSporeStacks = THUNDER_COUNTER_MIN_SPORE_STACKS.get();
         natureAttackCooldownTicks = NATURE_ATTACK_COOLDOWN_TICKS.get();
@@ -1249,14 +1210,6 @@ public final class ElementalThunderFrostReactionsConfig {
         paralysisDurationPerStackTicks = PARALYSIS_DURATION_PER_STACK_TICKS.get();
         paralysisDamagePercentage = PARALYSIS_DAMAGE_PERCENTAGE.get();
         paralysisCooldownTicks = PARALYSIS_COOLDOWN_TICKS.get();
-
-        paralysisSpreadThresholdStacks = PARALYSIS_SPREAD_THRESHOLD_STACKS.get();
-        paralysisSpreadBaseRange = PARALYSIS_SPREAD_BASE_RANGE.get();
-        paralysisSpreadRangePerExtraStack = PARALYSIS_SPREAD_RANGE_PER_EXTRA_STACK.get();
-        paralysisSpreadAllowChain = PARALYSIS_SPREAD_ALLOW_CHAIN.get();
-        paralysisSpreadAllowToSource = PARALYSIS_SPREAD_ALLOW_TO_SOURCE.get();
-        paralysisSpreadExcludeFriendlyEntities = PARALYSIS_SPREAD_EXCLUDE_FRIENDLY_ENTITIES.get();
-        paralysisSpreadOnlyHostile = PARALYSIS_SPREAD_ONLY_HOSTILE.get();
 
         staticSporeBlastBaseChance = STATIC_SPORE_BLAST_BASE_CHANCE.get();
         staticSporeBlastPerStaticStack = STATIC_SPORE_BLAST_PER_STATIC_STACK.get();
@@ -1296,20 +1249,22 @@ public final class ElementalThunderFrostReactionsConfig {
         freezeCooldownTicks = FREEZE_COOLDOWN_TICKS.get();
         cachedFreezeImmunityBlacklist = FREEZE_IMMUNITY_BLACKLIST.get();
 
-        freezeSpreadThresholdStacks = FREEZE_SPREAD_THRESHOLD_STACKS.get();
-        freezeSpreadBaseRange = FREEZE_SPREAD_BASE_RANGE.get();
-        freezeSpreadRangePerExtraStack = FREEZE_SPREAD_RANGE_PER_EXTRA_STACK.get();
-        freezeSpreadAllowChain = FREEZE_SPREAD_ALLOW_CHAIN.get();
-        freezeSpreadAllowToSource = FREEZE_SPREAD_ALLOW_TO_SOURCE.get();
-        freezeSpreadExcludeFriendlyEntities = FREEZE_SPREAD_EXCLUDE_FRIENDLY_ENTITIES.get();
-        freezeSpreadOnlyHostile = FREEZE_SPREAD_ONLY_HOSTILE.get();
+        thunderBreakFreezeChance = THUNDER_BREAK_FREEZE_CHANCE.get();
+        thunderBreakFreezeWetnessLayers = THUNDER_BREAK_FREEZE_WETNESS_LAYERS.get();
 
-        frostbiteThermalShockBaseDamage = FROSTBITE_THERMAL_SHOCK_BASE_DAMAGE.get();
-        frostbiteThermalShockPerStack = FROSTBITE_THERMAL_SHOCK_PER_STACK.get();
+        frostbiteFireSteamThreshold = FROSTBITE_FIRE_STEAM_THRESHOLD.get();
+
+        fireFrostMeltEnabled = FIRE_FROST_MELT_ENABLED.get();
+        fireFrostMeltBaseThreshold = FIRE_FROST_MELT_BASE_THRESHOLD.get();
+        fireFrostMeltAdditionalCost = FIRE_FROST_MELT_ADDITIONAL_COST.get();
+        fireFrostMeltDamageMult = FIRE_FROST_MELT_DAMAGE_MULT.get();
 
         frostbiteSteamCloudBonusChance = FROSTBITE_STEAM_CLOUD_BONUS_CHANCE.get();
 
-        frostbiteClearSporesEnabled = FROSTBITE_CLEAR_SPORES_ENABLED.get();
+        frostbiteReduceSporesEnabled = FROSTBITE_REDUCE_SPORES_ENABLED.get();
+        frostbiteSporeDecaySpeed = FROSTBITE_SPORE_DECAY_SPEED.get();
+        freezeClearSporesEnabled = FREEZE_CLEAR_SPORES_ENABLED.get();
+        frostScorchSteamReactionEnabled = FROST_SCORCH_STEAM_REACTION_ENABLED.get();
         frostbiteClearByHeatEnabled = FROSTBITE_CLEAR_BY_HEAT_ENABLED.get();
         frostbiteNetherClearEnabled = FROSTBITE_NETHER_CLEAR_ENABLED.get();
         frostbiteHeatSearchRadius = FROSTBITE_HEAT_SEARCH_RADIUS.get();

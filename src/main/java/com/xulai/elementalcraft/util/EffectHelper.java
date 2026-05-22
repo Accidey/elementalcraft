@@ -24,9 +24,6 @@ public class EffectHelper {
 
     private static final Vector3f SMOG_COLOR = new Vector3f(0.1f, 0.8f, 0.2f);
     private static final Vector3f STATIC_PURPLE_BLUE = new Vector3f(0.5f, 0.2f, 1.0f);
-    private static final Vector3f DEEP_PURPLE = new Vector3f(0.3f, 0.0f, 0.6f);
-    private static final Vector3f LIGHT_PURPLE = new Vector3f(0.6f, 0.2f, 1.0f);
-    private static final Vector3f ICE_BLUE = new Vector3f(0.3f, 0.7f, 1.0f);
     private static final Vector3f TOXIC_GREEN = new Vector3f(0.1f, 0.8f, 0.2f);
 
     public static void playSporeContagion(Entity source, List<LivingEntity> targets, double radius) {
@@ -77,91 +74,15 @@ public class EffectHelper {
         }
     }
 
-    public static void playParalysisSpread(Entity source, List<LivingEntity> targets, double radius) {
-        if (!(source.level() instanceof ServerLevel level)) return;
-        double circumference = 2 * Math.PI * radius;
-        int ringPoints = (int) (circumference * 10);
-        double angleStep = (Math.PI * 2) / ringPoints;
-        double baseY = source.getY();
-        for (int i = 0; i < ringPoints; i++) {
-            double angle = angleStep * i;
-            double x = source.getX() + Math.cos(angle) * radius;
-            double z = source.getZ() + Math.sin(angle) * radius;
-            if (RANDOM.nextFloat() < 0.5f) {
-                double ox = (RANDOM.nextDouble() - 0.5) * 0.3;
-                double oz = (RANDOM.nextDouble() - 0.5) * 0.3;
-                level.sendParticles(new DustParticleOptions(DEEP_PURPLE, 2.0f),
-                        x + ox, baseY + 0.1, z + oz, 1, 0, 0, 0, 0);
-            }
-            if (RANDOM.nextFloat() < 0.3f) {
-                level.sendParticles(ParticleTypes.END_ROD,
-                        x, baseY + 0.2, z, 0, 0.2, 0.9, 0.2, 1.0);
-            }
-            if (RANDOM.nextFloat() < 0.2f) {
-                double sporeY = baseY + RANDOM.nextDouble() * 1.5;
-                level.sendParticles(ParticleTypes.END_ROD,
-                        x, sporeY, z, 1, 0, 0, 0, 0.02);
-            }
-        }
-        for (LivingEntity target : targets) {
-            Vec3 start = source.position().add(0, source.getBbHeight() * 0.5, 0);
-            Vec3 end = target.position().add(0, target.getBbHeight() * 0.5, 0);
-            double dist = start.distanceTo(end);
-            int linePoints = (int) (dist * 4);
-            for (int j = 0; j <= linePoints; j++) {
-                double t = (double) j / linePoints;
-                double lx = Mth.lerp(t, start.x, end.x);
-                double ly = Mth.lerp(t, start.y, end.y);
-                double lz = Mth.lerp(t, start.z, end.z);
-                if (j % 2 == 0) {
-                    level.sendParticles(new DustParticleOptions(LIGHT_PURPLE, 0.8f), lx, ly, lz, 1, 0, 0, 0, 0);
-                } else {
-                    if (RANDOM.nextFloat() < 0.1f) {
-                        level.sendParticles(ParticleTypes.END_ROD, lx, ly, lz, 0, 0.2, 0.9, 0.2, 1.0);
-                    }
-                }
-            }
-        }
-    }
-
-    public static void playFreezeSpread(Entity source, List<LivingEntity> targets, double radius) {
-        if (!(source.level() instanceof ServerLevel level)) return;
-        double circumference = 2 * Math.PI * radius;
-        int ringPoints = (int) (circumference * 10);
-        double angleStep = (Math.PI * 2) / ringPoints;
-        double baseY = source.getY();
-        for (int i = 0; i < ringPoints; i++) {
-            double angle = angleStep * i;
-            double x = source.getX() + Math.cos(angle) * radius;
-            double z = source.getZ() + Math.sin(angle) * radius;
-            if (RANDOM.nextFloat() < 0.5f) {
-                double ox = (RANDOM.nextDouble() - 0.5) * 0.3;
-                double oz = (RANDOM.nextDouble() - 0.5) * 0.3;
-                level.sendParticles(new DustParticleOptions(ICE_BLUE, 2.0f),
-                        x + ox, baseY + 0.1, z + oz, 1, 0, 0, 0, 0);
-            }
-            if (RANDOM.nextFloat() < 0.3f) {
-                level.sendParticles(ParticleTypes.SNOWFLAKE,
-                        x, baseY + 0.2, z, 0, 0.1, 0.5, 0.1, 1.0);
-            }
-        }
-        for (LivingEntity target : targets) {
-            Vec3 start = source.position().add(0, source.getBbHeight() * 0.5, 0);
-            Vec3 end = target.position().add(0, target.getBbHeight() * 0.5, 0);
-            double dist = start.distanceTo(end);
-            int linePoints = (int) (dist * 4);
-            for (int j = 0; j <= linePoints; j++) {
-                double t = (double) j / linePoints;
-                double lx = Mth.lerp(t, start.x, end.x);
-                double ly = Mth.lerp(t, start.y, end.y);
-                double lz = Mth.lerp(t, start.z, end.z);
-                if (j % 2 == 0) {
-                    level.sendParticles(new DustParticleOptions(ICE_BLUE, 0.8f), lx, ly, lz, 1, 0, 0, 0, 0);
-                } else {
-                    if (RANDOM.nextFloat() < 0.1f) {
-                        level.sendParticles(ParticleTypes.SNOWFLAKE, lx, ly, lz, 0, 0.1, 0.3, 0.1, 1.0);
-                    }
-                }
+    public static void playFreezeAmbient(Entity entity) {
+        if (!(entity.level() instanceof ServerLevel level)) return;
+        if (RANDOM.nextFloat() < 0.8f) {
+            int count = 2 + RANDOM.nextInt(3);
+            for (int i = 0; i < count; i++) {
+                double x = entity.getX() + (RANDOM.nextDouble() - 0.5) * entity.getBbWidth() * 0.8;
+                double y = entity.getY() + entity.getBbHeight() * 0.5 + RANDOM.nextDouble() * entity.getBbHeight() * 0.5;
+                double z = entity.getZ() + (RANDOM.nextDouble() - 0.5) * entity.getBbWidth() * 0.8;
+                level.sendParticles(ModParticles.FROST_SNOWFLAKE.get(), x, y, z, 1, 0, 0, 0, 0);
             }
         }
     }
@@ -285,6 +206,9 @@ public class EffectHelper {
             }
             if (RANDOM.nextFloat() < 0.2f) {
                 level.sendParticles(ParticleTypes.ITEM_SNOWBALL, x, y, z, 1, 0, 0.01, 0, 0);
+            }
+            if (RANDOM.nextFloat() < 0.3f) {
+                level.sendParticles(ModParticles.FROST_SNOWFLAKE.get(), x, y, z, 0, 0, -0.01, 0, 0.02);
             }
         }
     }

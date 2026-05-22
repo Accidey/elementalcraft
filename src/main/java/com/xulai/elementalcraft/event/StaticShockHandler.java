@@ -119,6 +119,7 @@ public class StaticShockHandler {
         if (event.getEntity().level().isClientSide) return;
         if (!(event.getSource().getEntity() instanceof LivingEntity attacker)) return;
         LivingEntity target = event.getEntity();
+        if (target instanceof Player player && player.isCreative()) return;
 
         if (isImmuneToStatic(target)) {
             CompoundTag data = target.getPersistentData();
@@ -217,6 +218,7 @@ public class StaticShockHandler {
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide) return;
+        if (entity instanceof Player player && player.isCreative()) return;
 
         if (isImmuneToStatic(entity)) {
             CompoundTag data = entity.getPersistentData();
@@ -271,6 +273,34 @@ public class StaticShockHandler {
         if (stacks <= 0) {
             clearStaticShock(entity);
             return;
+        }
+
+        if (ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers > 0
+                && ElementalThunderFrostReactionsConfig.thunderBreakFreezeChance > 0
+                && stacks >= ElementalThunderFrostReactionsConfig.staticAuraThreshold
+                && FrostbiteHandler.isFrozen(entity)
+                && !FrostbiteHandler.isFreezeImmune(entity)
+                && RANDOM.nextDouble() < ElementalThunderFrostReactionsConfig.thunderBreakFreezeChance) {
+            entity.removeEffect(ModMobEffects.FREEZE.get());
+            CompoundTag fd = entity.getPersistentData();
+            fd.remove(FrostbiteHandler.NBT_FROZEN_FROSTBITE_STACKS);
+            fd.remove(FrostbiteHandler.NBT_FREEZE_STACKS);
+            fd.remove(FrostbiteHandler.NBT_FREEZE_AI_DISABLED);
+            fd.remove("EC_SharedOriginalNoAI");
+            fd.remove("EC_DrownTimer");
+            fd.putLong(FrostbiteHandler.NBT_FREEZE_COOLDOWN,
+                    entity.level().getGameTime() + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
+            int layers = ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers;
+            WetnessHandler.updateWetnessLevel(entity, layers);
+            if (entity.hasEffect(ModMobEffects.WETNESS.get())) {
+                entity.removeEffect(ModMobEffects.WETNESS.get());
+            }
+            entity.addEffect(new MobEffectInstance(
+                    ModMobEffects.WETNESS.get(),
+                    layers * 200,
+                    layers - 1,
+                    true, false, true
+            ));
         }
 
         if (entity.level() instanceof ServerLevel serverLevel) {
@@ -469,6 +499,7 @@ public class StaticShockHandler {
             java.util.List<LivingEntity> nearby = source.level().getEntitiesOfClass(LivingEntity.class, area);
             for (LivingEntity target : nearby) {
                 if (target == source) continue;
+            if (target instanceof Player player && player.isCreative()) continue;
                 if (target.isDeadOrDying()) continue;
                 if (!isInOrOnWater(target)) continue;
                 if (isImmuneToStatic(target)) continue;
@@ -511,6 +542,24 @@ public class StaticShockHandler {
         return false;
     }
 
+    private static int targetInFrostAuraRange(LivingEntity target, LivingEntity exclude) {
+        double searchRadius = ElementalThunderFrostReactionsConfig.frostbiteAuraMaxRange;
+        AABB searchArea = new AABB(
+                target.getX() - searchRadius, target.getY() - searchRadius, target.getZ() - searchRadius,
+                target.getX() + searchRadius, target.getY() + searchRadius, target.getZ() + searchRadius
+        );
+        int maxStacks = 0;
+        for (LivingEntity source : target.level().getEntitiesOfClass(LivingEntity.class, searchArea)) {
+            if (source == target || source == exclude) continue;
+            int stacks = source.getPersistentData().getInt(FrostbiteHandler.NBT_FROSTBITE_STACKS);
+            if (stacks < ElementalThunderFrostReactionsConfig.frostbiteAuraThreshold) continue;
+            double range = FrostbiteHandler.getAuraRange(stacks);
+            if (source.distanceToSqr(target) > range * range) continue;
+            if (stacks > maxStacks) maxStacks = stacks;
+        }
+        return maxStacks;
+    }
+
     private static void applyStaticAuraEffects(LivingEntity source, int stacks) {
         double range = stacks * ElementalThunderFrostReactionsConfig.staticAuraBaseRange;
 
@@ -522,6 +571,7 @@ public class StaticShockHandler {
 
         for (LivingEntity target : nearby) {
             if (target == source) continue;
+            if (target instanceof Player player && player.isCreative()) continue;
             if (target.isDeadOrDying()) continue;
 
             double dx = target.getX() - source.getX();
@@ -529,15 +579,37 @@ public class StaticShockHandler {
             double horizontalDist = Math.sqrt(dx * dx + dz * dz);
             if (horizontalDist > range) continue;
 
+            double dy = target.getY() - source.getY();
+            if (dy > ElementalThunderFrostReactionsConfig.staticAuraHeightCeiling) continue;
+
             if (isImmuneToStatic(target)) continue;
 
-            if (ElementalThunderFrostReactionsConfig.staticAuraExcludeFriendly) {
-                if (target instanceof Player) continue;
-                if (target instanceof TamableAnimal pet && pet.isTame() && pet.getOwner() != null) continue;
-            }
-
-            if (ElementalThunderFrostReactionsConfig.staticAuraOnlyHostile) {
-                if (target.getType().getCategory() != MobCategory.MONSTER) continue;
+            if (ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers > 0
+                    && ElementalThunderFrostReactionsConfig.thunderBreakFreezeChance > 0
+                    && FrostbiteHandler.isFrozen(target)
+                    && !FrostbiteHandler.isFreezeImmune(target)
+                    && RANDOM.nextDouble() < ElementalThunderFrostReactionsConfig.thunderBreakFreezeChance) {
+                target.removeEffect(ModMobEffects.FREEZE.get());
+                CompoundTag fd = target.getPersistentData();
+                fd.remove(FrostbiteHandler.NBT_FROZEN_FROSTBITE_STACKS);
+                fd.remove(FrostbiteHandler.NBT_FREEZE_STACKS);
+                fd.remove(FrostbiteHandler.NBT_FREEZE_AI_DISABLED);
+                fd.remove("EC_SharedOriginalNoAI");
+                fd.remove("EC_DrownTimer");
+                fd.putLong(FrostbiteHandler.NBT_FREEZE_COOLDOWN,
+                        target.level().getGameTime() + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
+                int layers = ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers;
+                WetnessHandler.updateWetnessLevel(target, layers);
+                if (target.hasEffect(ModMobEffects.WETNESS.get())) {
+                    target.removeEffect(ModMobEffects.WETNESS.get());
+                }
+                target.addEffect(new MobEffectInstance(
+                        ModMobEffects.WETNESS.get(),
+                        layers * 200,
+                        layers - 1,
+                        true, false, true
+                ));
+                continue;
             }
 
             boolean targetHasWetness = target.hasEffect(ModMobEffects.WETNESS.get());
@@ -554,8 +626,27 @@ public class StaticShockHandler {
                         continue;
                     }
                 }
+                int targetFrostbiteStacks = FrostbiteHandler.getFrostbiteStacks(target);
+                if (targetFrostbiteStacks >= ElementalThunderFrostReactionsConfig.frostbiteAuraThreshold) {
+                    if (stacks < targetFrostbiteStacks) {
+                        continue;
+                    }
+                    if (stacks == targetFrostbiteStacks && RANDOM.nextBoolean()) {
+                        continue;
+                    }
+                }
+                int nearbyFrostStacks = targetInFrostAuraRange(target, source);
+                if (nearbyFrostStacks > 0) {
+                    if (stacks < nearbyFrostStacks) {
+                        continue;
+                    }
+                    if (stacks == nearbyFrostStacks && RANDOM.nextBoolean()) {
+                        continue;
+                    }
+                }
                 int wetnessLevel = WetnessHandler.getWetnessLevel(target);
-                int paralysisStacks = Math.min(wetnessLevel, ElementalThunderFrostReactionsConfig.paralysisMaxStacks);
+                int paralysisStacks = Math.max(wetnessLevel, stacks);
+                paralysisStacks = Math.min(paralysisStacks, ElementalThunderFrostReactionsConfig.paralysisMaxStacks);
                 WetnessHandler.clearWetnessData(target);
                 target.addEffect(new MobEffectInstance(
                         ModMobEffects.PARALYSIS.get(), 60, paralysisStacks - 1, false, false, true));
@@ -568,6 +659,30 @@ public class StaticShockHandler {
                 if (existingStacks <= 0) existingStacks = 1;
                 target.addEffect(new MobEffectInstance(
                         ModMobEffects.PARALYSIS.get(), 60, existingStacks - 1, false, false, true));
+            }
+
+            if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
+                    && target.hasEffect(ModMobEffects.SPORES.get())) {
+                CompoundTag targetData = target.getPersistentData();
+                long gameTime = target.level().getGameTime();
+                if (targetData.contains("ec_static_aura_spore_cd") && targetData.getLong("ec_static_aura_spore_cd") > gameTime) continue;
+
+                MobEffectInstance sporeEffect = target.getEffect(ModMobEffects.SPORES.get());
+                if (sporeEffect == null) continue;
+                int sporeStacks = sporeEffect.getAmplifier() + 1;
+                int sourceStacks = source.getPersistentData().getInt(NBT_STATIC_STACKS);
+                if (sourceStacks <= 0) continue;
+
+                double totalChance = Math.min(1.0,
+                        ElementalThunderFrostReactionsConfig.staticSporeBlastBaseChance
+                        + sourceStacks * ElementalThunderFrostReactionsConfig.staticSporeBlastPerStaticStack
+                        + sporeStacks * ElementalThunderFrostReactionsConfig.staticSporeBlastPerSporeStack);
+                if (RANDOM.nextDouble() < totalChance) {
+                    targetData.putLong("ec_static_aura_spore_cd", gameTime + 100);
+                    ReactionHandler.triggerToxicBlast(target.level(), source, target,
+                            ElementalFireNatureReactionsConfig.blastTriggerThreshold, source,
+                            ElementalFireNatureReactionsConfig.sporeReactionThreshold);
+                }
             }
         }
     }
@@ -583,6 +698,7 @@ public class StaticShockHandler {
 
         for (LivingEntity target : nearby) {
             if (target == source) continue;
+            if (target instanceof Player player && player.isCreative()) continue;
             if (target.isDeadOrDying()) continue;
 
             double dx = target.getX() - source.getX();
@@ -590,16 +706,10 @@ public class StaticShockHandler {
             double horizontalDist = Math.sqrt(dx * dx + dz * dz);
             if (horizontalDist > range) continue;
 
+            double dy = target.getY() - source.getY();
+            if (dy > ElementalThunderFrostReactionsConfig.staticAuraHeightCeiling) continue;
+
             if (isImmuneToStatic(target)) continue;
-
-            if (ElementalThunderFrostReactionsConfig.staticAuraExcludeFriendly) {
-                if (target instanceof Player) continue;
-                if (target instanceof TamableAnimal pet && pet.isTame() && pet.getOwner() != null) continue;
-            }
-
-            if (ElementalThunderFrostReactionsConfig.staticAuraOnlyHostile) {
-                if (target.getType().getCategory() != MobCategory.MONSTER) continue;
-            }
 
             float auraDamage = getRandomStaticDamage(target);
             auraDamage = applyEnchantmentReduction(target, auraDamage);
@@ -629,6 +739,7 @@ public class StaticShockHandler {
 
         for (LivingEntity target : nearby) {
             if (target == source) continue;
+            if (target instanceof Player player && player.isCreative()) continue;
             if (target.isDeadOrDying()) continue;
 
             double dx = target.getX() - source.getX();
@@ -700,6 +811,7 @@ public class StaticShockHandler {
 
     public static void tryTriggerSporeBlast(LivingEntity target) {
         if (!target.hasEffect(ModMobEffects.SPORES.get())) return;
+        if (ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled && FrostbiteHandler.hasFrostbite(target)) return;
         MobEffectInstance sporeEffect = target.getEffect(ModMobEffects.SPORES.get());
         if (sporeEffect == null) return;
         int sporeStacks = sporeEffect.getAmplifier() + 1;
@@ -879,7 +991,7 @@ public class StaticShockHandler {
     @SubscribeEvent
     public static void onKeyPress(InputEvent.Key event) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && mc.player.hasEffect(ModMobEffects.PARALYSIS.get())) {
+        if (mc.player != null && (mc.player.hasEffect(ModMobEffects.PARALYSIS.get()) || mc.player.hasEffect(ModMobEffects.FREEZE.get()))) {
             if (event.getKey() != GLFW.GLFW_KEY_ESCAPE) {
                 for (KeyMapping key : mc.options.keyMappings) {
                     if (key.matches(event.getKey(), 0)) {
@@ -895,7 +1007,7 @@ public class StaticShockHandler {
     @SubscribeEvent
     public static void onMouseButton(InputEvent.MouseButton event) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && mc.player.hasEffect(ModMobEffects.PARALYSIS.get())) {
+        if (mc.player != null && (mc.player.hasEffect(ModMobEffects.PARALYSIS.get()) || mc.player.hasEffect(ModMobEffects.FREEZE.get()))) {
             for (KeyMapping key : mc.options.keyMappings) {
                 if (key.matchesMouse(event.getButton())) {
                     key.setDown(false);
@@ -909,7 +1021,7 @@ public class StaticShockHandler {
     @SubscribeEvent
     public static void onMouseScroll(InputEvent.MouseScrollingEvent event) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && mc.player.hasEffect(ModMobEffects.PARALYSIS.get())) {
+        if (mc.player != null && (mc.player.hasEffect(ModMobEffects.PARALYSIS.get()) || mc.player.hasEffect(ModMobEffects.FREEZE.get()))) {
             event.setCanceled(true);
         }
     }
