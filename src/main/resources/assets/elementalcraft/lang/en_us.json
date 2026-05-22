@@ -171,8 +171,10 @@
   "debug.elementalcraft.formula.base_enhance": "Base Enhancement %s",
   "debug.elementalcraft.formula.global_dmg_mult": "Global DMG %s",
   "debug.elementalcraft.formula.spore_vuln": "Spore Vulnerability %s",
-  "debug.elementalcraft.formula.freeze_vuln": "Freeze Vulnerability %s",
-  "debug.elementalcraft.formula.wetness_base": "Wetness Reduction %s",
+  "debug.elementalcraft.formula.freeze_vuln": "(Frozen) %s",
+  "debug.elementalcraft.formula.scorch_vuln": "Scorch Vulnerability %s",
+  "debug.elementalcraft.formula.wetness_base": "%s (Wetness)",
+  "debug.elementalcraft.formula.frost_melt": "%s (Frost)",
   "debug.elementalcraft.combat.details.header": "§6⚔ Element Details",
   "debug.elementalcraft.combat.details.enhancement": "%s Enhancement %s",
   "debug.elementalcraft.combat.details.resistance": "Resistance %s",
@@ -189,8 +191,9 @@
   "debug.elementalcraft.reaction.freeze.message": "%s is frozen! Frostbite stacks %s, freeze stacks %s, duration %s tick %s, settlement damage %s",
   "debug.elementalcraft.reaction.freeze.normal": "(Normal Freeze)",
   "debug.elementalcraft.reaction.freeze.with_wetness": "(Wetness Bonus)",
-  "debug.elementalcraft.reaction.thermal_shock.header": "[Thermal Shock]",
-  "debug.elementalcraft.reaction.thermal_shock.message": "%s triggered Thermal Shock on %s! Frostbite stacks %s, damage %s",
+
+  "debug.elementalcraft.reaction.fire_frost_melt.header": "[Fire Frost Melt]",
+  "debug.elementalcraft.reaction.fire_frost_melt.message": "%s melted %s's %s Frostbite stacks (required %s enhancement, has %s)",
 
   "debug.elementalcraft.cooldown.remaining": "§7(%s ticks / %ss remaining)",
 
@@ -201,6 +204,8 @@
 
   "debug.elementalcraft.reaction.scorched.success": "§c[Scorched] §f%s §7→ §f%s §7applied §cScorched §7(fire power %s, chance §a%s%%)",
   "debug.elementalcraft.reaction.scorched.failed.chance": "§7[Scorched] §f%s §7→ §f%s §7failed (chance §e%s%%)",
+  "debug.elementalcraft.reaction.scorched_spore.header": "[Scorched Spore]",
+  "debug.elementalcraft.reaction.scorched_spore.message": "%s's spores detonated by %s! Spore stacks: %s",
 
   "debug.elementalcraft.reaction.thunder_counter.failed.cooldown": "§e[Thunder Counter] §7blocked: per-target cooldown active",
 
@@ -208,6 +213,10 @@
   "debug.elementalcraft.reaction.freeze.failed.immune": "§7[Freeze] %s §7blocked: target immune",
 
   "debug.elementalcraft.reaction.steam.failed.cooldown": "§e[Steam Reaction] §7blocked: attacker cooldown active",
+
+  "debug.elementalcraft.reaction.scorch_frost_steam.success": "§b[Frost-Scorch Steam] §f%s §7triggered Low-Heat Steam Cloud (level %s)",
+  "debug.elementalcraft.reaction.scorch_frozen_steam.success": "§b[Frozen-Scorch Steam] §f%s §7→ §f%s §7broke freeze! High-Heat Steam Cloud (level %s, fire power §c%s§7)",
+  "debug.elementalcraft.reaction.scorched.failed.frozen_insufficient_fire": "§7[Scorched] §f%s §7→ §f%s §7blocked: frozen target needs §b%s §7fire power (has §c%s§7)",
 
   "debug.elementalcraft.reaction.paralysis.failed.cooldown": "§d[Paralysis] §7blocked: cooldown active",
 
@@ -249,8 +258,8 @@
   "enchantment.elementalcraft.thunder_strike": "§5Thunder Aspect",
   "enchantment.elementalcraft.thunder_strike.desc": "§7Imbues weapon with Thunder attribute, dealing additional Thunder damage",
 
-  "death.attack.lava_magic": "%1$s melted from internal heat",
-  "death.attack.lava_magic.player": "%1$s melted from internal heat while fighting %2$s",
+  "death.attack.lava_magic": "%1$s was scorched to death",
+  "death.attack.lava_magic.player": "%1$s was scorched to death while fighting %2$s",
   "death.attack.scorched_aura": "%1$s was scalded to death by a scorched aura",
   "death.attack.scorched_aura.player": "%1$s was scalded to death by a scorched aura while fighting %2$s",
   "death.attack.scorched": "%1$s burned to death",
@@ -262,6 +271,8 @@
   "death.attack.spores.player": "%1$s was consumed by flammable spores while fighting %2$s",
   "death.attack.frostbite_thermal_shock": "%1$s was killed by thermal shock steam",
   "death.attack.frostbite_thermal_shock.player": "%1$s was killed by thermal shock steam while fighting %2$s",
+  "death.attack.toxic_blast": "%1$s was killed by a toxic blast",
+  "death.attack.toxic_blast.player": "%1$s was killed by a toxic blast triggered by %2$s",
   
   "effect.elementalcraft.flammable_spores": "Flammable Spores",
   "effect.elementalcraft.flammable_spores.description": "Mysterious spores are parasitizing you. You become sluggish and extremely vulnerable to fire, but physical attacks hurt you less.",
@@ -274,7 +285,7 @@
   "effect.elementalcraft.frostbite": "Frostbite",
   "effect.elementalcraft.frostbite.description": "You are being encased in frost, taking ice damage every 5 seconds and slowing your movement. Contact with Wetness will freeze you solid!",
   "effect.elementalcraft.freeze": "Freeze",
-  "effect.elementalcraft.freeze.description": "You are completely frozen! Unable to move or attack, taking increased elemental damage, but physical damage is blocked by the ice shell. Fire attacks immediately break the freeze and trigger Thermal Shock Steam.",
+  "effect.elementalcraft.freeze.description": "You are completely frozen! Unable to move or attack, taking increased elemental damage, but physical damage is blocked by the ice shell. Fire attacks immediately break the freeze and trigger a High-Heat Steam reaction.",
   
   "update.elementalcraft.header": "ElementalCraft : Reactions ",
   "update.elementalcraft.available": "Update Available",

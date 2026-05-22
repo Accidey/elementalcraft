@@ -4,5 +4,8 @@
   },
   "spore_gain": {
     "sounds": ["elementalcraft:spore_gain"]
+  },
+  "ice_shatter": {
+    "sounds": ["elementalcraft:ice_shatter"]
   }
 }
