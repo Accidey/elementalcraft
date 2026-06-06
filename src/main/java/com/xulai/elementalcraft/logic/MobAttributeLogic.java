@@ -106,7 +106,21 @@ public class MobAttributeLogic {
         int resistTotalPoints = ElementalConfig.rollMonsterResist();
 
         if (attackType != null) {
-            if (hasHandItem) {
+            boolean issCaster = attackType == ElementType.THUNDER && ThreadLocalRandom.current().nextDouble() < 0.5;
+            boolean natureCaster = !issCaster && attackType == ElementType.NATURE && ThreadLocalRandom.current().nextDouble() < 0.5;
+            if (issCaster) {
+                mob.getPersistentData().putBoolean("EC_ISS_MobCaster", true);
+                mob.getPersistentData().putString("EC_ISS_MobElement", "thunder");
+            } else if (natureCaster) {
+                mob.getPersistentData().putBoolean("EC_ISS_MobCaster", true);
+                mob.getPersistentData().putString("EC_ISS_MobElement", "nature");
+                if (!hasHandItem) {
+                    ItemStack sword = new ItemStack(Items.IRON_SWORD);
+                    AttributeEquipUtils.applyAttackEnchant(sword, attackType);
+                    mob.setItemSlot(EquipmentSlot.MAINHAND, sword);
+                    mob.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
+                }
+            } else if (hasHandItem) {
                 if (!mainHand.isEmpty()) AttributeEquipUtils.applyAttackEnchant(mainHand, attackType);
                 if (!offHand.isEmpty()) AttributeEquipUtils.applyAttackEnchant(offHand, attackType);
             } else {
@@ -127,6 +141,10 @@ public class MobAttributeLogic {
         dropData.putInt("EC_DropEnhancePoints", enhanceTotalPoints);
         dropData.putInt("EC_DropResistPoints", resistTotalPoints);
         dropData.putString("EC_DropResistType", resistType.getId());
+
+        for (EquipmentSlot slot : EquipmentSlot.values()) {
+            mob.setDropChance(slot, 0.0F);
+        }
     }
 
     private static void applyForcedAttributes(Mob mob, CompoundTag persistentData, ForcedAttributeHelper.ForcedData data) {
@@ -147,7 +165,21 @@ public class MobAttributeLogic {
             boolean hasWeapon = !mainHand.isEmpty() || !offHand.isEmpty();
 
             if (attackType != null && attackType != ElementType.NONE) {
-                if (hasWeapon) {
+                boolean issCaster = attackType == ElementType.THUNDER && ThreadLocalRandom.current().nextDouble() < 0.5;
+                boolean natureCaster = !issCaster && attackType == ElementType.NATURE && ThreadLocalRandom.current().nextDouble() < 0.5;
+                if (issCaster) {
+                    persistentData.putBoolean("EC_ISS_MobCaster", true);
+                    persistentData.putString("EC_ISS_MobElement", "thunder");
+                } else if (natureCaster) {
+                    persistentData.putBoolean("EC_ISS_MobCaster", true);
+                    persistentData.putString("EC_ISS_MobElement", "nature");
+                    if (!hasWeapon) {
+                        ItemStack sword = new ItemStack(Items.IRON_SWORD);
+                        AttributeEquipUtils.applyAttackEnchant(sword, attackType);
+                        mob.setItemSlot(EquipmentSlot.MAINHAND, sword);
+                        mob.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
+                    }
+                } else if (hasWeapon) {
                     if (!mainHand.isEmpty()) AttributeEquipUtils.applyAttackEnchant(mainHand, attackType);
                     if (!offHand.isEmpty()) AttributeEquipUtils.applyAttackEnchant(offHand, attackType);
                 } else {
@@ -169,6 +201,10 @@ public class MobAttributeLogic {
             persistentData.putString("EC_DropResistType", resistType != null ? resistType.getId() : "");
 
             persistentData.putBoolean("ElementalCraft_AttributesSet", true);
+
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                mob.setDropChance(slot, 0.0F);
+            }
         }));
     }
 

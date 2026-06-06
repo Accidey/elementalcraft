@@ -4,16 +4,19 @@ import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.config.ElementalConfig;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalISSIntegrationConfig;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.config.ElementalVisualConfig;
 import com.xulai.elementalcraft.config.ForcedItemConfig;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.config.ConfigTracker;
+import net.minecraftforge.fml.config.IConfigEvent;
+import net.minecraftforge.fml.config.ModConfig;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,8 +34,7 @@ public class ConfigAutoSync {
     private static final String FIRE_NATURE = "ElementalCraft/elementalcraft-fire-nature-reactions.toml";
     private static final String VISUALS = "ElementalCraft/elementalcraft-visuals.toml";
     private static final String THUNDER_FROST = "ElementalCraft/elementalcraft-thunder-frost-reactions.toml";
-
-    private static final Map<String, CommentedFileConfig> FILE_CONFIG_CACHE = new HashMap<>();
+    private static final String ISS_INTEGRATION = "ElementalCraft/elementalcraft-iss-integration.toml";
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
@@ -75,35 +77,34 @@ public class ConfigAutoSync {
 
             ElementalCraft.LOGGER.info("[ElementalCraft] Detected change in elementalcraft-thunder-frost-reactions.toml, caches refreshed automatically.");
         });
+
+        if (ModList.get().isLoaded("irons_spellbooks")) {
+            checkConfig(ISS_INTEGRATION, () -> {
+                ElementalISSIntegrationConfig.refreshCache();
+
+                ElementalCraft.LOGGER.info("[ElementalCraft] Detected change in elementalcraft-iss-integration.toml, caches refreshed automatically.");
+            });
+        }
     }
 
-    private static CommentedFileConfig getOrCreateFileConfig(String fileName) {
-        CommentedFileConfig cached = FILE_CONFIG_CACHE.get(fileName);
-        if (cached != null) {
-            return cached;
-        }
+    private static ModConfig getModConfig(String fileName) {
+        return ConfigTracker.INSTANCE.fileMap().get(fileName);
+    }
 
-        Path configPath = FMLPaths.CONFIGDIR.get().resolve(fileName);
-        File configFile = configPath.toFile();
-        if (!configFile.exists()) {
-            return null;
-        }
-
-        CommentedFileConfig fileConfig = CommentedFileConfig.builder(configPath)
-                .sync()
-                .preserveInsertionOrder()
-                .build();
-        fileConfig.load();
-        FILE_CONFIG_CACHE.put(fileName, fileConfig);
-        return fileConfig;
+    private static void fireEvent(ModConfig modConfig) {
+        try {
+            var method = ModConfig.class.getDeclaredMethod("fireEvent", IConfigEvent.class);
+            method.setAccessible(true);
+            method.invoke(modConfig, IConfigEvent.reloading(modConfig));
+        } catch (Exception ignored) {}
     }
 
     private static void checkConfig(String fileName, Runnable onReload) {
-        CommentedFileConfig fileConfig = getOrCreateFileConfig(fileName);
-        if (fileConfig == null) return;
+        ModConfig modConfig = getModConfig(fileName);
+        if (modConfig == null || modConfig.getConfigData() == null) return;
 
-        File file = fileConfig.getFile();
-        if (file == null || !file.exists()) return;
+        File file = modConfig.getFullPath().toFile();
+        if (!file.exists()) return;
 
         long currentModified = file.lastModified();
         Long lastModified = FILE_TIMESTAMPS.get(fileName);
@@ -116,6 +117,7 @@ public class ConfigAutoSync {
             if (fileName.equals(FIRE_NATURE)) ElementalFireNatureReactionsConfig.refreshCache();
             if (fileName.equals(VISUALS)) ElementalVisualConfig.refreshCache();
             if (fileName.equals(THUNDER_FROST)) ElementalThunderFrostReactionsConfig.refreshCache();
+            if (fileName.equals(ISS_INTEGRATION)) ElementalISSIntegrationConfig.refreshCache();
 
             return;
         }
@@ -124,11 +126,39 @@ public class ConfigAutoSync {
             FILE_TIMESTAMPS.put(fileName, currentModified);
 
             try {
-                fileConfig.load();
+                ((CommentedFileConfig) modConfig.getConfigData()).load();
+                modConfig.getSpec().afterReload();
+                fireEvent(modConfig);
                 onReload.run();
             } catch (Exception e) {
                 ElementalCraft.LOGGER.error("[ElementalCraft] Failed to auto-reload config: {}", fileName, e);
             }
         }
+    }
+
+    public static void reloadAll() {
+        String[] paths = { COMMON, FORCED_ITEMS, FIRE_NATURE, VISUALS, THUNDER_FROST, ISS_INTEGRATION };
+        for (String path : paths) {
+            ModConfig modConfig = getModConfig(path);
+            if (modConfig == null || modConfig.getConfigData() == null) continue;
+            try {
+                ((CommentedFileConfig) modConfig.getConfigData()).load();
+                modConfig.getSpec().afterReload();
+                fireEvent(modConfig);
+            } catch (Exception e) {
+                ElementalCraft.LOGGER.error("[ElementalCraft] Failed to reload config: {}", path, e);
+            }
+        }
+        ElementalConfig.refreshCache();
+        CustomBiomeBias.clearCache();
+        ForcedAttributeHelper.clearCache();
+        ForcedItemHelper.clearCache();
+        ElementalFireNatureReactionsConfig.refreshCache();
+        ElementalVisualConfig.refreshCache();
+        ElementalThunderFrostReactionsConfig.refreshCache();
+        if (ModList.get().isLoaded("irons_spellbooks")) {
+            ElementalISSIntegrationConfig.refreshCache();
+        }
+        FILE_TIMESTAMPS.clear();
     }
 }

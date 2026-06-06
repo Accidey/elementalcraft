@@ -21,9 +21,9 @@ public final class ModSounds {
             SOUND_EVENTS.register("spore_gain",
                     () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ElementalCraft.MODID, "spore_gain")));
 
-    public static final RegistryObject<SoundEvent> ICE_SHATTER =
-            SOUND_EVENTS.register("ice_shatter",
-                    () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ElementalCraft.MODID, "ice_shatter")));
+    public static final RegistryObject<SoundEvent> FREEZING =
+            SOUND_EVENTS.register("freezing",
+                    () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(ElementalCraft.MODID, "freezing")));
 
     public static void register(IEventBus eventBus) {
         SOUND_EVENTS.register(eventBus);

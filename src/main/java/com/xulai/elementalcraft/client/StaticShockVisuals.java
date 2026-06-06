@@ -31,7 +31,7 @@ public class StaticShockVisuals {
         int stacks = data.getInt(NBT_STATIC_STACKS);
         if (stacks <= 0) return;
 
-        if (stacks < ElementalThunderFrostReactionsConfig.staticAuraThreshold) return;
+        if (ElementalThunderFrostReactionsConfig.staticAuraThreshold <= 0 || stacks < ElementalThunderFrostReactionsConfig.staticAuraThreshold) return;
 
         if (entity.tickCount % 4 == 0 && entity.level() instanceof ServerLevel serverLevel) {
             drawShockRing(serverLevel, entity, stacks);

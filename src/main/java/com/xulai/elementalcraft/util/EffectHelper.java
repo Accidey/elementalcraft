@@ -15,6 +15,7 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 import com.xulai.elementalcraft.client.ModParticles;
+import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import java.util.List;
 import java.util.Random;
 
@@ -107,27 +108,34 @@ public class EffectHelper {
     public static void playToxicBlast(Level level, Vec3 pos, double radius) {
         if (!(level instanceof ServerLevel serverLevel)) return;
         serverLevel.sendParticles(ParticleTypes.FLASH, pos.x, pos.y, pos.z, 1, 0, 0, 0, 0);
-        int particleCount = (int) (radius * 40);
-        for (int i = 0; i < particleCount; i++) {
-            double dx = (RANDOM.nextDouble() - 0.5) * 2.0 * radius;
-            double dy = (RANDOM.nextDouble() - 0.5) * 2.0 * radius;
-            double dz = (RANDOM.nextDouble() - 0.5) * 2.0 * radius;
-            if (dx * dx + dy * dy + dz * dz > radius * radius) continue;
-            double pX = pos.x + dx;
-            double pY = pos.y + dy;
-            double pZ = pos.z + dz;
-            double vX = dx * 0.2;
-            double vY = dy * 0.2;
-            double vZ = dz * 0.2;
-            float scale = 2.0f + RANDOM.nextFloat();
-            serverLevel.sendParticles(new DustParticleOptions(TOXIC_GREEN, scale),
-                    pX, pY, pZ, 0, vX, vY, vZ, 1.0);
-            if (RANDOM.nextFloat() < 0.4f) {
-                serverLevel.sendParticles(ParticleTypes.FLAME,
-                        pX, pY, pZ, 0, vX * 1.5, vY * 1.5, vZ * 1.5, 0.5);
-            }
+        playToxicBlastSmokeFog(serverLevel, pos.x, pos.y, pos.z, radius);
+    }
+
+    public static void playToxicBlastSmokeFog(ServerLevel serverLevel, double x, double y, double z, double radius) {
+        int totalParticles = (int) (radius * 24);
+        int batches = 100;
+        spawnSmokeBatch(serverLevel, x, y, z, radius, totalParticles, batches, 0);
+    }
+
+    private static void spawnSmokeBatch(ServerLevel serverLevel, double x, double y, double z,
+                                         double radius, int totalParticles, int batches, int currentTick) {
+        if (currentTick >= batches) return;
+        int batchCount = totalParticles / batches;
+        if (currentTick < totalParticles % batches) batchCount++;
+        for (int i = 0; i < batchCount; i++) {
+            double dx = (serverLevel.random.nextDouble() - 0.5) * radius * 1.5;
+            double dy = serverLevel.random.nextDouble() * 1.5;
+            double dz = (serverLevel.random.nextDouble() - 0.5) * radius * 1.5;
+            double vx = dx * 0.015;
+            double vy = 0.01 + serverLevel.random.nextDouble() * 0.02;
+            double vz = dz * 0.015;
+            serverLevel.sendParticles(ModParticles.TOXIC_BLAST.get(),
+                    x + dx, y + dy, z + dz,
+                    0, vx, vy, vz, 1.0);
         }
-        serverLevel.sendParticles(ParticleTypes.LAVA, pos.x, pos.y + 0.5, pos.z, 8, 0.5, 0.5, 0.5, 0.2);
+        final int nextTick = currentTick + 1;
+        serverLevel.getServer().execute(() ->
+                spawnSmokeBatch(serverLevel, x, y, z, radius, totalParticles, batches, nextTick));
     }
 
     public static void playWildfireEjection(Entity center, double radius) {
@@ -217,40 +225,44 @@ public class EffectHelper {
         float radius = cloud.getRadius();
         if (radius < 0.2f) return;
         int count = Math.max(1, (int) (radius * 10.0));
+        double heightCeiling = ElementalFireNatureReactionsConfig.steamCloudHeightCeiling;
+        double baseSpeed = heightCeiling / 70.0;
         for (int i = 0; i < count; i++) {
             double angle = RANDOM.nextDouble() * Math.PI * 2;
             double dist = Math.sqrt(RANDOM.nextDouble()) * radius;
             double x = cloud.getX() + Math.cos(angle) * dist;
             double z = cloud.getZ() + Math.sin(angle) * dist;
             double y = cloud.getY();
-            double upSpeed = 0.05 + RANDOM.nextDouble() * 0.08;
-            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x, y, z, 0, 0, upSpeed, 0, 1.0);
+            double upSpeed = baseSpeed * (0.8 + RANDOM.nextDouble() * 0.4);
+            if (isHighHeat) {
+                level.sendParticles(ModParticles.STEAM_SMOKE.get(), x, y, z, 0, 0, upSpeed, 0, 1.0);
+            } else {
+                double particleY = cloud.getY() + RANDOM.nextDouble() * heightCeiling;
+                level.sendParticles(ModParticles.STEAM_CLOUD.get(), x, particleY, z, 0, 0, upSpeed, 0, 1.0);
+            }
             if (isHighHeat) {
                 if (RANDOM.nextFloat() < 0.1f) level.sendParticles(ParticleTypes.FLAME, x, y, z, 0, 0, upSpeed * 0.8, 0, 0.5);
                 if (RANDOM.nextFloat() < 0.05f) level.sendParticles(ParticleTypes.LAVA, x, y, z, 0, 0, 0, 0, 0);
-            } else {
-                if (RANDOM.nextFloat() < 0.3f) {
-                    double dropX = cloud.getX() + (RANDOM.nextDouble() - 0.5) * radius * 2.0;
-                    double dropZ = cloud.getZ() + (RANDOM.nextDouble() - 0.5) * radius * 2.0;
-                    double dropY = cloud.getY() + RANDOM.nextDouble() * 2.5;
-                    level.sendParticles(ParticleTypes.FALLING_WATER, dropX, dropY, dropZ, 1, 0, 0, 0, 0);
-                }
             }
         }
     }
 
     public static void playSteamBurst(ServerLevel level, LivingEntity target, float radius, int intensity, boolean isHighHeat) {
-        level.playSound(null, target.getX(), target.getY(), target.getZ(),
+        playSteamBurst(level, target.getX(), target.getY(), target.getZ(), target.getBbHeight(), radius, intensity, isHighHeat);
+    }
+
+    public static void playSteamBurst(ServerLevel level, double x, double y, double z, float height, float radius, int intensity, boolean isHighHeat) {
+        level.playSound(null, x, y, z,
                 SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.6F, 1.2F);
         int count = Math.max(1, (int) (Math.max(1.0, radius) * 5 * intensity));
         double speed = 0.05;
         for (int i = 0; i < count; i++) {
             double angle = RANDOM.nextDouble() * Math.PI * 2;
             double dist = Math.sqrt(RANDOM.nextDouble()) * radius;
-            double x = target.getX() + Math.cos(angle) * dist;
-            double z = target.getZ() + Math.sin(angle) * dist;
-            double y = target.getY() + RANDOM.nextDouble() * target.getBbHeight() + 0.2;
-            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x, y, z, 0, 0, 0.05, 0, speed * 0.5);
+            double px = x + Math.cos(angle) * dist;
+            double pz = z + Math.sin(angle) * dist;
+            double py = y + RANDOM.nextDouble() * height + 0.2;
+            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, px, py, pz, 0, 0, 0.05, 0, speed * 0.5);
         }
     }
 

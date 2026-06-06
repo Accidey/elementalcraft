@@ -432,7 +432,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("visibility_check_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         GLOBAL_VIEW_DISTANCE_MULTIPLIER = BUILDER
                 .comment("Multiplier for the view distance threshold. Larger values make particles visible from farther away.",
@@ -451,7 +451,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("fire_melee_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_ENABLED = BUILDER
                 .comment("Whether to enable Fire attribute ranged visual effects (Projectile Trail & Impact).",
@@ -470,7 +470,7 @@ public class ElementalVisualConfig {
                         "Default: 2.2")
                 .defineInRange("radius", 2.2, 0.5, 5.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_BASE_ANGLE_DEGREES = BUILDER
                 .comment("Base angle of the swing arc in degrees. This angle is multiplied by the angle multiplier.",
@@ -478,7 +478,7 @@ public class ElementalVisualConfig {
                         "Default: 50.0")
                 .defineInRange("base_angle_degrees", 50.0, 10.0, 180.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_ANGLE_MULTIPLIER_BASE = BUILDER
                 .comment("Base multiplier for the swing angle. Final angle = base_angle * (base_multiplier + tier * per_tier).",
@@ -486,7 +486,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("angle_multiplier_base", 0.3, 0.1, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_ANGLE_MULTIPLIER_PER_TIER = BUILDER
                 .comment("Additional angle multiplier per visual tier. Higher tiers make the swing wider.",
@@ -494,7 +494,7 @@ public class ElementalVisualConfig {
                         "Default: 0.2")
                 .defineInRange("angle_multiplier_per_tier", 0.2, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_PARTICLE_COUNT_BASE = BUILDER
                 .comment("Base number of particles along the swing arc. Actual count = base * angle_multiplier + offset.",
@@ -502,7 +502,7 @@ public class ElementalVisualConfig {
                         "Default: 15")
                 .defineInRange("particle_count_base", 15, 5, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_PARTICLE_COUNT_OFFSET = BUILDER
                 .comment("Offset added to the particle count. Prevents zero particles at low multipliers.",
@@ -510,7 +510,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("particle_count_offset", 3, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_WAVE_AMPLITUDE = BUILDER
                 .comment("Amplitude of the sine wave offset along the arc. Adds a wavy effect.",
@@ -518,7 +518,7 @@ public class ElementalVisualConfig {
                         "Default: 0.1")
                 .defineInRange("wave_amplitude", 0.1, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_WAVE_FREQUENCY = BUILDER
                 .comment("Frequency of the sine wave offset (multiplied by PI). Higher values create more waves.",
@@ -526,7 +526,7 @@ public class ElementalVisualConfig {
                         "Default: 4.0")
                 .defineInRange("wave_frequency", 4.0, 0.0, 10.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_SOUL_FLAME_CHANCE = BUILDER
                 .comment("Probability (0-1) of spawning a Soul Flame particle per position when tier >= 2.",
@@ -534,7 +534,7 @@ public class ElementalVisualConfig {
                         "Default: 0.4")
                 .defineInRange("soul_flame_chance", 0.4, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_LAVA_CHANCE = BUILDER
                 .comment("Probability (0-1) of spawning a Lava particle per position when tier >= 3.",
@@ -542,7 +542,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("lava_chance", 0.3, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_SOUL_CHANCE = BUILDER
                 .comment("Probability (0-1) of spawning a Soul particle per position when tier >= 4.",
@@ -550,7 +550,7 @@ public class ElementalVisualConfig {
                         "Default: 0.25")
                 .defineInRange("soul_chance", 0.25, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_ENABLE_SOUL_FLAME = BUILDER
                 .comment("Whether to allow Soul Flame particles in melee swings (tier >= 2).",
@@ -558,7 +558,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("enable_soul_flame", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_ENABLE_LAVA = BUILDER
                 .comment("Whether to allow Lava particles in melee swings (tier >= 3).",
@@ -566,7 +566,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("enable_lava", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_MELEE_ENABLE_SOUL = BUILDER
                 .comment("Whether to allow Soul particles in melee swings (tier >= 4).",
@@ -588,7 +588,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("outer_reverse_rotation", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_INNER_REVERSE_ROTATION = BUILDER
                 .comment("Whether the inner helix rotates in reverse direction.",
@@ -596,7 +596,7 @@ public class ElementalVisualConfig {
                         "Default: false")
                 .define("inner_reverse_rotation", false);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_CONE_MAX_RADIUS = BUILDER
                 .comment("Maximum radius of the outer helix (in blocks).",
@@ -604,7 +604,7 @@ public class ElementalVisualConfig {
                         "Default: 2.4")
                 .defineInRange("cone_max_radius", 2.4, 0.5, 5.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_BACK_OFFSET_START = BUILDER
                 .comment("Offset distance behind the projectile where the helix starts (in blocks).",
@@ -612,7 +612,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("back_offset_start", 0.3, 0.0, 2.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_ROTATION_SPEED = BUILDER
                 .comment("Rotation speed of the helix (radians per tick). Higher values spin faster.",
@@ -620,7 +620,7 @@ public class ElementalVisualConfig {
                         "Default: 3.0")
                 .defineInRange("rotation_speed", 3.0, 0.5, 10.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_INNER_RADIUS_FACTOR = BUILDER
                 .comment("Factor applied to outer radius to get inner helix radius (inner = outer * factor).",
@@ -628,7 +628,7 @@ public class ElementalVisualConfig {
                         "Default: 0.5")
                 .defineInRange("inner_radius_factor", 0.5, 0.1, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_INNER_DELAY_TICKS = BUILDER
                 .comment("Delay in ticks before the inner helix starts to appear.",
@@ -636,7 +636,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("inner_delay_ticks", 2, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_ACTIVATION_INTERVAL = BUILDER
                 .comment("How many ticks between activating additional helix strands.",
@@ -655,7 +655,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("outer_helix_count_per_tier", 2, 1, 8);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_INNER_HELIX_COUNT_PER_TIER = BUILDER
                 .comment("Number of inner helix strands per visual tier. Total strands = tier * this value.",
@@ -663,7 +663,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("inner_helix_count_per_tier", 2, 1, 8);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_TRAIL_LAVA_PARTICLE_COUNT = BUILDER
                 .comment("Number of lava particles emitted at the tail each tick.",
@@ -671,7 +671,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("trail_lava_particle_count", 3, 0, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_TRAIL_SOUL_PARTICLE_COUNT = BUILDER
                 .comment("Number of soul particles emitted at the tail each tick.",
@@ -679,7 +679,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("trail_soul_particle_count", 2, 0, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_TRAIL_LAVA_SPREAD = BUILDER
                 .comment("Random spread range for lava particles (blocks).",
@@ -687,7 +687,7 @@ public class ElementalVisualConfig {
                         "Default: 0.4")
                 .defineInRange("trail_lava_spread", 0.4, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_TRAIL_SOUL_SPREAD = BUILDER
                 .comment("Random spread range for soul particles (blocks).",
@@ -695,7 +695,7 @@ public class ElementalVisualConfig {
                         "Default: 0.5")
                 .defineInRange("trail_soul_spread", 0.5, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_ENABLE_OUTER_HELIX = BUILDER
                 .comment("Whether to generate the outer helix (fire particles).",
@@ -703,7 +703,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("enable_outer_helix", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_ENABLE_INNER_HELIX = BUILDER
                 .comment("Whether to generate the inner helix (soul fire particles).",
@@ -711,7 +711,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("enable_inner_helix", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_RANGED_ENABLE_TRAIL_PARTICLES = BUILDER
                 .comment("Whether to generate the tail scattered particles (lava and soul).",
@@ -731,7 +731,7 @@ public class ElementalVisualConfig {
                         "Default: 5")
                 .defineInRange("flame_particle_count_per_tier", 5, 1, 30);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_FLAME_SPREAD = BUILDER
                 .comment("Spread radius of flame particles (blocks).",
@@ -739,7 +739,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("flame_spread", 0.3, 0.1, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_LAVA_ENABLED = BUILDER
                 .comment("Whether to enable lava particles on impact when tier >= 3.",
@@ -747,7 +747,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("lava_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_LAVA_PARTICLE_COUNT_PER_TIER = BUILDER
                 .comment("Number of lava particles per visual tier when tier >= 3. Total = tier * this value.",
@@ -755,7 +755,7 @@ public class ElementalVisualConfig {
                         "Default: 4")
                 .defineInRange("lava_particle_count_per_tier", 4, 1, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_LAVA_SPREAD = BUILDER
                 .comment("Spread radius of lava particles (blocks).",
@@ -763,7 +763,7 @@ public class ElementalVisualConfig {
                         "Default: 0.5")
                 .defineInRange("lava_spread", 0.5, 0.1, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_SOUL_FLAME_ENABLED = BUILDER
                 .comment("Whether to enable soul flame particles on impact when tier >= 3.",
@@ -771,7 +771,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("soul_flame_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_SOUL_FLAME_COUNT = BUILDER
                 .comment("Fixed number of soul flame particles on impact when tier >= 3.",
@@ -779,7 +779,7 @@ public class ElementalVisualConfig {
                         "Default: 15")
                 .defineInRange("soul_flame_count", 15, 0, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_SOUL_FLAME_SPREAD = BUILDER
                 .comment("Spread radius of soul flame particles (blocks).",
@@ -787,7 +787,7 @@ public class ElementalVisualConfig {
                         "Default: 0.4")
                 .defineInRange("soul_flame_spread", 0.4, 0.1, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_CAMPFIRE_SMOKE_ENABLED = BUILDER
                 .comment("Whether to enable campfire smoke particles on impact when tier >= 3.",
@@ -795,7 +795,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("campfire_smoke_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_SMOKE_COUNT = BUILDER
                 .comment("Fixed number of smoke particles on impact when tier >= 3.",
@@ -803,7 +803,7 @@ public class ElementalVisualConfig {
                         "Default: 5")
                 .defineInRange("smoke_count", 5, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_SMOKE_SPREAD_XZ = BUILDER
                 .comment("Horizontal spread radius of smoke particles (blocks).",
@@ -811,7 +811,7 @@ public class ElementalVisualConfig {
                         "Default: 0.2")
                 .defineInRange("smoke_spread_xz", 0.2, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FIRE_IMPACT_SMOKE_SPREAD_Y = BUILDER
                 .comment("Vertical spread radius of smoke particles (blocks).",
@@ -831,7 +831,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("nature_melee_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_ENABLED = BUILDER
                 .comment("Whether to enable Nature attribute ranged visual effects (Flora Bolt).",
@@ -850,7 +850,7 @@ public class ElementalVisualConfig {
                         "Default: 2.2")
                 .defineInRange("radius", 2.2, 0.5, 5.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_BASE_ANGLE_DEGREES = BUILDER
                 .comment("Base angle of the swing arc in degrees.",
@@ -858,7 +858,7 @@ public class ElementalVisualConfig {
                         "Default: 50.0")
                 .defineInRange("base_angle_degrees", 50.0, 10.0, 180.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_ANGLE_MULTIPLIER_BASE = BUILDER
                 .comment("Base multiplier for the swing angle. Final angle = base_angle * (base_multiplier + tier * per_tier).",
@@ -866,7 +866,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("angle_multiplier_base", 0.3, 0.1, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_ANGLE_MULTIPLIER_PER_TIER = BUILDER
                 .comment("Additional angle multiplier per visual tier.",
@@ -874,7 +874,7 @@ public class ElementalVisualConfig {
                         "Default: 0.2")
                 .defineInRange("angle_multiplier_per_tier", 0.2, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_PARTICLE_COUNT_BASE = BUILDER
                 .comment("Base number of particles along the swing arc. Actual count = base * angle_multiplier + offset.",
@@ -882,7 +882,7 @@ public class ElementalVisualConfig {
                         "Default: 15")
                 .defineInRange("particle_count_base", 15, 5, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_PARTICLE_COUNT_OFFSET = BUILDER
                 .comment("Offset added to the particle count.",
@@ -890,7 +890,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("particle_count_offset", 3, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_WAVE_AMPLITUDE = BUILDER
                 .comment("Amplitude of the sine wave offset along the arc.",
@@ -898,7 +898,7 @@ public class ElementalVisualConfig {
                         "Default: 0.1")
                 .defineInRange("wave_amplitude", 0.1, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_WAVE_FREQUENCY = BUILDER
                 .comment("Frequency of the sine wave offset (multiplied by PI).",
@@ -906,7 +906,7 @@ public class ElementalVisualConfig {
                         "Default: 4.0")
                 .defineInRange("wave_frequency", 4.0, 0.0, 10.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_COMPOSTER_SPEED_XZ = BUILDER
                 .comment("Horizontal speed multiplier for composter particles (multiplied by look direction).",
@@ -914,7 +914,7 @@ public class ElementalVisualConfig {
                         "Default: 0.1")
                 .defineInRange("composter_speed_xz", 0.1, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_SPORE_BLOSSOM_CHANCE = BUILDER
                 .comment("Probability (0-1) of spawning a spore blossom particle per position.",
@@ -922,7 +922,7 @@ public class ElementalVisualConfig {
                         "Default: 0.4")
                 .defineInRange("spore_blossom_chance", 0.4, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_CHERRY_LEAVES_ENABLED = BUILDER
                 .comment("Whether to allow cherry leaves particles (tier >= 3).",
@@ -930,7 +930,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("cherry_leaves_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_CHERRY_LEAVES_CHANCE = BUILDER
                 .comment("Probability (0-1) of spawning a cherry leaves particle when tier >= 3 and progress > min_progress.",
@@ -938,7 +938,7 @@ public class ElementalVisualConfig {
                         "Default: 0.5")
                 .defineInRange("cherry_leaves_chance", 0.5, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_CHERRY_LEAVES_MIN_PROGRESS = BUILDER
                 .comment("Minimum progress (0-1) along the arc for cherry leaves particles to appear.",
@@ -946,7 +946,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("cherry_leaves_min_progress", 0.3, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_WAX_ON_ENABLED = BUILDER
                 .comment("Whether to allow wax on particles (tier >= 4).",
@@ -954,7 +954,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("wax_on_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_MELEE_WAX_ON_MIN_PROGRESS = BUILDER
                 .comment("Minimum progress (0-1) along the arc for wax on particles to appear.",
@@ -976,7 +976,7 @@ public class ElementalVisualConfig {
                         "Default: 2.4")
                 .defineInRange("cone_max_radius", 2.4, 0.5, 5.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_BACK_OFFSET_START = BUILDER
                 .comment("Offset distance behind the projectile where the helix starts (in blocks).",
@@ -984,7 +984,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("back_offset_start", 0.3, 0.0, 2.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_ROTATION_SPEED = BUILDER
                 .comment("Rotation speed of the helix (radians per tick).",
@@ -992,7 +992,7 @@ public class ElementalVisualConfig {
                         "Default: 3.0")
                 .defineInRange("rotation_speed", 3.0, 0.5, 10.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_OUTER_HELIX_COUNT_PER_TIER = BUILDER
                 .comment("Number of main helix strands per visual tier. Total strands = tier * this value.",
@@ -1000,7 +1000,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("outer_helix_count_per_tier", 2, 1, 8);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_ACTIVATION_INTERVAL = BUILDER
                 .comment("How many ticks between activating additional helix strands.",
@@ -1008,7 +1008,7 @@ public class ElementalVisualConfig {
                         "Default: 1")
                 .defineInRange("activation_interval", 1, 1, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_TAIL_HELIX_COUNT_PER_TIER = BUILDER
                 .comment("Number of tail helix strands per visual tier.",
@@ -1016,7 +1016,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("tail_helix_count_per_tier", 2, 1, 8);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_TAIL_DELAY_TICKS = BUILDER
                 .comment("Delay in ticks before the tail helix starts to appear.",
@@ -1024,7 +1024,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("tail_delay_ticks", 3, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_TAIL_RADIUS_FACTOR = BUILDER
                 .comment("Factor applied to main radius to get tail helix radius (tail = main * factor).",
@@ -1032,7 +1032,7 @@ public class ElementalVisualConfig {
                         "Default: 0.5")
                 .defineInRange("tail_radius_factor", 0.5, 0.1, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_OUTER_REVERSE_ROTATION = BUILDER
                 .comment("Whether the main helix rotates in reverse direction (clockwise).",
@@ -1040,7 +1040,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("outer_reverse_rotation", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_TAIL_REVERSE_ROTATION = BUILDER
                 .comment("Whether the tail helix rotates in reverse direction.",
@@ -1059,7 +1059,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("main_particle_count", 2, 1, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_TAIL_PARTICLE_COUNT = BUILDER
                 .comment("Number of particles spawned per tail helix point.",
@@ -1067,7 +1067,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("tail_particle_count", 2, 1, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_CENTER_PARTICLE_ENABLED = BUILDER
                 .comment("Whether to spawn an extra particle at the tail center.",
@@ -1075,7 +1075,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("center_particle_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_RANGED_CENTER_PARTICLE_COUNT = BUILDER
                 .comment("Number of particles spawned at the tail center.",
@@ -1095,7 +1095,7 @@ public class ElementalVisualConfig {
                         "Default: 4")
                 .defineInRange("happy_villager_count_per_tier", 4, 1, 30);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_HAPPY_VILLAGER_SPREAD = BUILDER
                 .comment("Spread radius of happy villager particles (blocks).",
@@ -1103,7 +1103,7 @@ public class ElementalVisualConfig {
                         "Default: 0.4")
                 .defineInRange("happy_villager_spread", 0.4, 0.1, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_HAPPY_VILLAGER_SPEED = BUILDER
                 .comment("Speed of happy villager particles.",
@@ -1111,7 +1111,7 @@ public class ElementalVisualConfig {
                         "Default: 0.1")
                 .defineInRange("happy_villager_speed", 0.1, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_SPORE_BLOSSOM_ENABLED = BUILDER
                 .comment("Whether to spawn spore blossom particles on impact when tier >= 3.",
@@ -1119,7 +1119,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("spore_blossom_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_SPORE_BLOSSOM_COUNT = BUILDER
                 .comment("Number of spore blossom particles on impact when tier >= 3.",
@@ -1127,7 +1127,7 @@ public class ElementalVisualConfig {
                         "Default: 12")
                 .defineInRange("spore_blossom_count", 12, 0, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_SPORE_BLOSSOM_SPREAD_XZ = BUILDER
                 .comment("Horizontal spread radius of spore blossom particles (blocks).",
@@ -1135,7 +1135,7 @@ public class ElementalVisualConfig {
                         "Default: 0.5")
                 .defineInRange("spore_blossom_spread_xz", 0.5, 0.0, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_SPORE_BLOSSOM_SPREAD_Y = BUILDER
                 .comment("Vertical spread radius of spore blossom particles (blocks).",
@@ -1143,7 +1143,7 @@ public class ElementalVisualConfig {
                         "Default: 0.2")
                 .defineInRange("spore_blossom_spread_y", 0.2, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_SPORE_BLOSSOM_SPEED = BUILDER
                 .comment("Speed of spore blossom particles.",
@@ -1151,7 +1151,7 @@ public class ElementalVisualConfig {
                         "Default: 0.01")
                 .defineInRange("spore_blossom_speed", 0.01, 0.0, 0.2);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_CHERRY_LEAVES_ENABLED = BUILDER
                 .comment("Whether to spawn cherry leaves particles on impact when tier >= 3.",
@@ -1159,7 +1159,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("cherry_leaves_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_CHERRY_LEAVES_COUNT = BUILDER
                 .comment("Number of cherry leaves particles on impact when tier >= 3.",
@@ -1167,7 +1167,7 @@ public class ElementalVisualConfig {
                         "Default: 8")
                 .defineInRange("cherry_leaves_count", 8, 0, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_CHERRY_LEAVES_SPREAD_XZ = BUILDER
                 .comment("Horizontal spread radius of cherry leaves particles (blocks).",
@@ -1175,7 +1175,7 @@ public class ElementalVisualConfig {
                         "Default: 0.4")
                 .defineInRange("cherry_leaves_spread_xz", 0.4, 0.0, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_CHERRY_LEAVES_SPREAD_Y = BUILDER
                 .comment("Vertical spread radius of cherry leaves particles (blocks).",
@@ -1183,7 +1183,7 @@ public class ElementalVisualConfig {
                         "Default: 0.1")
                 .defineInRange("cherry_leaves_spread_y", 0.1, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         NATURE_IMPACT_CHERRY_LEAVES_SPEED = BUILDER
                 .comment("Speed of cherry leaves particles.",
@@ -1214,7 +1214,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
 
         BUILDER.pop();
@@ -1228,7 +1228,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("thunder_melee_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_ENABLED = BUILDER
                 .comment("Whether to enable Thunder attribute ranged visual effects (Spiral Lightning Trail).",
@@ -1247,7 +1247,7 @@ public class ElementalVisualConfig {
                         "Default: 2.2")
                 .defineInRange("radius", 2.2, 0.5, 5.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_BASE_ANGLE_DEGREES = BUILDER
                 .comment("Base angle of the swing arc in degrees.",
@@ -1255,7 +1255,7 @@ public class ElementalVisualConfig {
                         "Default: 50.0")
                 .defineInRange("base_angle_degrees", 50.0, 10.0, 180.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_ANGLE_MULTIPLIER_BASE = BUILDER
                 .comment("Base multiplier for the swing angle. Final angle = base_angle * (base_multiplier + tier * per_tier).",
@@ -1263,7 +1263,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("angle_multiplier_base", 0.3, 0.1, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_ANGLE_MULTIPLIER_PER_TIER = BUILDER
                 .comment("Additional angle multiplier per visual tier.",
@@ -1271,7 +1271,7 @@ public class ElementalVisualConfig {
                         "Default: 0.2")
                 .defineInRange("angle_multiplier_per_tier", 0.2, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_PARTICLE_COUNT_BASE = BUILDER
                 .comment("Base number of particles along the swing arc. Actual count = base * angle_multiplier + offset.",
@@ -1279,7 +1279,7 @@ public class ElementalVisualConfig {
                         "Default: 15")
                 .defineInRange("particle_count_base", 15, 5, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_PARTICLE_COUNT_OFFSET = BUILDER
                 .comment("Offset added to the particle count.",
@@ -1287,7 +1287,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("particle_count_offset", 3, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_FORWARD_OFFSET_FACTOR = BUILDER
                 .comment("Forward offset factor for particle positions (multiplied by cos(angle) * radius).",
@@ -1295,7 +1295,7 @@ public class ElementalVisualConfig {
                         "Default: 0.5")
                 .defineInRange("forward_offset_factor", 0.5, 0.2, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_FALL_SPEED = BUILDER
                 .comment("Vertical fall speed of particles (negative = downward).",
@@ -1303,7 +1303,7 @@ public class ElementalVisualConfig {
                         "Default: -0.01")
                 .defineInRange("fall_speed", -0.01, -0.1, 0.1);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_GLOW_CHANCE_TIER2 = BUILDER
                 .comment("Probability (0-1) of spawning an extra GLOW particle per position when tier >= 2.",
@@ -1311,7 +1311,7 @@ public class ElementalVisualConfig {
                         "Default: 0.4")
                 .defineInRange("glow_chance_tier2", 0.4, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_REVERSE_PORTAL_CHANCE_TIER3 = BUILDER
                 .comment("Probability (0-1) of spawning a REVERSE_PORTAL particle per position when tier >= 3.",
@@ -1319,7 +1319,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("reverse_portal_chance_tier3", 0.3, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_ARC_LINE_ENABLED = BUILDER
                 .comment("Whether to spawn arc line particles at the swing ends when tier >= 4.",
@@ -1327,7 +1327,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("arc_line_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_MELEE_ARC_LINE_STEP_FACTOR = BUILDER
                 .comment("Step density factor for arc line particles. Number of steps = distance * factor.",
@@ -1349,7 +1349,7 @@ public class ElementalVisualConfig {
                         "Default: 2.4")
                 .defineInRange("cone_max_radius", 2.4, 0.5, 5.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_BACK_OFFSET_START = BUILDER
                 .comment("Offset distance behind the projectile where the helix starts (in blocks).",
@@ -1357,7 +1357,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("back_offset_start", 0.3, 0.0, 2.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_ROTATION_SPEED = BUILDER
                 .comment("Rotation speed of the helix (radians per tick).",
@@ -1365,7 +1365,7 @@ public class ElementalVisualConfig {
                         "Default: 6.0")
                 .defineInRange("rotation_speed", 6.0, 0.5, 15.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_HELIX_COUNT_PER_TIER = BUILDER
                 .comment("Number of helix strands per visual tier. Total strands = tier * this value.",
@@ -1373,7 +1373,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("helix_count_per_tier", 2, 1, 8);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_ACTIVATION_INTERVAL = BUILDER
                 .comment("How many ticks between activating additional helix strands.",
@@ -1403,7 +1403,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("tail_end_rod_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_TAIL_END_ROD_COUNT = BUILDER
                 .comment("Number of END_ROD particles spawned at the tail.",
@@ -1411,7 +1411,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("tail_end_rod_count", 3, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_TAIL_REVERSE_PORTAL_ENABLED = BUILDER
                 .comment("Whether to spawn REVERSE_PORTAL particles at the tail when tier >= 3.",
@@ -1419,7 +1419,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("tail_reverse_portal_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_TAIL_REVERSE_PORTAL_GROUPS = BUILDER
                 .comment("Number of groups of REVERSE_PORTAL particles.",
@@ -1427,7 +1427,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("tail_reverse_portal_groups", 3, 0, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_TAIL_REVERSE_PORTAL_COUNT = BUILDER
                 .comment("Number of particles per REVERSE_PORTAL group.",
@@ -1435,7 +1435,7 @@ public class ElementalVisualConfig {
                         "Default: 5")
                 .defineInRange("tail_reverse_portal_count", 5, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_TAIL_REVERSE_PORTAL_SPREAD = BUILDER
                 .comment("Random spread range for REVERSE_PORTAL particles (blocks).",
@@ -1443,7 +1443,7 @@ public class ElementalVisualConfig {
                         "Default: 0.2")
                 .defineInRange("tail_reverse_portal_spread", 0.2, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_TAIL_DRAGON_BREATH_ENABLED = BUILDER
                 .comment("Whether to spawn DRAGON_BREATH particles at the tail when tier >= 4.",
@@ -1451,7 +1451,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("tail_dragon_breath_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_TAIL_DRAGON_BREATH_GROUPS = BUILDER
                 .comment("Number of groups of DRAGON_BREATH particles.",
@@ -1459,7 +1459,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("tail_dragon_breath_groups", 2, 0, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_TAIL_DRAGON_BREATH_COUNT = BUILDER
                 .comment("Number of particles per DRAGON_BREATH group.",
@@ -1467,7 +1467,7 @@ public class ElementalVisualConfig {
                         "Default: 1")
                 .defineInRange("tail_dragon_breath_count", 1, 0, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_RANGED_TAIL_DRAGON_BREATH_SPREAD = BUILDER
                 .comment("Random spread range for DRAGON_BREATH particles (blocks).",
@@ -1487,7 +1487,7 @@ public class ElementalVisualConfig {
                         "Default: 8")
                 .defineInRange("glow_count_per_tier", 8, 1, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_IMPACT_GLOW_SPREAD = BUILDER
                 .comment("Spread radius of GLOW particles (blocks).",
@@ -1495,7 +1495,7 @@ public class ElementalVisualConfig {
                         "Default: 0.5")
                 .defineInRange("glow_spread", 0.5, 0.1, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_IMPACT_GLOW_SPEED = BUILDER
                 .comment("Speed of GLOW particles.",
@@ -1503,7 +1503,7 @@ public class ElementalVisualConfig {
                         "Default: 0.1")
                 .defineInRange("glow_speed", 0.1, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_IMPACT_END_ROD_COUNT_PER_TIER = BUILDER
                 .comment("Number of END_ROD particles per visual tier. Total = tier * this value.",
@@ -1511,7 +1511,7 @@ public class ElementalVisualConfig {
                         "Default: 4")
                 .defineInRange("end_rod_count_per_tier", 4, 0, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_IMPACT_END_ROD_SPREAD = BUILDER
                 .comment("Spread radius of END_ROD particles (blocks).",
@@ -1519,7 +1519,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("end_rod_spread", 0.3, 0.0, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_IMPACT_END_ROD_SPEED = BUILDER
                 .comment("Speed of END_ROD particles.",
@@ -1527,7 +1527,7 @@ public class ElementalVisualConfig {
                         "Default: 0.05")
                 .defineInRange("end_rod_speed", 0.05, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_IMPACT_EXTRA_END_ROD_ENABLED = BUILDER
                 .comment("Whether to spawn extra END_ROD particles around the target when tier >= 2.",
@@ -1535,7 +1535,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("extra_end_rod_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_IMPACT_EXTRA_END_ROD_COUNT_PER_TIER = BUILDER
                 .comment("Number of extra END_ROD particles per visual tier. Total = tier * this value.",
@@ -1543,7 +1543,7 @@ public class ElementalVisualConfig {
                         "Default: 4")
                 .defineInRange("extra_end_rod_count_per_tier", 4, 0, 30);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_IMPACT_EXTRA_END_ROD_HORIZONTAL_SPREAD = BUILDER
                 .comment("Horizontal spread range for extra END_ROD particles (blocks).",
@@ -1551,7 +1551,7 @@ public class ElementalVisualConfig {
                         "Default: 1.2")
                 .defineInRange("extra_end_rod_horizontal_spread", 1.2, 0.0, 3.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         THUNDER_IMPACT_EXTRA_END_ROD_VERTICAL_RANDOM = BUILDER
                 .comment("Whether to randomize vertical position of extra END_ROD particles (otherwise fixed at half height).",
@@ -1571,7 +1571,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("frost_melee_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_ENABLED = BUILDER
                 .comment("Whether to enable Frost attribute ranged visual effects (Projectile Trail & Impact).",
@@ -1590,7 +1590,7 @@ public class ElementalVisualConfig {
                         "Default: 2.4")
                 .defineInRange("radius", 2.4, 0.5, 5.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_BASE_ANGLE_DEGREES = BUILDER
                 .comment("Base angle of the swing arc in degrees.",
@@ -1598,7 +1598,7 @@ public class ElementalVisualConfig {
                         "Default: 50.0")
                 .defineInRange("base_angle_degrees", 50.0, 10.0, 180.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_ANGLE_MULTIPLIER_BASE = BUILDER
                 .comment("Base multiplier for the swing angle. Final angle = base_angle * (base_multiplier + tier * per_tier).",
@@ -1606,7 +1606,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("angle_multiplier_base", 0.3, 0.1, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_ANGLE_MULTIPLIER_PER_TIER = BUILDER
                 .comment("Additional angle multiplier per visual tier.",
@@ -1614,7 +1614,7 @@ public class ElementalVisualConfig {
                         "Default: 0.2")
                 .defineInRange("angle_multiplier_per_tier", 0.2, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_PARTICLE_COUNT_BASE = BUILDER
                 .comment("Base number of particles along the swing arc. Actual count = base * angle_multiplier + offset.",
@@ -1622,7 +1622,7 @@ public class ElementalVisualConfig {
                         "Default: 15")
                 .defineInRange("particle_count_base", 15, 5, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_PARTICLE_COUNT_OFFSET = BUILDER
                 .comment("Offset added to the particle count.",
@@ -1630,7 +1630,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("particle_count_offset", 3, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_WAVE_AMPLITUDE = BUILDER
                 .comment("Amplitude of the sine wave offset along the arc.",
@@ -1638,7 +1638,7 @@ public class ElementalVisualConfig {
                         "Default: 0.12")
                 .defineInRange("wave_amplitude", 0.12, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_WAVE_FREQUENCY = BUILDER
                 .comment("Frequency of the sine wave offset (multiplied by PI).",
@@ -1646,7 +1646,7 @@ public class ElementalVisualConfig {
                         "Default: 4.0")
                 .defineInRange("wave_frequency", 4.0, 0.0, 10.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_GLOW_CHANCE_TIER2 = BUILDER
                 .comment("Probability (0-1) of spawning a custom frost snowflake particle per position when tier >= 2.",
@@ -1654,7 +1654,7 @@ public class ElementalVisualConfig {
                         "Default: 0.35")
                 .defineInRange("glow_chance_tier2", 0.35, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_SHARD_CHANCE_TIER3 = BUILDER
                 .comment("Probability (0-1) of spawning a snowball (shard) particle per position when tier >= 3.",
@@ -1662,7 +1662,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("shard_chance_tier3", 0.3, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_MIST_CHANCE_TIER3 = BUILDER
                 .comment("Probability (0-1) of spawning a CLOUD (mist) particle per position when tier >= 3.",
@@ -1670,7 +1670,7 @@ public class ElementalVisualConfig {
                         "Default: 0.25")
                 .defineInRange("mist_chance_tier3", 0.25, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_ASH_CHANCE_TIER4 = BUILDER
                 .comment("Probability (0-1) of spawning an extra snowflake particle per position when tier >= 4.",
@@ -1678,7 +1678,7 @@ public class ElementalVisualConfig {
                         "Default: 0.4")
                 .defineInRange("ash_chance_tier4", 0.4, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_MIST_LINE_ENABLED = BUILDER
                 .comment("Whether to spawn CLOUD (mist) line between swing ends when tier >= 4.",
@@ -1686,7 +1686,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("mist_line_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_MELEE_MIST_LINE_STEP_FACTOR = BUILDER
                 .comment("Step density factor for mist line particles. Number of steps = distance * factor.",
@@ -1708,7 +1708,7 @@ public class ElementalVisualConfig {
                         "Default: 2.4")
                 .defineInRange("cone_max_radius", 2.4, 0.5, 5.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_BACK_OFFSET_START = BUILDER
                 .comment("Offset distance behind the projectile where the helix starts (in blocks).",
@@ -1716,7 +1716,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("back_offset_start", 0.3, 0.0, 2.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_ROTATION_SPEED = BUILDER
                 .comment("Rotation speed of the helix (radians per tick).",
@@ -1724,7 +1724,7 @@ public class ElementalVisualConfig {
                         "Default: 3.5")
                 .defineInRange("rotation_speed", 3.5, 0.5, 10.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_ACTIVATION_INTERVAL = BUILDER
                 .comment("How many ticks between activating additional helix strands.",
@@ -1732,7 +1732,7 @@ public class ElementalVisualConfig {
                         "Default: 1")
                 .defineInRange("activation_interval", 1, 1, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_HELIX_COUNT_PER_TIER = BUILDER
                 .comment("Number of outer helix strands per visual tier. Total strands = tier * this value.",
@@ -1740,7 +1740,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("helix_count_per_tier", 2, 1, 8);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_RING_PARTICLE_COUNT = BUILDER
                 .comment("Number of CLOUD particles per outer helix point.",
@@ -1748,7 +1748,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("ring_particle_count", 3, 1, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_INNER_CORE_ENABLED = BUILDER
                 .comment("Whether to enable the inner core helix.",
@@ -1756,7 +1756,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("inner_core_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_INNER_CORE_COUNT = BUILDER
                 .comment("Number of custom frost snowflake particles per inner helix point.",
@@ -1764,7 +1764,7 @@ public class ElementalVisualConfig {
                         "Default: 2")
                 .defineInRange("inner_core_count", 2, 1, 10);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_INNER_DELAY_TICKS = BUILDER
                 .comment("Delay in ticks before the inner core helix starts to appear.",
@@ -1772,7 +1772,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("inner_delay_ticks", 3, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_INNER_RADIUS_FACTOR = BUILDER
                 .comment("Factor applied to outer radius to get inner helix radius (inner = outer * factor).",
@@ -1791,7 +1791,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("tail_mist_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_TAIL_MIST_COUNT = BUILDER
                 .comment("Number of CLOUD particles spawned at the tail when tier >= 2.",
@@ -1799,7 +1799,7 @@ public class ElementalVisualConfig {
                         "Default: 4")
                 .defineInRange("tail_mist_count", 4, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_TAIL_MIST_SPREAD = BUILDER
                 .comment("Random spread range for tail mist particles (blocks).",
@@ -1807,7 +1807,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("tail_mist_spread", 0.3, 0.0, 1.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_TAIL_SHARD_ENABLED = BUILDER
                 .comment("Whether to spawn snowball (shard) particles at the tail when tier >= 3.",
@@ -1815,7 +1815,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("tail_shard_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_TAIL_SHARD_COUNT = BUILDER
                 .comment("Number of snowball particles spawned at the tail when tier >= 3.",
@@ -1823,7 +1823,7 @@ public class ElementalVisualConfig {
                         "Default: 3")
                 .defineInRange("tail_shard_count", 3, 0, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_RANGED_TAIL_SHARD_SPREAD = BUILDER
                 .comment("Random spread range for tail shard particles (blocks).",
@@ -1843,7 +1843,7 @@ public class ElementalVisualConfig {
                         "Default: 6")
                 .defineInRange("snowflake_count_per_tier", 6, 1, 30);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_SNOWFLAKE_SPREAD = BUILDER
                 .comment("Spread radius of snowflake particles (blocks).",
@@ -1851,7 +1851,7 @@ public class ElementalVisualConfig {
                         "Default: 0.4")
                 .defineInRange("snowflake_spread", 0.4, 0.1, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_SNOWFLAKE_SPEED = BUILDER
                 .comment("Speed of snowflake particles.",
@@ -1859,7 +1859,7 @@ public class ElementalVisualConfig {
                         "Default: 0.1")
                 .defineInRange("snowflake_speed", 0.1, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_SHARD_COUNT_PER_TIER = BUILDER
                 .comment("Number of snowball (shard) particles per visual tier. Total = tier * this value.",
@@ -1867,7 +1867,7 @@ public class ElementalVisualConfig {
                         "Default: 4")
                 .defineInRange("shard_count_per_tier", 4, 1, 20);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_SHARD_SPREAD = BUILDER
                 .comment("Spread radius of snowball particles (blocks).",
@@ -1875,7 +1875,7 @@ public class ElementalVisualConfig {
                         "Default: 0.3")
                 .defineInRange("shard_spread", 0.3, 0.1, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_SHARD_SPEED = BUILDER
                 .comment("Speed of snowball particles.",
@@ -1883,7 +1883,7 @@ public class ElementalVisualConfig {
                         "Default: 0.15")
                 .defineInRange("shard_speed", 0.15, 0.0, 0.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_GLOW_ENABLED = BUILDER
                 .comment("Whether to enable custom frost snowflake particles on impact when tier >= 2.",
@@ -1891,7 +1891,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("glow_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_GLOW_COUNT_PER_TIER = BUILDER
                 .comment("Number of custom frost snowflake particles per visual tier when tier >= 2. Total = tier * this value.",
@@ -1899,7 +1899,7 @@ public class ElementalVisualConfig {
                         "Default: 4")
                 .defineInRange("glow_count_per_tier", 4, 1, 30);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_GLOW_SPREAD = BUILDER
                 .comment("Spread radius of custom frost snowflake particles (blocks).",
@@ -1907,7 +1907,7 @@ public class ElementalVisualConfig {
                         "Default: 0.6")
                 .defineInRange("glow_spread", 0.6, 0.1, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_MIST_ENABLED = BUILDER
                 .comment("Whether to enable CLOUD (mist) particles on impact when tier >= 3.",
@@ -1915,7 +1915,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("mist_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_MIST_COUNT = BUILDER
                 .comment("Fixed number of CLOUD particles on impact when tier >= 3.",
@@ -1923,7 +1923,7 @@ public class ElementalVisualConfig {
                         "Default: 10")
                 .defineInRange("mist_count", 10, 0, 50);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_MIST_SPREAD = BUILDER
                 .comment("Spread radius of mist particles (blocks).",
@@ -1931,7 +1931,7 @@ public class ElementalVisualConfig {
                         "Default: 0.5")
                 .defineInRange("mist_spread", 0.5, 0.1, 1.5);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_MIST_SPEED = BUILDER
                 .comment("Speed of mist particles.",
@@ -1939,7 +1939,7 @@ public class ElementalVisualConfig {
                         "Default: 0.02")
                 .defineInRange("mist_speed", 0.02, 0.0, 0.2);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_BLIZZARD_ENABLED = BUILDER
                 .comment("Whether to enable blizzard ring effects on impact when tier >= 4.",
@@ -1947,7 +1947,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("blizzard_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_BLIZZARD_RING_COUNT = BUILDER
                 .comment("Number of particles in the blizzard ring.",
@@ -1955,7 +1955,7 @@ public class ElementalVisualConfig {
                         "Default: 16")
                 .defineInRange("blizzard_ring_count", 16, 4, 60);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_BLIZZARD_RING_RADIUS = BUILDER
                 .comment("Radius of the blizzard ring (blocks).",
@@ -1963,7 +1963,7 @@ public class ElementalVisualConfig {
                         "Default: 1.8")
                 .defineInRange("blizzard_ring_radius", 1.8, 0.5, 4.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_IMPACT_BLIZZARD_MIST_COUNT = BUILDER
                 .comment("Number of mist (CLOUD) particles to scatter within the blizzard ring.",
@@ -1971,7 +1971,7 @@ public class ElementalVisualConfig {
                         "Default: 8")
                 .defineInRange("blizzard_mist_count", 8, 0, 30);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_ICE_RUNE_RING_ENABLED = BUILDER
                 .comment("Whether to enable the ice rune ring effect on impact (summoned on entity death area).",
@@ -1979,7 +1979,7 @@ public class ElementalVisualConfig {
                         "Default: true")
                 .define("ice_rune_ring_enabled", true);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_ICE_RUNE_RING_RADIUS = BUILDER
                 .comment("Radius of the ice rune ring (blocks).",
@@ -1987,7 +1987,7 @@ public class ElementalVisualConfig {
                         "Default: 1.0")
                 .defineInRange("ice_rune_ring_radius", 1.0, 0.3, 3.0);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_ICE_RUNE_RING_TOTAL_PARTICLES = BUILDER
                 .comment("Total number of particles in the ice rune ring.",
@@ -1995,7 +1995,7 @@ public class ElementalVisualConfig {
                         "Default: 10")
                 .defineInRange("ice_rune_ring_total_particles", 10, 4, 36);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_ICE_RUNE_RING_SPAWN_DURATION_TICKS = BUILDER
                 .comment("Duration (in ticks) over which the rune particles spawn.",
@@ -2003,7 +2003,7 @@ public class ElementalVisualConfig {
                         "Default: 40")
                 .defineInRange("ice_rune_ring_spawn_duration_ticks", 40, 1, 200);
 
-        BUILDER.comment("");
+        BUILDER.comment(" ");
 
         FROST_ICE_RUNE_RING_DEATH_GRACE_TICKS = BUILDER
                 .comment("Grace period (in ticks) after entity death during which rune particles still appear.",

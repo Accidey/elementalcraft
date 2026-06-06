@@ -5,6 +5,7 @@ import com.xulai.elementalcraft.client.ModParticles;
 import com.xulai.elementalcraft.command.ModCommands;
 import com.xulai.elementalcraft.config.ElementalConfig;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalISSIntegrationConfig;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.config.ElementalVisualConfig;
 import com.xulai.elementalcraft.config.ForcedItemConfig;
@@ -20,6 +21,7 @@ import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
@@ -48,6 +50,10 @@ public class ElementalCraft {
         ElementalFireNatureReactionsConfig.register("ElementalCraft/elementalcraft-fire-nature-reactions.toml");
         ElementalVisualConfig.register("ElementalCraft/elementalcraft-visuals.toml");
         ElementalThunderFrostReactionsConfig.register("ElementalCraft/elementalcraft-thunder-frost-reactions.toml");
+
+        if (ModList.get().isLoaded("irons_spellbooks")) {
+            ElementalISSIntegrationConfig.register("ElementalCraft/elementalcraft-iss-integration.toml");
+        }
 
         ModEnchantments.register(modEventBus);
         ModMobEffects.register(modEventBus);
@@ -117,6 +123,9 @@ public class ElementalCraft {
         ElementalFireNatureReactionsConfig.refreshCache();
         ElementalVisualConfig.refreshCache();
         ElementalThunderFrostReactionsConfig.refreshCache();
+        if (ModList.get().isLoaded("irons_spellbooks")) {
+            ElementalISSIntegrationConfig.refreshCache();
+        }
         LOGGER.info("[ElementalCraft] Common Setup: Config cache initialized.");
     }
 
@@ -135,6 +144,10 @@ public class ElementalCraft {
         if (event.getConfig().getSpec() == ElementalThunderFrostReactionsConfig.SPEC) {
             ElementalThunderFrostReactionsConfig.refreshCache();
             LOGGER.info("[ElementalCraft] Config Loaded: elementalcraft-thunder-frost-reactions.toml");
+        }
+        if (event.getConfig().getSpec() == ElementalISSIntegrationConfig.SPEC) {
+            ElementalISSIntegrationConfig.refreshCache();
+            LOGGER.info("[ElementalCraft] Config Loaded: elementalcraft-iss-integration.toml");
         }
     }
 
@@ -160,6 +173,10 @@ public class ElementalCraft {
             ElementalThunderFrostReactionsConfig.refreshCache();
             LOGGER.info("[ElementalCraft] Config reloaded from file: elementalcraft-thunder-frost-reactions.toml");
         }
+        if (event.getConfig().getSpec() == ElementalISSIntegrationConfig.SPEC) {
+            ElementalISSIntegrationConfig.refreshCache();
+            LOGGER.info("[ElementalCraft] Config reloaded from file: elementalcraft-iss-integration.toml");
+        }
     }
 
     public void onAddReloadListeners(AddReloadListenerEvent event) {
@@ -170,6 +187,9 @@ public class ElementalCraft {
                 ElementalFireNatureReactionsConfig.refreshCache();
                 ElementalVisualConfig.refreshCache();
                 ElementalThunderFrostReactionsConfig.refreshCache();
+                if (ModList.get().isLoaded("irons_spellbooks")) {
+                    ElementalISSIntegrationConfig.refreshCache();
+                }
                 CustomBiomeBias.clearCache();
                 ForcedAttributeHelper.clearCache();
                 ForcedItemHelper.clearCache();

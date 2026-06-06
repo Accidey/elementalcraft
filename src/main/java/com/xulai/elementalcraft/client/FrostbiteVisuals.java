@@ -32,7 +32,7 @@ public class FrostbiteVisuals {
         if (stacks <= 0) return;
 
         boolean isFrozen = FrostbiteHandler.isFrozen(entity);
-        boolean hasAura = stacks >= ElementalThunderFrostReactionsConfig.frostbiteAuraThreshold;
+        boolean hasAura = ElementalThunderFrostReactionsConfig.frostbiteAuraThreshold > 0 && stacks >= ElementalThunderFrostReactionsConfig.frostbiteAuraThreshold;
 
         if (entity.tickCount % 4 == 0 && entity.level() instanceof ServerLevel serverLevel) {
             // 只有达到光环阈值后才显示所有霜冻视觉效果

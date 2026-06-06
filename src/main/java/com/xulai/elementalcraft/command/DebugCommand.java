@@ -3,6 +3,7 @@ package com.xulai.elementalcraft.command;
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.mojang.brigadier.CommandDispatcher;
+import com.xulai.elementalcraft.util.ConfigAutoSync;
 import com.xulai.elementalcraft.util.DebugMode;
 import com.xulai.elementalcraft.util.ElementType;
 import net.minecraft.ChatFormatting;
@@ -43,6 +44,15 @@ public class DebugCommand {
                                     return 1;
                                 })
                         )
+                        .then(Commands.literal("reload")
+                                .requires(source -> source.hasPermission(2))
+                                .executes(context -> {
+                                    ConfigAutoSync.reloadAll();
+                                    context.getSource().sendSuccess(() ->
+                                            Component.translatable("command.elementalcraft.reload.success"), true);
+                                    return 1;
+                                })
+                        )
         );
     }
 
@@ -71,8 +81,8 @@ public class DebugCommand {
         public boolean isFloored;
         public double minPercent;
         public int wetnessLevel;
-        public float frostMeltMult;
-        public boolean frostMelted;
+        public float frozenMeltMult;
+        public boolean frozenMelted;
 
         public MutableComponent buildFormulaComponent() {
             MutableComponent formula = Component.literal(" (");
@@ -93,8 +103,8 @@ public class DebugCommand {
             if (Math.abs(scorchVulnMult - 1.0f) > 0.001f) {
                 formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.scorch_vuln", String.format("%.2f", scorchVulnMult)).withStyle(ChatFormatting.DARK_RED));
             }
-            if (Math.abs(frostMeltMult - 1.0f) > 0.001f) {
-                formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.frost_melt", String.format("%.1f", frostMeltMult)).withStyle(ChatFormatting.AQUA));
+            if (Math.abs(frozenMeltMult - 1.0f) > 0.001f) {
+                formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.frozen_melt", String.format("%.1f", frozenMeltMult)).withStyle(ChatFormatting.AQUA));
             }
             if (Math.abs(wetnessBaseMult - 1.0f) > 0.001f) {
                 formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.wetness_base", String.format("%.2f", wetnessBaseMult)).withStyle(ChatFormatting.AQUA));
@@ -143,12 +153,6 @@ public class DebugCommand {
         public LivingEntity victim;
         public double radius;
         public int affectedCount;
-    }
-
-    public static class SteamTriggerLogContext {
-        public LivingEntity attacker;
-        public boolean isHighHeat;
-        public int level;
     }
 
     public static class DryLogContext {
@@ -245,6 +249,15 @@ public class DebugCommand {
         public String reactionKey;
     }
 
+    public static class ThermalShockLogContext {
+        public LivingEntity target;
+        public int remainingTicks;
+        public float totalRemainingDamage;
+        public float ratio;
+        public float shockDamage;
+        public int steamLevel;
+    }
+
     public static void sendCombatLog(CombatLogContext ctx) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         if (!(ctx.target.level() instanceof ServerLevel serverLevel)) return;
@@ -296,19 +309,6 @@ public class DebugCommand {
                 ctx.affectedCount
         ).withStyle(ChatFormatting.WHITE);
         sendDebugMessage(ctx.victim, prefix.append(Component.literal(" ")).append(content));
-    }
-
-    public static void sendSteamTriggerLog(SteamTriggerLogContext ctx) {
-        if (!DebugMode.hasAnyDebugEnabled()) return;
-        MutableComponent prefix = Component.translatable("debug.elementalcraft.steam_trigger.header").withStyle(ChatFormatting.YELLOW);
-        String typeKey = ctx.isHighHeat ? "debug.elementalcraft.steam_trigger.high" : "debug.elementalcraft.steam_trigger.low";
-        ChatFormatting color = ctx.isHighHeat ? ChatFormatting.RED : ChatFormatting.AQUA;
-        MutableComponent content = Component.translatable("debug.elementalcraft.steam_trigger.message",
-                ctx.attacker.getDisplayName(),
-                Component.translatable(typeKey).withStyle(color),
-                ctx.level
-        ).withStyle(ChatFormatting.WHITE);
-        sendDebugMessage(ctx.attacker, prefix.append(Component.literal(" ")).append(content));
     }
 
     public static void sendDryLog(DryLogContext ctx) {
@@ -404,13 +404,13 @@ public class DebugCommand {
         sendDebugMessage(ctx.target, prefix.append(Component.literal(" ")).append(content));
     }
 
-    public static void sendFireFrostMeltLog(LivingEntity target, LivingEntity attacker, int frostbiteStacks, int firePower, int requiredPoints) {
+    public static void sendFireFreezeMeltLog(LivingEntity target, LivingEntity attacker, int frozenStacks, int firePower, int requiredPoints) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
-        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.fire_frost_melt.header").withStyle(ChatFormatting.RED);
-        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.fire_frost_melt.message",
+        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.fire_freeze_melt.header").withStyle(ChatFormatting.RED);
+        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.fire_freeze_melt.message",
                 attacker.getDisplayName(),
                 target.getDisplayName(),
-                Component.literal(String.valueOf(frostbiteStacks)).withStyle(ChatFormatting.AQUA),
+                Component.literal(String.valueOf(frozenStacks)).withStyle(ChatFormatting.AQUA),
                 Component.literal(String.valueOf(requiredPoints)).withStyle(ChatFormatting.GOLD),
                 Component.literal(String.valueOf(firePower)).withStyle(ChatFormatting.RED)
         ).withStyle(ChatFormatting.WHITE);
@@ -462,6 +462,138 @@ public class DebugCommand {
                 ctx.source.getDisplayName()
         ).withStyle(ChatFormatting.WHITE);
         sendDebugMessage(ctx.target, message);
+    }
+
+    public static void sendScorchedTickLog(LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage, float poisonMult) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.scorched_tick.header").withStyle(ChatFormatting.GOLD);
+        msg.append(Component.literal(" "));
+        msg.append(target.getDisplayName());
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.scorched_tick.base",
+                Component.literal(String.format("%.1f", baseDamage)).withStyle(ChatFormatting.WHITE)));
+        msg.append(Component.literal(" | "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.scorched_tick.final",
+                Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED)));
+        String multipliers = "";
+        if (element != ElementType.NONE && elementMult != 1.0f) {
+            multipliers = element.getDisplayName().getString() + String.format(" × %.1f", elementMult);
+        }
+        if (poisonMult > 1.0f) {
+            if (!multipliers.isEmpty()) multipliers += ", ";
+            multipliers += Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString()
+                    + String.format(" × %.1f", poisonMult);
+        }
+        if (!multipliers.isEmpty()) {
+            msg.append(Component.translatable("debug.elementalcraft.reaction.scorched.multiplier_format", multipliers).withStyle(ChatFormatting.GOLD));
+        }
+        sendDebugMessage(target, msg);
+    }
+
+    public static void sendScorchedAuraLog(LivingEntity source, LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage, float poisonMult) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.scorched_aura.header").withStyle(ChatFormatting.GOLD);
+        msg.append(Component.literal(" "));
+        msg.append(target.getDisplayName());
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.scorched_aura.base",
+                Component.literal(String.format("%.1f", baseDamage)).withStyle(ChatFormatting.WHITE)));
+        msg.append(Component.literal(" | "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.scorched_aura.final",
+                Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED)));
+        String multipliers = "";
+        if (element != ElementType.NONE && elementMult != 1.0f) {
+            multipliers = element.getDisplayName().getString() + String.format(" × %.1f", elementMult);
+        }
+        if (poisonMult > 1.0f) {
+            if (!multipliers.isEmpty()) multipliers += ", ";
+            multipliers += Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString()
+                    + String.format(" × %.1f", poisonMult);
+        }
+        if (!multipliers.isEmpty()) {
+            msg.append(Component.translatable("debug.elementalcraft.reaction.scorched.multiplier_format", multipliers).withStyle(ChatFormatting.GOLD));
+        }
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.scorched_aura.source",
+                source.getDisplayName()));
+        sendDebugMessage(target, msg);
+    }
+
+    public static void sendThermalShockLog(ThermalShockLogContext ctx) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.thermal_shock.header").withStyle(ChatFormatting.GOLD);
+        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.thermal_shock.message",
+                ctx.target.getDisplayName(),
+                Component.literal(String.valueOf(ctx.remainingTicks)).withStyle(ChatFormatting.YELLOW),
+                Component.literal(String.format("%.1f", ctx.totalRemainingDamage)).withStyle(ChatFormatting.GOLD),
+                Component.literal(String.format("%.0f", ctx.ratio * 100)).withStyle(ChatFormatting.YELLOW),
+                Component.literal(String.format("%.1f", ctx.shockDamage)).withStyle(ChatFormatting.RED),
+                Component.literal(String.valueOf(ctx.steamLevel)).withStyle(ChatFormatting.AQUA)
+        ).withStyle(ChatFormatting.WHITE);
+        sendDebugMessage(ctx.target, prefix.append(Component.literal(" ")).append(content));
+    }
+
+    public static void sendSteamScaldingTickLog(LivingEntity target, float baseDamage, float levelMultiplier, ElementType element, float elementMultiplier, float finalDamage) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.steam_scalding_tick.header").withStyle(ChatFormatting.GOLD);
+        msg.append(Component.literal(" "));
+        msg.append(target.getDisplayName());
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.steam_scalding_tick.base",
+                Component.literal(String.format("%.1f", baseDamage)).withStyle(ChatFormatting.WHITE)));
+        msg.append(Component.literal(" | "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.steam_scalding_tick.level_mult",
+                Component.literal(String.format("× %.1f", levelMultiplier)).withStyle(ChatFormatting.YELLOW)));
+        msg.append(Component.literal(" | "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.steam_scalding_tick.final",
+                Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED)));
+        if (element != ElementType.NONE && elementMultiplier != 1.0f) {
+            msg.append(Component.translatable("debug.elementalcraft.reaction.scorched.multiplier_format",
+                    element.getDisplayName().getString() + String.format(" × %.1f", elementMultiplier)).withStyle(ChatFormatting.GOLD));
+        }
+        sendDebugMessage(target, msg);
+    }
+
+    public static void sendSteamCloudCombinedLog(LivingEntity target, LivingEntity attacker, boolean isHighHeat, int level,
+                                                    float baseDamage, float levelMultiplier, float radius, int durationTicks,
+                                                    double heightCeiling, boolean clearAggro,
+                                                    ElementType elementType, float elementMultiplier, boolean fireImmune, float finalDamage) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        String typeKey = isHighHeat ? "debug.elementalcraft.steam_trigger.high" : "debug.elementalcraft.steam_trigger.low";
+        ChatFormatting typeColor = isHighHeat ? ChatFormatting.RED : ChatFormatting.AQUA;
+        MutableComponent prefix = Component.translatable("debug.elementalcraft.steam_trigger.header").withStyle(ChatFormatting.YELLOW);
+        LivingEntity displayEntity = attacker != null ? attacker : target;
+        MutableComponent msg = Component.translatable("debug.elementalcraft.steam_trigger.message",
+                displayEntity.getDisplayName(),
+                Component.translatable(typeKey).withStyle(typeColor),
+                level
+        ).withStyle(ChatFormatting.WHITE);
+        msg.append(Component.translatable("debug.elementalcraft.steam_cloud_combined.base",
+                Component.literal(String.format("%.1f", baseDamage)).withStyle(ChatFormatting.WHITE)));
+        msg.append(Component.translatable("debug.elementalcraft.steam_cloud_combined.radius",
+                Component.literal(String.format("%.1f", radius)).withStyle(ChatFormatting.WHITE)));
+        msg.append(Component.translatable("debug.elementalcraft.steam_cloud_combined.duration",
+                Component.literal(String.format("%.1f", durationTicks / 20.0)).withStyle(ChatFormatting.WHITE)));
+        msg.append(Component.translatable("debug.elementalcraft.steam_cloud_combined.height",
+                Component.literal(String.format("%.1f", heightCeiling)).withStyle(ChatFormatting.WHITE)));
+        msg.append(Component.translatable("debug.elementalcraft.steam_cloud_combined.level_mult",
+                Component.literal(String.format("×%.1f", levelMultiplier)).withStyle(ChatFormatting.YELLOW)));
+        MutableComponent dmgPart = Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED);
+        if (elementType != ElementType.NONE && elementMultiplier != 1.0f) {
+            dmgPart.append(Component.literal("("));
+            dmgPart.append(elementType.getDisplayName());
+            dmgPart.append(Component.literal(String.format(" ×%.1f", elementMultiplier)).withStyle(ChatFormatting.GOLD));
+            dmgPart.append(Component.literal(")"));
+        }
+        if (fireImmune) {
+            dmgPart.append(Component.translatable("debug.elementalcraft.reaction.steam_scalding.immune",
+                    Component.literal(String.format("×%.2f", ElementalFireNatureReactionsConfig.scorchedImmuneModifier)).withStyle(ChatFormatting.RED)));
+        }
+        msg.append(Component.translatable("debug.elementalcraft.steam_cloud_combined.damage", dmgPart));
+        msg.append(Component.translatable("debug.elementalcraft.steam_cloud_combined.aggro",
+                Component.translatable(clearAggro ? "debug.elementalcraft.yes" : "debug.elementalcraft.no")
+                        .withStyle(clearAggro ? ChatFormatting.GREEN : ChatFormatting.RED)));
+        sendDebugMessage(target, prefix.append(Component.literal(" ")).append(msg));
     }
 
     public static void sendThunderCounterLog(ThunderCounterLogContext ctx) {

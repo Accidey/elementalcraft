@@ -28,7 +28,7 @@ public class ScorchedVisuals {
         int threshold = ElementalFireNatureReactionsConfig.scorchedAuraFirePowerThreshold;
         if (sourceFirePower < threshold) return;
 
-        if (!ElementalFireNatureReactionsConfig.scorchedAuraEnabled) return;
+        if (ElementalFireNatureReactionsConfig.scorchedAuraFirePowerThreshold <= 0) return;
 
         if (entity.tickCount % 4 == 0 && entity.level() instanceof ServerLevel serverLevel) {
             drawFlameRing(serverLevel, entity);

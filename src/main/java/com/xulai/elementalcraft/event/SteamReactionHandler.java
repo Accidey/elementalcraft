@@ -13,6 +13,7 @@ import com.xulai.elementalcraft.util.ElementDamageHelper;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -24,7 +25,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.PathfinderMob;
-import net.minecraft.world.entity.ai.util.DefaultRandomPos;
+
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
@@ -54,27 +55,28 @@ public class SteamReactionHandler {
     public static final String TAG_SELF_DRYING_PENALTY = "EC_SelfDryingPenalty";
     public static final String TAG_STATIC_CHARGED = "EC_StaticCharged";
     public static final String TAG_FROSTED = "EC_Frosted";
+    private static final String TAG_CLOUD_UUID_PREFIX = "EC_CloudUUID_";
 
     private static final String NBT_CONDENSATION_TIMER = "EC_SteamCondensationTimer";
-    private static final String NBT_SPORE_GROWTH_TIMER = "EC_SporeGrowthTimer";
     private static final String NBT_STEAM_ATTACKER_COOLDOWN = "EC_SteamAttackerCooldown";
     private static final String NBT_STEAM_BLINDNESS = "EC_SteamBlindness";
-    private static final String NBT_STATIC_CHARGED_PARALYSIS = "EC_StaticChargedParalysis";
+    private static final String NBT_STEAM_SCALDING_LOGGED = "EC_SteamScaldingLogged";
+    public static final String NBT_FROSTED_CLOUD_UUID = "EC_FrostedCloudUUID";
+    private static final String NBT_STATIC_CLOUD_UUID = "EC_StaticCloudUUID";
+    private static final String NBT_STATIC_DMG_CLOUD_UUID = "EC_StaticDmgCloudUUID";
 
-    private static final double STEAM_SCAN_RADIUS_MULTIPLIER = 3.0;
+
+    private static final double STEAM_SCAN_RADIUS_MULTIPLIER = 1.0;
     private static final List<AreaEffectCloud> ACTIVE_STEAM_CLOUDS = new CopyOnWriteArrayList<>();
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingDamage(LivingDamageEvent event) {
-        if (!ElementalFireNatureReactionsConfig.steamReactionEnabled) return;
         if (event.isCanceled()) return;
+        float originalDamage = event.getAmount();
         if (event.getSource().getEntity() instanceof LivingEntity attacker) {
             processTriggerLogic(event, attacker, event.getEntity());
         }
-    }
-
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onLivingDamageSteamDefense(LivingDamageEvent event) {
+        event.setAmount(originalDamage);
         if (event.getSource().is(ModDamageTypes.STEAM_SCALDING)) {
             processDefenseLogic(event);
         }
@@ -89,23 +91,19 @@ public class SteamReactionHandler {
 
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
-        if (!ElementalFireNatureReactionsConfig.steamReactionEnabled) return;
         LivingEntity entity = event.getEntity();
         CompoundTag data = entity.getPersistentData();
 
         if (data.contains(NBT_STEAM_ATTACKER_COOLDOWN)) {
             int cooldown = data.getInt(NBT_STEAM_ATTACKER_COOLDOWN);
-            if (cooldown > 0) {
-                int newCooldown = cooldown - 1;
-                data.putInt(NBT_STEAM_ATTACKER_COOLDOWN, newCooldown);
-                if (newCooldown == 0) {
-                }
+            if (cooldown > 1) {
+                data.putInt(NBT_STEAM_ATTACKER_COOLDOWN, cooldown - 1);
             } else {
                 data.remove(NBT_STEAM_ATTACKER_COOLDOWN);
             }
         }
 
-        if (entity.tickCount % ElementalFireNatureReactionsConfig.steamCheckInterval != 0) return;
+        if (entity.tickCount % 10 != 0) return;
         processCloudEffects(entity);
     }
 
@@ -168,7 +166,11 @@ public class SteamReactionHandler {
     }
 
     private static void processTriggerLogic(LivingDamageEvent event, LivingEntity attacker, LivingEntity target) {
-        if (attacker.getPersistentData().contains(NBT_STEAM_ATTACKER_COOLDOWN)) {
+        if (target.getPersistentData().getBoolean("EC_FireFrostMeltResolved")) {
+            target.getPersistentData().remove("EC_FireFrostMeltResolved");
+            return;
+        }
+        if (isOnSteamCooldown(attacker)) {
             int remaining = DebugCommand.getRemainingCooldownCountdown(attacker, NBT_STEAM_ATTACKER_COOLDOWN);
             DebugCommand.sendReactionCooldownBlock(attacker, "steam", remaining);
             return;
@@ -181,68 +183,74 @@ public class SteamReactionHandler {
 
         int firePower = ElementUtils.getDisplayEnhancement(attacker, ElementType.FIRE);
         int frostPower = ElementUtils.getDisplayEnhancement(attacker, ElementType.FROST);
-        boolean targetIsWet = target.getPersistentData().getInt(WetnessHandler.NBT_WETNESS) > 0;
-        int targetWetness = target.getPersistentData().getInt(WetnessHandler.NBT_WETNESS);
-        ElementType targetElement = ElementUtils.getConsistentAttackElement(target);
+        int targetWetness = WetnessHandler.getWetnessLevel(target);
+        boolean targetIsWet = targetWetness > 0;
 
         if (attackElement == ElementType.FIRE) {
-            if (target.getPersistentData().getBoolean("EC_FireFrostMeltResolved")) {
-                target.getPersistentData().remove("EC_FireFrostMeltResolved");
-                return;
-            }
-            int attackerWetness = attacker.getPersistentData().getInt(WetnessHandler.NBT_WETNESS);
+            int attackerWetness = WetnessHandler.getWetnessLevel(attacker);
             if (attackerWetness > 0) {
                 return;
             }
             if (targetIsWet) {
-                int threshold = ElementalFireNatureReactionsConfig.steamTriggerThresholdFire;
+                if (ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel <= 0) return;
+                int threshold = ElementalFireNatureReactionsConfig.steamHighHeatTriggerThreshold;
                 if (firePower >= threshold) {
                     if (isTriggerBlocked(target)) {
                         return;
                     }
-                    int fireStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
-                    int fireBonus = firePower / fireStep;
-                    int fuelLevel = fireBonus + targetWetness;
-                    int maxLevel = ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel;
-                    fuelLevel = Math.max(1, Math.min(fuelLevel, maxLevel));
+                    int fuelLevel = Math.max(1, Math.min(targetWetness, ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel));
                     spawnSteamCloud(target, true, fuelLevel);
-                    setAttackerCooldown(attacker);
+                    applySteamCooldown(attacker, computeCloudDuration(true, fuelLevel));
 
-                    DebugCommand.SteamTriggerLogContext fireSteamCtx = new DebugCommand.SteamTriggerLogContext();
-                    fireSteamCtx.attacker = attacker;
-                    fireSteamCtx.isHighHeat = true;
-                    fireSteamCtx.level = fuelLevel;
-                    DebugCommand.sendSteamTriggerLog(fireSteamCtx);
+                    float baseDmg = (float) ElementalFireNatureReactionsConfig.steamScaldingDamage;
+                    float lvMult = 1.0f + ((fuelLevel - 1) * (float) ElementalFireNatureReactionsConfig.steamDamageScalePerLevel);
+                    float previewDmg = baseDmg * lvMult;
+                    float elemMult = 1.0f;
+                    ElementType elemType = ElementUtils.getConsistentAttackElement(target);
+                    if (elemType == ElementType.FIRE) elemMult = (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierFire;
+                    else if (elemType == ElementType.NATURE) elemMult = (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierNature;
+                    else if (elemType == ElementType.THUNDER) elemMult = (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierThunder;
+                    else if (elemType == ElementType.FROST) elemMult = (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierFrost;
+                    previewDmg *= elemMult;
+                    boolean fImmune = target.fireImmune();
+                    if (fImmune) previewDmg *= (float) ElementalFireNatureReactionsConfig.scorchedImmuneModifier;
+                    float baseR = (float) ElementalFireNatureReactionsConfig.steamCloudRadius;
+                    float rInc = (float) ElementalFireNatureReactionsConfig.steamRadiusPerLevel;
+                    float rad = baseR + (fuelLevel - 1.0f) * rInc;
+                    int dur = ElementalFireNatureReactionsConfig.steamCloudDuration + fuelLevel * ElementalFireNatureReactionsConfig.steamDurationPerLevel;
+                    DebugCommand.sendSteamCloudCombinedLog(target, attacker, true, fuelLevel, baseDmg, lvMult, rad, dur,
+                            ElementalFireNatureReactionsConfig.steamCloudHeightCeiling, ElementalFireNatureReactionsConfig.steamClearAggro,
+                            elemType, elemMult, fImmune, previewDmg);
 
                     removeWetness(target);
+                } else {
+                    DebugCommand.sendReactionFailed(attacker, "steam", "power_low",
+                            Component.translatable("element.fire"),
+                            firePower, threshold);
                 }
             }
         } else if (attackElement == ElementType.FROST) {
-            if (targetElement == ElementType.FIRE) {
-                if (target.level().dimension() == Level.NETHER) {
-                    return;
-                }
-                int threshold = ElementalFireNatureReactionsConfig.steamTriggerThresholdFrost;
-                if (frostPower >= threshold) {
+            if (targetIsWet) {
+                int threshold = ElementalFireNatureReactionsConfig.steamLowHeatTriggerThreshold;
+                if (frostPower >= threshold && ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel > 0) {
                     if (isTriggerBlocked(target)) {
                         return;
                     }
-                    int targetFirePower = ElementUtils.getDisplayEnhancement(target, ElementType.FIRE);
-                    int fireStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFire);
-                    int frostStep = Math.max(1, ElementalFireNatureReactionsConfig.steamCondensationStepFrost);
-                    int frostBonus = frostPower / frostStep;
-                    int level = 1 + (targetFirePower / fireStep) + frostBonus;
-                    int maxLevel = ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel;
-                    level = Math.max(1, Math.min(level, maxLevel));
-                    spawnSteamCloud(target, false, level);
-                    setAttackerCooldown(attacker);
+                    int fuelLevel = Math.max(1, Math.min(targetWetness, ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel));
+                    spawnSteamCloud(target, false, fuelLevel);
+                    applySteamCooldown(attacker, computeCloudDuration(false, fuelLevel));
+                    removeWetness(target);
 
-                    DebugCommand.SteamTriggerLogContext frostSteamCtx = new DebugCommand.SteamTriggerLogContext();
-                    frostSteamCtx.attacker = attacker;
-                    frostSteamCtx.isHighHeat = false;
-                    frostSteamCtx.level = level;
-                    DebugCommand.sendSteamTriggerLog(frostSteamCtx);
-
+                    float baseDmgL = (float) ElementalFireNatureReactionsConfig.steamScaldingDamage;
+                    float radL = (float) ElementalFireNatureReactionsConfig.steamCloudRadius;
+                    int durL = ElementalFireNatureReactionsConfig.steamCondensationDurationBase + fuelLevel * ElementalFireNatureReactionsConfig.steamCondensationDurationPerLevel;
+                    DebugCommand.sendSteamCloudCombinedLog(target, attacker, false, fuelLevel, baseDmgL, 1.0f, radL, durL,
+                            ElementalFireNatureReactionsConfig.steamCloudHeightCeiling, ElementalFireNatureReactionsConfig.steamClearAggro,
+                            ElementType.NONE, 1.0f, false, baseDmgL);
+                } else {
+                    DebugCommand.sendReactionFailed(attacker, "steam", "power_low",
+                            Component.translatable("element.frost"),
+                            frostPower, threshold);
                 }
             }
         }
@@ -275,19 +283,8 @@ public class SteamReactionHandler {
         double actualFireRed = Math.min(calculatedFireRed, maxFireCap);
         double actualProtRed = Math.min(calculatedProtRed, maxGeneralCap);
 
-        double globalCap = ElementalFireNatureReactionsConfig.steamMaxReduction;
-        double totalReduction = Math.min(actualFireRed + actualProtRed, globalCap);
-
+        double totalReduction = Math.min(actualFireRed + actualProtRed, 1.0);
         float reducedDamage = trueRawDamage * (float) (1.0 - totalReduction);
-
-        ElementType type = ElementUtils.getConsistentAttackElement(target);
-        if (type == ElementType.FROST || type == ElementType.NATURE) {
-            float floorRatio = (float) ElementalFireNatureReactionsConfig.steamDamageFloorRatio;
-            float floorLimit = trueRawDamage * floorRatio;
-            if (reducedDamage < floorLimit) {
-                reducedDamage = floorLimit;
-            }
-        }
         event.setAmount(reducedDamage);
     }
 
@@ -312,10 +309,19 @@ public class SteamReactionHandler {
                 entity.removeEffect(MobEffects.BLINDNESS);
                 data.remove(NBT_STEAM_BLINDNESS);
             }
-            if (data.contains(NBT_STATIC_CHARGED_PARALYSIS)) {
+            if (data.contains(NBT_STATIC_CLOUD_UUID)) {
                 entity.removeEffect(ModMobEffects.PARALYSIS.get());
-                data.remove(NBT_STATIC_CHARGED_PARALYSIS);
+                data.remove(NBT_STATIC_CLOUD_UUID);
             }
+            if (data.contains(NBT_FROSTED_CLOUD_UUID)) {
+                entity.removeEffect(ModMobEffects.FREEZE.get());
+                data.remove(NBT_FROSTED_CLOUD_UUID);
+                data.remove(FrostbiteHandler.NBT_FREEZE_STACKS);
+                data.remove(FrostbiteHandler.NBT_FREEZE_COOLDOWN);
+                data.remove(FrostbiteHandler.NBT_FROZEN_FROSTBITE_STACKS);
+            }
+            data.remove(NBT_STATIC_DMG_CLOUD_UUID);
+            data.remove(NBT_STEAM_SCALDING_LOGGED);
             return;
         }
 
@@ -357,8 +363,8 @@ public class SteamReactionHandler {
 
         int auraStaticStacks = entity.getPersistentData().getInt("ec_static_stacks");
         int auraFrostStacks = FrostbiteHandler.getFrostbiteStacks(entity);
-        boolean hasStaticAura = auraStaticStacks >= ElementalThunderFrostReactionsConfig.staticAuraThreshold;
-        boolean hasFrostAura = auraFrostStacks >= ElementalThunderFrostReactionsConfig.frostbiteAuraThreshold
+        boolean hasStaticAura = ElementalThunderFrostReactionsConfig.staticAuraThreshold > 0 && auraStaticStacks >= ElementalThunderFrostReactionsConfig.staticAuraThreshold;
+        boolean hasFrostAura = ElementalThunderFrostReactionsConfig.frostbiteAuraThreshold > 0 && auraFrostStacks >= ElementalThunderFrostReactionsConfig.frostbiteAuraThreshold
                 && FrostbiteHandler.hasFrostbite(entity);
 
         if ((hasStaticAura || hasFrostAura) && !clouds.isEmpty()) {
@@ -399,7 +405,7 @@ public class SteamReactionHandler {
                     convertToFrost = true;
                 }
 
-                if (convertToStatic && ElementalThunderFrostReactionsConfig.staticSteamCloudReactionEnabled) {
+                if (convertToStatic && ElementalThunderFrostReactionsConfig.staticSteamCloudTriggerStacks > 0) {
                     int sourceTimer = entity.getPersistentData().getInt("ec_static_timer");
                     int interval = ElementalThunderFrostReactionsConfig.staticDamageIntervalTicks;
                     int remainingHits = Math.max(1, (sourceTimer + interval - 1) / interval);
@@ -419,7 +425,7 @@ public class SteamReactionHandler {
                     sctx.settlementDamage = settlementDamage;
                     sctx.cloudDuration = cloud.getDuration();
                     DebugCommand.sendStaticSteamCloudLog(sctx);
-                } else if (convertToFrost && ElementalThunderFrostReactionsConfig.frostedSteamCloudReactionEnabled) {
+                } else if (convertToFrost && ElementalThunderFrostReactionsConfig.frostedSteamCloudTriggerStacks > 0) {
                     cloud.addTag(TAG_FROSTED);
                     if (!entity.level().isClientSide) {
                         entity.level().playSound(null, cloud.getX(), cloud.getY(), cloud.getZ(),
@@ -451,6 +457,7 @@ public class SteamReactionHandler {
             if (entity.getPersistentData().contains(NBT_CONDENSATION_TIMER)) {
                 entity.getPersistentData().remove(NBT_CONDENSATION_TIMER);
             }
+
             boolean aboveCeiling = false;
             if (heatSource != null) {
                 double heightCeiling = ElementalFireNatureReactionsConfig.steamCloudHeightCeiling;
@@ -465,32 +472,53 @@ public class SteamReactionHandler {
                 float damage = baseDamage * levelMultiplier;
 
                 ElementType type = ElementUtils.getConsistentAttackElement(entity);
+                float elementMultiplier = 1.0f;
                 if (type == ElementType.FIRE) {
-                    damage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierFire;
+                    elementMultiplier = (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierFire;
                 } else if (type == ElementType.NATURE) {
-                    damage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierNature;
+                    elementMultiplier = (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierNature;
                 } else if (type == ElementType.THUNDER) {
-                    damage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierThunder;
+                    elementMultiplier = (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierThunder;
                 } else if (type == ElementType.FROST) {
-                    damage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierFrost;
+                    elementMultiplier = (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierFrost;
                 }
+                damage *= elementMultiplier;
+
                 if (entity.hasEffect(ModMobEffects.SPORES.get())) {
-                    damage *= (float) ElementalFireNatureReactionsConfig.steamScaldingMultiplierSpore;
+                    ReactionHandler.triggerToxicBlast(entity.level(), null, entity, (double) cloudLevel);
+                }
+                boolean fireImmune = entity.fireImmune();
+                if (fireImmune) {
+                    damage *= (float) ElementalFireNatureReactionsConfig.scorchedImmuneModifier;
                 }
 
-                    if (damage > 0 && !checkImmunity(entity)) {
-                        ElementDamageHelper.applyDamage(entity, damage, ModDamageTypes.source(entity.level(), ModDamageTypes.STEAM_SCALDING));
-                        if (entity instanceof PathfinderMob mob && heatSource != null) {
-                            mob.setTarget(null);
-                            int fleeDist = (int) (heatSource.getRadius() + 2);
-                            Vec3 escapePos = DefaultRandomPos.getPosAway(mob, fleeDist, 4, heatSource.position());
-                            if (escapePos != null) {
-                                mob.getNavigation().moveTo(escapePos.x, escapePos.y, escapePos.z, 1.5);
-                            }
-                        }
+                if (damage > 0 && !checkImmunity(entity)) {
+                    ElementDamageHelper.applyDamage(entity, damage, ModDamageTypes.source(entity.level(), ModDamageTypes.STEAM_SCALDING, heatSource));
+                    if (!entity.getPersistentData().getBoolean(NBT_STEAM_SCALDING_LOGGED)) {
+                        DebugCommand.sendSteamScaldingTickLog(entity, baseDamage, levelMultiplier, type, elementMultiplier, damage);
+                        entity.getPersistentData().putBoolean(NBT_STEAM_SCALDING_LOGGED, true);
                     }
+                }
+
             }
-            if (entity.getPersistentData().getInt(WetnessHandler.NBT_WETNESS) > 0) {
+            if (entity instanceof PathfinderMob mob && heatSource != null && !checkImmunity(entity)) {
+                mob.setTarget(null);
+                if (mob.getNavigation().isDone()) {
+                    double margin = 4.0;
+                    double dx = mob.getX() - heatSource.getX();
+                    double dz = mob.getZ() - heatSource.getZ();
+                    double dist = Math.sqrt(dx * dx + dz * dz);
+                    if (dist < 0.01) {
+                        dx = mob.level().random.nextFloat() - 0.5;
+                        dz = mob.level().random.nextFloat() - 0.5;
+                        dist = Math.sqrt(dx * dx + dz * dz);
+                    }
+                    double targetX = heatSource.getX() + (dx / dist) * (heatSource.getRadius() + margin);
+                    double targetZ = heatSource.getZ() + (dz / dist) * (heatSource.getRadius() + margin);
+                    mob.getNavigation().moveTo(targetX, mob.getY(), targetZ, 1.5);
+                }
+            }
+            if (WetnessHandler.getWetnessLevel(entity) > 0) {
                 removeWetness(entity);
             }
             if (FrostbiteHandler.hasFrostbite(entity)) {
@@ -502,7 +530,7 @@ public class SteamReactionHandler {
             }
         } else if (isCondensing) {
             // Trigger: Static entity enters condensing cloud → electrify the cloud
-            if (!isStaticCharged && ElementalThunderFrostReactionsConfig.staticSteamCloudReactionEnabled) {
+            if (!isStaticCharged && ElementalThunderFrostReactionsConfig.staticSteamCloudTriggerStacks > 0) {
                 CompoundTag data = entity.getPersistentData();
                 int staticStacks = data.getInt("ec_static_stacks");
                 if (staticStacks >= ElementalThunderFrostReactionsConfig.staticSteamCloudTriggerStacks) {
@@ -548,16 +576,19 @@ public class SteamReactionHandler {
                 }
             }
 
-            if (isStaticCharged && ElementalThunderFrostReactionsConfig.staticSteamCloudReactionEnabled) {
+            if (isStaticCharged && ElementalThunderFrostReactionsConfig.staticSteamCloudTriggerStacks > 0) {
+                String staticCloudUUID = getFirstCloudUUIDWithTag(clouds, entity, TAG_STATIC_CHARGED);
                 if (isImmuneToThunderResist(entity)) {
-                    if (entity.getPersistentData().contains(NBT_STATIC_CHARGED_PARALYSIS)) {
+                    if (entity.getPersistentData().contains(NBT_STATIC_CLOUD_UUID)) {
                         entity.removeEffect(ModMobEffects.PARALYSIS.get());
-                        entity.getPersistentData().remove(NBT_STATIC_CHARGED_PARALYSIS);
+                        entity.getPersistentData().remove(NBT_STATIC_CLOUD_UUID);
                     }
                 } else {
+                    String appliedDmgUUID = entity.getPersistentData().getString(NBT_STATIC_DMG_CLOUD_UUID);
                     float settlementDamage = getCloudStaticDamage(clouds, entity);
-                    if (settlementDamage > 0) {
+                    if (settlementDamage > 0 && !staticCloudUUID.equals(appliedDmgUUID)) {
                         ElementDamageHelper.applyDamage(entity, settlementDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK));
+                        entity.getPersistentData().putString(NBT_STATIC_DMG_CLOUD_UUID, staticCloudUUID);
                     }
                     if (!isImmuneToParalysis(entity)) {
                         int paralysisDuration = getStaticCloudRemainingDuration(clouds, entity);
@@ -565,23 +596,24 @@ public class SteamReactionHandler {
                             CompoundTag data = entity.getPersistentData();
                             int paralysisAmplifier = 2;
                             MobEffectInstance currentParalysis = entity.getEffect(ModMobEffects.PARALYSIS.get());
-                            if (currentParalysis == null || currentParalysis.getDuration() < paralysisDuration) {
+                            if ((currentParalysis == null || currentParalysis.getDuration() < paralysisDuration)
+                                    && ElementalThunderFrostReactionsConfig.paralysisMaxStacks > 0) {
                                 entity.addEffect(new MobEffectInstance(
                                         ModMobEffects.PARALYSIS.get(), paralysisDuration, paralysisAmplifier, false, false, true
                                 ));
-                                data.putBoolean(NBT_STATIC_CHARGED_PARALYSIS, true);
+                                data.putString(NBT_STATIC_CLOUD_UUID, staticCloudUUID);
                             }
                         }
                     }
                 }
             } else {
-                if (entity.getPersistentData().contains(NBT_STATIC_CHARGED_PARALYSIS)) {
+                if (entity.getPersistentData().contains(NBT_STATIC_CLOUD_UUID)) {
                     entity.removeEffect(ModMobEffects.PARALYSIS.get());
-                    entity.getPersistentData().remove(NBT_STATIC_CHARGED_PARALYSIS);
+                    entity.getPersistentData().remove(NBT_STATIC_CLOUD_UUID);
                 }
             }
 
-            if (!isFrosted && ElementalThunderFrostReactionsConfig.frostedSteamCloudReactionEnabled) {
+            if (!isFrosted && ElementalThunderFrostReactionsConfig.frostedSteamCloudTriggerStacks > 0) {
                 int frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(entity);
                 if (frostbiteStacks >= ElementalThunderFrostReactionsConfig.frostedSteamCloudTriggerStacks) {
                     for (AreaEffectCloud cloud : clouds) {
@@ -614,8 +646,24 @@ public class SteamReactionHandler {
 
             if (isFrosted) {
                 if (!FrostbiteHandler.isFrostbiteImmune(entity) && !FrostbiteHandler.isFreezeImmune(entity)) {
+                    String frostedCloudUUID = getFirstCloudUUIDWithTag(clouds, entity, TAG_FROSTED);
                     if (!FrostbiteHandler.isFrozen(entity)) {
-                        FrostbiteHandler.triggerFreeze(entity, null);
+                        int wetnessLevel = WetnessHandler.getWetnessLevel(entity);
+                        int freezeStacks = Math.max(1, wetnessLevel);
+                        int maxStacks = ElementalThunderFrostReactionsConfig.freezeMaxStacks;
+                        if (maxStacks <= 0) return;
+                        if (freezeStacks > maxStacks) freezeStacks = maxStacks;
+                        int freezeDuration = freezeStacks * ElementalThunderFrostReactionsConfig.freezeDurationPerStackTicks;
+                        if (freezeDuration < 20) freezeDuration = 20;
+                        entity.addEffect(new MobEffectInstance(ModMobEffects.FREEZE.get(), freezeDuration, freezeStacks - 1, false, false, true));
+                        entity.getPersistentData().putString(NBT_FROSTED_CLOUD_UUID, frostedCloudUUID);
+                        entity.getPersistentData().putInt(FrostbiteHandler.NBT_FREEZE_STACKS, freezeStacks);
+                        entity.getPersistentData().putLong(FrostbiteHandler.NBT_FREEZE_COOLDOWN,
+                            entity.level().getGameTime() + freezeDuration + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
+                        WetnessHandler.clearWetnessData(entity);
+                        if (FrostbiteHandler.hasFrostbite(entity)) {
+                            FrostbiteHandler.clearFrostbite(entity);
+                        }
                     } else {
                         MobEffectInstance currentFreeze = entity.getEffect(ModMobEffects.FREEZE.get());
                         if (currentFreeze != null) {
@@ -623,59 +671,60 @@ public class SteamReactionHandler {
                             int fullDuration = (currentAmplifier + 1) * ElementalThunderFrostReactionsConfig.freezeDurationPerStackTicks;
                             if (currentFreeze.getDuration() < fullDuration - 20) {
                                 entity.addEffect(new MobEffectInstance(ModMobEffects.FREEZE.get(), fullDuration, currentAmplifier, false, false, true));
+                                entity.getPersistentData().putString(NBT_FROSTED_CLOUD_UUID, frostedCloudUUID);
                             }
                         }
                     }
                 }
             }
-
-            // Frostbite acceleration in condensing steam clouds
-            if (FrostbiteHandler.hasFrostbite(entity)) {
-                CompoundTag frostData = entity.getPersistentData();
-                int currentDuration = frostData.getInt(FrostbiteHandler.NBT_FROSTBITE_DURATION);
-                int bonus = (int) (currentDuration * ElementalThunderFrostReactionsConfig.frostbiteSteamCloudBonusChance);
-                if (bonus > 0) {
-                    frostData.putInt(FrostbiteHandler.NBT_FROSTBITE_DURATION, currentDuration + bonus);
+            // Clear frosted cloud freeze when the specific frosted cloud is gone or no longer frosted
+            if (entity.getPersistentData().contains(NBT_FROSTED_CLOUD_UUID)) {
+                String savedUUID = entity.getPersistentData().getString(NBT_FROSTED_CLOUD_UUID);
+                AreaEffectCloud matchedCloud = null;
+                for (AreaEffectCloud cloud : clouds) {
+                    if (cloud.getTags().contains(TAG_FROSTED) && isEntityInCloud(entity, cloud)) {
+                        String uuid = getCloudUUID(cloud);
+                        if (savedUUID.equals(uuid)) {
+                            matchedCloud = cloud;
+                            break;
+                        }
+                    }
+                }
+                if (matchedCloud == null) {
+                    entity.removeEffect(ModMobEffects.FREEZE.get());
+                    entity.getPersistentData().remove(NBT_FROSTED_CLOUD_UUID);
+                    entity.getPersistentData().remove(FrostbiteHandler.NBT_FREEZE_STACKS);
+                    entity.getPersistentData().remove(FrostbiteHandler.NBT_FREEZE_COOLDOWN);
+                    entity.getPersistentData().remove(FrostbiteHandler.NBT_FROZEN_FROSTBITE_STACKS);
+                } else if (FrostbiteHandler.isFrozen(entity) && !FrostbiteHandler.isFreezeImmune(entity)) {
+                    MobEffectInstance currentFreeze = entity.getEffect(ModMobEffects.FREEZE.get());
+                    if (currentFreeze != null && matchedCloud.getDuration() > currentFreeze.getDuration()) {
+                        entity.addEffect(new MobEffectInstance(ModMobEffects.FREEZE.get(),
+                            matchedCloud.getDuration(), currentFreeze.getAmplifier(), false, false, true));
+                    }
                 }
             }
 
-            // Static-charged clouds prevent condensation (no wetness gain)
-            if (!isStaticCharged) {
+            // Static-charged and frosted clouds prevent condensation (no wetness gain)
+            if (!isStaticCharged && !isFrosted) {
                 int currentTimer = entity.getPersistentData().getInt(NBT_CONDENSATION_TIMER);
-                currentTimer += ElementalFireNatureReactionsConfig.steamCheckInterval;
+                currentTimer += 10;
                 int delayThreshold = Math.max(10, ElementalFireNatureReactionsConfig.steamCondensationDelay);
                 if (currentTimer >= delayThreshold) {
-                    int currentWet = entity.getPersistentData().getInt(WetnessHandler.NBT_WETNESS);
+                    int currentWet = WetnessHandler.getWetnessLevel(entity);
                     int max = ElementalFireNatureReactionsConfig.wetnessMaxLevel;
                     if (currentWet < max) {
-                        entity.getPersistentData().putInt(WetnessHandler.NBT_WETNESS, currentWet + 1);
+                        WetnessHandler.updateWetnessLevel(entity, currentWet + 1);
                         entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.BUBBLE_COLUMN_BUBBLE_POP, SoundSource.NEUTRAL, 1.0f, 1.0f);
                     }
                     currentTimer = 0;
                 }
                 entity.getPersistentData().putInt(NBT_CONDENSATION_TIMER, currentTimer);
-            } else {
-                // Clear condensation timer when in a static-charged cloud
-                entity.getPersistentData().remove(NBT_CONDENSATION_TIMER);
-            }
 
-            if (entity.hasEffect(ModMobEffects.SPORES.get())
-                    && !(ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled
-                        && FrostbiteHandler.hasFrostbite(entity))) {
-                int sporeTimer = entity.getPersistentData().getInt(NBT_SPORE_GROWTH_TIMER);
-                sporeTimer += ElementalFireNatureReactionsConfig.steamCheckInterval;
-                int growthRate = Math.max(10, ElementalFireNatureReactionsConfig.steamSporeGrowthRate);
-                if (sporeTimer >= growthRate) {
-                    MobEffectInstance effect = entity.getEffect(ModMobEffects.SPORES.get());
-                    int amp = effect.getAmplifier();
-                    int maxStacks = ElementalFireNatureReactionsConfig.sporeMaxStacks;
-                    if (amp + 1 < maxStacks) {
-                        entity.addEffect(new MobEffectInstance(ModMobEffects.SPORES.get(), 200, amp + 1));
-                        entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.COMPOSTER_READY, SoundSource.NEUTRAL, 1.0f, 1.0f);
-                    }
-                    sporeTimer = 0;
-                }
-                entity.getPersistentData().putInt(NBT_SPORE_GROWTH_TIMER, sporeTimer);
+
+            } else {
+                entity.getPersistentData().remove(NBT_CONDENSATION_TIMER);
+
             }
         }
     }
@@ -705,18 +754,16 @@ public class SteamReactionHandler {
     }
 
     private static boolean isEntityInCloud(LivingEntity entity, AreaEffectCloud cloud) {
-        if (cloud.getBoundingBox().inflate(0.1).intersects(entity.getBoundingBox())) {
-            return true;
-        }
         if (cloud.getTags().contains(TAG_STEAM_CLOUD)) {
             double heightCeiling = ElementalFireNatureReactionsConfig.steamCloudHeightCeiling;
             double dx = entity.getX() - cloud.getX();
             double dz = entity.getZ() - cloud.getZ();
             double horizontalDist = Math.sqrt(dx * dx + dz * dz);
             double dy = entity.getY() - cloud.getY();
-            if (horizontalDist <= cloud.getRadius() && dy >= 0 && dy <= heightCeiling) {
-                return true;
-            }
+            return horizontalDist <= cloud.getRadius() && dy >= 0 && dy <= heightCeiling;
+        }
+        if (cloud.getBoundingBox().inflate(0.1).intersects(entity.getBoundingBox())) {
+            return true;
         }
         return false;
     }
@@ -734,9 +781,28 @@ public class SteamReactionHandler {
         return false;
     }
 
-    private static void setAttackerCooldown(LivingEntity attacker) {
+    public static boolean isOnSteamCooldown(LivingEntity entity) {
+        return entity.getPersistentData().contains(NBT_STEAM_ATTACKER_COOLDOWN);
+    }
+
+    public static void applySteamCooldown(LivingEntity entity, int cloudDuration) {
         int cooldownTicks = ElementalFireNatureReactionsConfig.steamTriggerCooldown;
-        attacker.getPersistentData().putInt(NBT_STEAM_ATTACKER_COOLDOWN, cooldownTicks);
+        if (cooldownTicks > 0) {
+            entity.getPersistentData().putInt(NBT_STEAM_ATTACKER_COOLDOWN, cloudDuration + cooldownTicks);
+        }
+    }
+
+    public static int computeCloudDuration(boolean isHighHeat, int level) {
+        int baseDuration;
+        int durationInc;
+        if (isHighHeat) {
+            baseDuration = ElementalFireNatureReactionsConfig.steamCloudDuration;
+            durationInc = ElementalFireNatureReactionsConfig.steamDurationPerLevel;
+        } else {
+            baseDuration = ElementalFireNatureReactionsConfig.steamCondensationDurationBase;
+            durationInc = ElementalFireNatureReactionsConfig.steamCondensationDurationPerLevel;
+        }
+        return baseDuration + (level * durationInc);
     }
 
     private static void removeWetness(LivingEntity entity) {
@@ -744,7 +810,7 @@ public class SteamReactionHandler {
     }
 
     private static boolean checkImmunity(LivingEntity entity) {
-        if (entity.fireImmune() || entity.hasEffect(MobEffects.FIRE_RESISTANCE)) return true;
+        if (entity.hasEffect(MobEffects.FIRE_RESISTANCE)) return true;
         var key = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
         if (key != null && ElementalFireNatureReactionsConfig.cachedSteamBlacklist.contains(key.toString())) return true;
         int resist = ElementUtils.getDisplayResistance(entity, ElementType.FIRE);
@@ -753,8 +819,8 @@ public class SteamReactionHandler {
     }
 
     private static boolean isImmuneToThunderResist(LivingEntity entity) {
-        String entityId = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()).toString();
-        if (ElementalThunderFrostReactionsConfig.cachedStaticImmunityBlacklist.contains(entityId)) {
+        var key = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        if (key != null && ElementalThunderFrostReactionsConfig.cachedStaticImmunityBlacklist.contains(key.toString())) {
             return true;
         }
         int resist = ElementUtils.getDisplayResistance(entity, ElementType.THUNDER);
@@ -762,12 +828,20 @@ public class SteamReactionHandler {
     }
 
     private static boolean isImmuneToParalysis(LivingEntity entity) {
-        String entityId = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()).toString();
-        return ElementalThunderFrostReactionsConfig.cachedParalysisImmunityBlacklist.contains(entityId);
+        var key = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        return key != null && ElementalThunderFrostReactionsConfig.cachedParalysisImmunityBlacklist.contains(key.toString());
     }
 
-    public static void spawnSteamCloud(LivingEntity target, boolean isHighHeat, int fuelLevel) {
-        if (!(target.level() instanceof ServerLevel serverLevel)) return;
+    public static AreaEffectCloud spawnSteamCloud(LivingEntity target, boolean isHighHeat, int fuelLevel) {
+        if (!(target.level() instanceof ServerLevel serverLevel)) return null;
+        return spawnSteamCloud(serverLevel, target.getX(), target.getY(), target.getZ(), target.getBbHeight(), isHighHeat, fuelLevel);
+    }
+
+    public static AreaEffectCloud spawnSteamCloud(ServerLevel serverLevel, double x, double y, double z, boolean isHighHeat, int fuelLevel) {
+        return spawnSteamCloud(serverLevel, x, y, z, 1.8f, isHighHeat, fuelLevel);
+    }
+
+    private static AreaEffectCloud spawnSteamCloud(ServerLevel serverLevel, double x, double y, double z, float height, boolean isHighHeat, int fuelLevel) {
         int maxLevel = isHighHeat ? ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel : ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel;
         int level = Math.max(1, Math.min(fuelLevel, maxLevel));
 
@@ -786,7 +860,7 @@ public class SteamReactionHandler {
         }
         int duration = baseDuration + (level * durationInc);
 
-        AreaEffectCloud cloud = new AreaEffectCloud(serverLevel, target.getX(), target.getY(), target.getZ());
+        AreaEffectCloud cloud = new AreaEffectCloud(serverLevel, x, y, z);
         cloud.setRadius(radius);
         cloud.setRadiusOnUse(0F);
         cloud.setRadiusPerTick(0F);
@@ -794,11 +868,46 @@ public class SteamReactionHandler {
         cloud.setParticle(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.AIR.defaultBlockState()));
         cloud.addTag(TAG_STEAM_CLOUD);
         cloud.addTag(TAG_LEVEL_PREFIX + level);
+        cloud.addTag(TAG_CLOUD_UUID_PREFIX + java.util.UUID.randomUUID().toString());
         if (isHighHeat) {
             cloud.addTag(TAG_HIGH_HEAT);
         }
         serverLevel.addFreshEntity(cloud);
         ACTIVE_STEAM_CLOUDS.add(cloud);
-        EffectHelper.playSteamBurst(serverLevel, target, radius, level, isHighHeat);
+        EffectHelper.playSteamBurst(serverLevel, x, y, z, height, radius, level, isHighHeat);
+        return cloud;
+    }
+
+    public static String getCloudUUID(AreaEffectCloud cloud) {
+        for (String tag : cloud.getTags()) {
+            if (tag.startsWith(TAG_CLOUD_UUID_PREFIX)) {
+                return tag.substring(TAG_CLOUD_UUID_PREFIX.length());
+            }
+        }
+        return "";
+    }
+
+    private static String getFirstCloudUUIDWithTag(List<AreaEffectCloud> clouds, LivingEntity entity, String requiredTag) {
+        for (AreaEffectCloud cloud : clouds) {
+            if (cloud.getTags().contains(requiredTag) && isEntityInCloud(entity, cloud)) {
+                return getCloudUUID(cloud);
+            }
+        }
+        return "";
+    }
+
+    public static AreaEffectCloud findCloudByUUID(LivingEntity entity, String uuid) {
+        if (entity.level().isClientSide || uuid == null || uuid.isEmpty()) return null;
+        String targetTag = TAG_CLOUD_UUID_PREFIX + uuid;
+        double searchRadius = ElementalFireNatureReactionsConfig.steamCloudRadius * STEAM_SCAN_RADIUS_MULTIPLIER;
+        AABB box = entity.getBoundingBox().inflate(searchRadius);
+        List<AreaEffectCloud> clouds = entity.level().getEntitiesOfClass(AreaEffectCloud.class, box,
+                c -> c.getTags().contains(TAG_STEAM_CLOUD) && c.getTags().contains(targetTag));
+        for (AreaEffectCloud cloud : clouds) {
+            if (isEntityInCloud(entity, cloud)) {
+                return cloud;
+            }
+        }
+        return null;
     }
 }

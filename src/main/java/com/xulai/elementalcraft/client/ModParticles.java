@@ -27,12 +27,21 @@ public class ModParticles {
     public static final RegistryObject<SimpleParticleType> FROST_ICE_RUNE =
             PARTICLE_TYPES.register("frost_ice_rune", () -> new SimpleParticleType(false));
 
+    public static final RegistryObject<SimpleParticleType> STEAM_SMOKE =
+            PARTICLE_TYPES.register("steam_smoke", () -> new SimpleParticleType(false));
+
+    public static final RegistryObject<SimpleParticleType> STEAM_CLOUD =
+            PARTICLE_TYPES.register("steam_cloud", () -> new SimpleParticleType(false));
+
+    public static final RegistryObject<SimpleParticleType> TOXIC_BLAST =
+            PARTICLE_TYPES.register("toxic_blast", () -> new SimpleParticleType(false));
+
     @SubscribeEvent
     @OnlyIn(Dist.CLIENT)
     public static void registerParticleProviders(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(
                 THUNDER_SPARK_PERSISTENT.get(),
-                ExtendedElectricSparkParticle.Factory::new
+                PersistentSparkParticle.Factory::new
         );
 
         event.registerSpriteSet(
@@ -43,6 +52,21 @@ public class ModParticles {
         event.registerSpriteSet(
                 FROST_ICE_RUNE.get(),
                 FrostIceRuneParticle.Factory::new
+        );
+
+        event.registerSpriteSet(
+                STEAM_SMOKE.get(),
+                SteamSmokeParticle.Factory::new
+        );
+
+        event.registerSpriteSet(
+                STEAM_CLOUD.get(),
+                SteamCloudParticle.Factory::new
+        );
+
+        event.registerSpriteSet(
+                TOXIC_BLAST.get(),
+                ToxicBlastParticle.Factory::new
         );
     }
 }

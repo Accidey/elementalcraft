@@ -6,15 +6,12 @@ import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.potion.ModMobEffects;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
-import com.xulai.elementalcraft.util.DebugMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -29,17 +26,12 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.Objects;
-import java.util.Random;
-import com.xulai.elementalcraft.event.ScorchedHandler;
-import com.xulai.elementalcraft.event.SteamReactionHandler;
-import com.xulai.elementalcraft.event.StaticShockHandler;
-import com.xulai.elementalcraft.event.FrostbiteHandler;
+import net.minecraft.util.RandomSource;
 
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
 public class WetnessHandler {
@@ -50,7 +42,7 @@ public class WetnessHandler {
     public static final String NBT_FIRE_STAND_TIMER = "EC_WetnessFireStandTimer";
     public static final String NBT_REACTION_RESOLVED = "EC_ReactionResolved";
 
-    private static final Random RANDOM = new Random();
+    private static final RandomSource RANDOM = RandomSource.create();
 
     public static int getWetnessLevel(LivingEntity entity) {
         CompoundTag data = entity.getPersistentData();
@@ -78,8 +70,8 @@ public class WetnessHandler {
             return;
         }
 
-        int wetnessBefore = getWetnessLevel(entity);
-        if (wetnessBefore > 0 && entity.isOnFire()) {
+        int wetnessLevel = getWetnessLevel(entity);
+        if (wetnessLevel > 0 && entity.isOnFire()) {
             entity.clearFire();
         }
 
@@ -87,14 +79,13 @@ public class WetnessHandler {
         BlockState state = entity.level().getBlockState(pos);
         if (state.is(Objects.requireNonNull(Blocks.FIRE)) || state.is(Objects.requireNonNull(Blocks.SOUL_FIRE))) {
             CompoundTag data = entity.getPersistentData();
-            int wetness = getWetnessLevel(entity);
-            if (wetness > 0) {
+            if (wetnessLevel > 0) {
                 int timer = data.getInt(NBT_FIRE_STAND_TIMER) + 1;
                 int threshold = ElementalFireNatureReactionsConfig.wetnessFireDryingTime * 20;
                 if (timer >= threshold) {
                     clearWetnessData(entity);
                     entity.playSound(Objects.requireNonNull(net.minecraft.sounds.SoundEvents.FIRE_EXTINGUISH), 1.0f, 1.0f);
-                    timer = 0;
+                    return;
                 }
                 data.putInt(NBT_FIRE_STAND_TIMER, timer);
             } else {
@@ -104,18 +95,14 @@ public class WetnessHandler {
             entity.getPersistentData().remove(NBT_FIRE_STAND_TIMER);
         }
 
-        if (entity.tickCount % ElementalFireNatureReactionsConfig.wetnessTickInterval == 0) {
+        if (entity.tickCount % 20 == 0) {
             handleWetnessLogic(entity);
             handleExhaustion(entity);
+            wetnessLevel = getWetnessLevel(entity);
         }
 
         spawnWetnessParticles(entity);
 
-        int wetnessAfter = getWetnessLevel(entity);
-        if (wetnessBefore != wetnessAfter) {
-        }
-
-        int wetnessLevel = getWetnessLevel(entity);
         if (wetnessLevel > 0 && entity.tickCount % 40 == 0) {
             if (!(entity.isInWater() || entity.level().isRainingAt(entity.blockPosition()) || isSnowingHere(entity))) {
                 entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(), net.minecraft.sounds.SoundEvents.POINTED_DRIPSTONE_DRIP_WATER, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.0f);
@@ -191,21 +178,17 @@ public class WetnessHandler {
         int maxLevel = ElementalFireNatureReactionsConfig.wetnessMaxLevel;
         boolean inWater = entity.isInWater();
         boolean isRainingHere = level.isRainingAt(pos);
-        boolean isSnowingHere = level.isRaining() && level.canSeeSky(pos) && Objects.requireNonNull(level.getBiome(pos).value()).getPrecipitationAt(pos) == Biome.Precipitation.SNOW;
-        boolean inPrecipitation = isRainingHere || isSnowingHere;
+        boolean isSnowing = isSnowingHere(entity);
+        boolean inPrecipitation = isRainingHere || isSnowing;
         boolean inCondensingCloud = SteamReactionHandler.isInCondensingCloud(entity);
 
         if (inWater) {
-            @SuppressWarnings("deprecation")
-            double fluidHeight = entity.getFluidHeight(FluidTags.WATER);
-            double entityHeight = entity.getBbHeight();
             int targetLevel;
             if (entity.isUnderWater()) {
                 targetLevel = maxLevel;
             } else {
-                double ratio = ElementalFireNatureReactionsConfig.wetnessShallowWaterCapRatio;
-                targetLevel = (int) Math.floor(maxLevel * ratio);
-                targetLevel = Math.max(1, targetLevel);
+                int shallowCap = ElementalFireNatureReactionsConfig.wetnessShallowWaterCap;
+                targetLevel = Math.min(shallowCap, maxLevel);
             }
             if (currentLevel < targetLevel) {
                 currentLevel = targetLevel;
@@ -217,9 +200,7 @@ public class WetnessHandler {
             data.putInt(NBT_DECAY_TIMER, 0);
             if (currentLevel < maxLevel) {
                 int rainTimer = data.getInt(NBT_RAIN_TIMER) + 1;
-                int rainGainIntervalTicks = ElementalFireNatureReactionsConfig.wetnessRainGainInterval * 20;
-                int safeInterval = Math.max(1, ElementalFireNatureReactionsConfig.wetnessTickInterval);
-                int requiredRainCount = (int) Math.ceil((double) rainGainIntervalTicks / safeInterval);
+                int requiredRainCount = Math.max(1, ElementalFireNatureReactionsConfig.wetnessRainGainInterval);
                 if (rainTimer >= requiredRainCount) {
                     currentLevel++;
                     updateWetnessLevel(entity, currentLevel);
@@ -235,9 +216,7 @@ public class WetnessHandler {
             data.putInt(NBT_RAIN_TIMER, 0);
             if (currentLevel > 0) {
                 int decayTimer = data.getInt(NBT_DECAY_TIMER) + 1;
-                int maxDurationTicks = currentLevel * ElementalFireNatureReactionsConfig.wetnessDecayBaseTime * 20;
-                int safeInterval = Math.max(1, ElementalFireNatureReactionsConfig.wetnessTickInterval);
-                int requiredDecayCount = (int) Math.ceil((double) maxDurationTicks / safeInterval);
+                int requiredDecayCount = Math.max(1, currentLevel * ElementalFireNatureReactionsConfig.wetnessDecayBaseTime);
                 if (decayTimer >= requiredDecayCount) {
                     currentLevel--;
                     updateWetnessLevel(entity, currentLevel);
@@ -334,6 +313,7 @@ public class WetnessHandler {
             data.remove(NBT_RAIN_TIMER);
             data.remove(NBT_DECAY_TIMER);
             data.remove(NBT_FIRE_STAND_TIMER);
+            data.remove(NBT_LAST_EXHAUSTION);
         }
         data.remove(NBT_REACTION_RESOLVED);
         if (entity.hasEffect(Objects.requireNonNull(ModMobEffects.WETNESS.get()))) {
@@ -346,6 +326,11 @@ public class WetnessHandler {
         if (wetnessLevel <= 0) return 0;
 
         if (!ReactionHandler.isSporeImmune(entity)) {
+            MobEffectInstance currentSpores = entity.getEffect(ModMobEffects.SPORES.get());
+            int currentStacks = (currentSpores != null) ? currentSpores.getAmplifier() + 1 : 0;
+            if (currentStacks >= ElementalFireNatureReactionsConfig.sporeMaxStacks) {
+                return 0;
+            }
             ReactionHandler.stackSporeEffect(entity, wetnessLevel, null);
             clearWetnessData(entity);
             return wetnessLevel;
@@ -390,9 +375,7 @@ public class WetnessHandler {
         } else {
             int decayTimer = entity.getPersistentData().getInt(NBT_DECAY_TIMER);
             int maxDurationSeconds = level * baseTime;
-            int safeInterval = Math.max(1, ElementalFireNatureReactionsConfig.wetnessTickInterval);
-            double elapsedSeconds = (double) decayTimer * safeInterval / 20.0;
-            int remainingSeconds = (int) Math.max(0, Math.round(maxDurationSeconds - elapsedSeconds));
+            int remainingSeconds = Math.max(0, maxDurationSeconds - decayTimer);
             durationTicks = remainingSeconds * 20;
         }
 
@@ -410,6 +393,7 @@ public class WetnessHandler {
     }
 
     public static void updateWetnessLevel(LivingEntity entity, int level) {
+        if (ElementalFireNatureReactionsConfig.wetnessMaxLevel <= 0) return;
         entity.getPersistentData().putInt(NBT_WETNESS, level);
     }
 
@@ -424,7 +408,7 @@ public class WetnessHandler {
                 if (delta > 0.0001f) {
                     float extra = 0;
                     if (currentLevel > 0) {
-                        extra = delta * currentLevel * (float) ElementalFireNatureReactionsConfig.wetnessExhaustionIncrease;
+                        extra = currentLevel * (float) ElementalFireNatureReactionsConfig.wetnessExhaustionIncrease;
                         player.getFoodData().addExhaustion(extra);
                         currentExhaustion += extra;
                     }
@@ -454,6 +438,10 @@ public class WetnessHandler {
 
         if (!hasStatic && !hasFrostbite) return;
 
+        int frostPower = attacker != null
+                ? (int) ElementUtils.getDisplayEnhancement(attacker, ElementType.FROST)
+                : data.getInt(FrostbiteHandler.NBT_FROSTBITE_SOURCE_FROST_POWER);
+
         if (hasStatic && !hasFrostbite) {
             StaticShockHandler.triggerParalysisReaction(attacker, entity);
             if (hasSpores) {
@@ -463,7 +451,7 @@ public class WetnessHandler {
         }
 
         if (!hasStatic && hasFrostbite) {
-            FrostbiteHandler.triggerFreeze(entity, attacker);
+            FrostbiteHandler.triggerFreeze(entity, attacker, frostPower);
             if (hasSpores) {
                 entity.removeEffect(ModMobEffects.SPORES.get());
             }
@@ -476,7 +464,7 @@ public class WetnessHandler {
                 StaticShockHandler.tryTriggerSporeBlast(entity);
             }
         } else if (frostbiteStacks > staticStacks) {
-            FrostbiteHandler.triggerFreeze(entity, attacker);
+            FrostbiteHandler.triggerFreeze(entity, attacker, frostPower);
             FrostbiteHandler.clearFrostbite(entity);
             if (hasSpores) {
                 entity.removeEffect(ModMobEffects.SPORES.get());
@@ -488,7 +476,7 @@ public class WetnessHandler {
                     StaticShockHandler.tryTriggerSporeBlast(entity);
                 }
             } else {
-                FrostbiteHandler.triggerFreeze(entity, attacker);
+                FrostbiteHandler.triggerFreeze(entity, attacker, frostPower);
                 FrostbiteHandler.clearFrostbite(entity);
                 if (hasSpores) {
                     entity.removeEffect(ModMobEffects.SPORES.get());
@@ -512,9 +500,9 @@ public class WetnessHandler {
             int current = getWetnessLevel(livingTarget);
             int max = ElementalFireNatureReactionsConfig.wetnessMaxLevel;
             int newLevel = Math.min(max, current + add);
-            updateWetnessLevel(livingTarget, newLevel);
             livingTarget.getPersistentData().putInt(NBT_DECAY_TIMER, 0);
-            syncEffect(livingTarget, newLevel, livingTarget.isInWater() || livingTarget.level().isRainingAt(livingTarget.blockPosition()));
+            updateWetnessLevel(livingTarget, newLevel);
+            syncEffect(livingTarget, newLevel, false);
         }
     }
 }
