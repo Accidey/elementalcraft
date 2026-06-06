@@ -37,6 +37,7 @@
   "command.elementalcraft.debug.disabled": "§c[ElementalCraft] 属性调试模式已关闭",
   "command.elementalcraft.debug.enabled": "§a[ElementalCraft] 属性调试模式已开启",
   "command.elementalcraft.debug.global_notice": "§e§l[属性调试模式] §7警告：调试日志可能会在聊天栏刷屏，仅建议在测试时使用。",
+  "command.elementalcraft.reload.success": "§a[ElementalCraft] 所有配置缓存已重新加载。",
 
   "command.elementalcraft.forcedadd.duplicate": "§c配置已存在，无法重复添加完全相同的强制属性。",
   "command.elementalcraft.forcedadd.no_egg": "§c请手持一个刷怪蛋！",
@@ -168,10 +169,10 @@
   "debug.elementalcraft.formula.base_enhance": "基础强化 %s",
   "debug.elementalcraft.formula.global_dmg_mult": "全局伤害 %s",
   "debug.elementalcraft.formula.spore_vuln": "孢子易伤 %s",
-  "debug.elementalcraft.formula.freeze_vuln": "(冻结) %s",
+  "debug.elementalcraft.formula.freeze_vuln": "(霜冻易伤) %s",
   "debug.elementalcraft.formula.scorch_vuln": "灼烧易伤 %s",
   "debug.elementalcraft.formula.wetness_base": "%s（潮湿）",
-  "debug.elementalcraft.formula.frost_melt": "%s（霜冻）",
+  "debug.elementalcraft.formula.frozen_melt": "%s（融冰）",
   "debug.elementalcraft.combat.details.header": "§6⚔ 元素详情",
   "debug.elementalcraft.combat.details.enhancement": "%s强化 %s",
   "debug.elementalcraft.combat.details.resistance": "抗性 %s",
@@ -191,8 +192,8 @@
   "debug.elementalcraft.reaction.freeze.normal": "(正常冻结)",
   "debug.elementalcraft.reaction.freeze.with_wetness": "(潮湿加成)",
 
-  "debug.elementalcraft.reaction.fire_frost_melt.header": "[赤焰融霜]",
-  "debug.elementalcraft.reaction.fire_frost_melt.message": "%s 用赤焰融化 %s 身上的 %s 层霜冻（需求 %s 点强化，持有 %s 点）",
+  "debug.elementalcraft.reaction.fire_freeze_melt.header": "[赤焰融冰]",
+  "debug.elementalcraft.reaction.fire_freeze_melt.message": "%s 用赤焰融化 %s 身上的 %s 层冻结（需求 %s 点强化，持有 %s 点）",
 
   "debug.elementalcraft.reaction.static_steam_cloud.header": "[感电蒸汽云]",
   "debug.elementalcraft.reaction.static_steam_cloud.message": "%s 感电化蒸汽云 (层数 %s)：结算伤害 %s，云持续 %s tick",
@@ -217,6 +218,10 @@
 
   "debug.elementalcraft.reaction.scorched.success": "§c[灼烧] §f%s §7→ §f%s §7施加了 §c灼烧 §7(赤焰强度 %s, 概率 §a%s%%)",
   "debug.elementalcraft.reaction.scorched.failed.chance": "§7[灼烧] §f%s §7→ §f%s §7未触发 (概率 §e%s%%)",
+  "debug.elementalcraft.reaction.scorched.failed.power_low": "§7[灼烧] §f%s §7→ §f%s §7赤焰不足 (当前: %s, 需要≥: %s)",
+  "debug.elementalcraft.reaction.scorched.failed.wet": "§7[灼烧] §f%s §7→ §f%s §7被阻止: 目标潮湿",
+  "debug.elementalcraft.reaction.scorched.failed.already": "§7[灼烧] §f%s §7→ §f%s §7被阻止: 已处于灼烧",
+  "debug.elementalcraft.reaction.poison_scorch.success": "§c[中毒灼烧] §f%s §7→ §f%s §7施加了 §c灼烧 §7(赤焰强度 §c%s§7, §a必定触发§7)",
   "debug.elementalcraft.reaction.scorched_spore.header": "[灼烧孢子]",
   "debug.elementalcraft.reaction.scorched_spore.message": "%s的孢子被%s引爆！孢子层数: %s",
 
@@ -230,9 +235,10 @@
 
   "debug.elementalcraft.reaction.steam.failed.cooldown": "§e[蒸汽反应] §7被阻止: 攻击者冷却中",
 
-  "debug.elementalcraft.reaction.scorch_frost_steam.success": "§b[霜灼蒸汽] §f%s §7触发低温蒸汽云 (等级 %s)",
-  "debug.elementalcraft.reaction.scorch_frozen_steam.success": "§b[霜灼蒸汽] §f%s §7→ §f%s §7解除冻结！高温蒸汽云 (等级 %s, 赤焰强度 §c%s§7)",
-  "debug.elementalcraft.reaction.scorched.failed.frozen_insufficient_fire": "§7[灼烧] §f%s §7→ §f%s §7被阻挡: 目标冻结，需要 §b%s §7赤焰强化 (持有 §c%s§7)",
+  "debug.elementalcraft.reaction.steam.failed.power_low": "§e[蒸汽反应] §7%s强化不足 (当前: %s, 需要≥: %s)",
+
+  "debug.elementalcraft.reaction.scorch_frozen_steam.success": "§b[冻结灼烧蒸汽] §f%s §7→ §f%s §7解除冻结！低温蒸汽云 (等级 %s)",
+  "debug.elementalcraft.reaction.frostbite_steam.success": "§b[霜冻蒸汽] §f%s §7→ §f%s §7清除霜冻！高温蒸汽云 (等级 %s, 赤焰强度 §c%s§7)",
 
   "debug.elementalcraft.reaction.paralysis.failed.cooldown": "§d[麻痹] §7被阻止: 冷却中",
 
@@ -290,7 +296,7 @@
   "death.attack.toxic_blast": "%1$s 被毒火爆燃炸死",
   "death.attack.toxic_blast.player": "%1$s 被 %2$s 触发的毒火爆燃炸死",
   "effect.elementalcraft.flammable_spores": "易燃孢子",
-  "effect.elementalcraft.flammable_spores.description": "这种神秘孢子正在寄生。你变得迟钝且极度畏火，但物理攻击更难伤到你。",
+  "effect.elementalcraft.flammable_spores.description": "这种神秘孢子正在寄生。你的装备将会受到腐蚀，赤焰属性攻击和静电将会引爆它们！",
   "effect.elementalcraft.paralysis": "麻痹",
   "effect.elementalcraft.paralysis.description": "你被麻痹了！无法做出任何动作。",
   "effect.elementalcraft.static_shock": "静电",
@@ -298,14 +304,16 @@
   "effect.elementalcraft.wetness": "潮湿",
   "effect.elementalcraft.wetness.description": "你湿透了！属性攻击将会对你造成元素反应！",
   "effect.elementalcraft.frostbite": "霜冻",
-  "effect.elementalcraft.frostbite.description": "你被冰霜侵蚀，每5秒受到一次冰冻伤害，移动速度降低。与潮湿效果接触时会被冻结！",
+  "effect.elementalcraft.frostbite.description": "你被冰霜侵蚀，每5秒受到一次冰冻伤害，移动速度和攻击速度降低。与潮湿效果接触时会被冻结！",
   "effect.elementalcraft.freeze": "冻结",
-  "effect.elementalcraft.freeze.description": "你被完全冻结！无法移动和攻击，受到的元素伤害增加，但物理伤害被冰壳格挡。赤焰属性攻击会立即解除冻结并触发高温蒸汽云。",
+  "effect.elementalcraft.freeze.description": "你被完全冻结！无法移动和攻击，受到的元素伤害增加，但物理伤害被冰壳格挡。赤焰属性攻击会立即解除冻结并转化为潮湿（伤害降低50%）。",
 
   "update.elementalcraft.header": "ElementalCraft : Reactions ",
   "update.elementalcraft.available": "有可用更新",
   "update.elementalcraft.modrinth": "Modrinth下载链接",
   "update.elementalcraft.modrinth.hover": "点击前往 Modrinth",
   "update.elementalcraft.curseforge": "CurseForge下载链接",
-  "update.elementalcraft.curseforge.hover": "点击前往 CurseForge"
+  "update.elementalcraft.curseforge.hover": "点击前往 CurseForge",
+
+  "subtitles.elementalcraft.freezing": "冻结"
 }

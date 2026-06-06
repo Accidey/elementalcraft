@@ -1,5 +1,5 @@
 {
-  "itemGroup.elementalcraft": "§6Elemental Forging",
+  "itemGroup.elementalcraft": "§6Elemental Forging: Reactions",
 
   "element.none": "None",
   "element.nature": "§2Nature",
@@ -37,6 +37,7 @@
   "command.elementalcraft.debug.disabled": "§c[ElementalCraft] Attribute debug mode disabled",
   "command.elementalcraft.debug.enabled": "§a[ElementalCraft] Attribute debug mode enabled",
   "command.elementalcraft.debug.global_notice": "§e§l[Attribute Debug Mode] §7Warning: Debug logs may spam the chat, recommended for testing only.",
+  "command.elementalcraft.reload.success": "§a[ElementalCraft] All config caches reloaded.",
 
   "command.elementalcraft.forcedadd.duplicate": "§cConfiguration already exists, cannot add identical forced attribute.",
   "command.elementalcraft.forcedadd.no_egg": "§cPlease hold a spawn egg!",
@@ -153,12 +154,11 @@
   "debug.elementalcraft.reaction.paralysis.message": "%s triggered %s Paralysis stacks on %s!",
   "debug.elementalcraft.reaction.paralysis.environment": "Environment",
   "debug.elementalcraft.reaction.paralysis.entity": "Entity",
-  "debug.elementalcraft.reaction.static_conduction.header": "[Static Conduction]",
-  "debug.elementalcraft.reaction.static_conduction.message": "%s triggered Static Conduction (Stacks %s): Range %s blocks, affected %s target(s), %s turned into Paralysis",
+
   "debug.elementalcraft.reaction.water_electrification.header": "[Water Electrification]",
   "debug.elementalcraft.reaction.water_electrification.message": "%s electrifies water (Stacks %s): Range %s blocks, affected %s target(s), Settlement Damage %s, Paralysis %s ticks",
   "debug.elementalcraft.reaction.toxic_blast.header": "[Toxic Blast]",
-  "debug.elementalcraft.reaction.toxic_blast.message": "%s detonated %s Spores stacks on %s! Radius: %s, Entities affected: %s",
+  "debug.elementalcraft.reaction.toxic_blast.message": "%s detonated %s Spores stacks on %s! Radius: %s, Entities affected: %s, Damage: %s",
   "debug.elementalcraft.reaction.wildfire.header": "[Nature Counter]",
   "debug.elementalcraft.reaction.wildfire.message": "%s triggered Nature Counter! Repulsion Radius: %s, Enemies knocked back: %s",
   "debug.elementalcraft.relation.neutral": "§7%s attacked %s (Neutral)",
@@ -171,10 +171,10 @@
   "debug.elementalcraft.formula.base_enhance": "Base Enhancement %s",
   "debug.elementalcraft.formula.global_dmg_mult": "Global DMG %s",
   "debug.elementalcraft.formula.spore_vuln": "Spore Vulnerability %s",
-  "debug.elementalcraft.formula.freeze_vuln": "(Frozen) %s",
+  "debug.elementalcraft.formula.freeze_vuln": "(Frostbite Vuln) %s",
   "debug.elementalcraft.formula.scorch_vuln": "Scorch Vulnerability %s",
   "debug.elementalcraft.formula.wetness_base": "%s (Wetness)",
-  "debug.elementalcraft.formula.frost_melt": "%s (Frost)",
+  "debug.elementalcraft.formula.frozen_melt": "%s (Frozen Melt)",
   "debug.elementalcraft.combat.details.header": "§6⚔ Element Details",
   "debug.elementalcraft.combat.details.enhancement": "%s Enhancement %s",
   "debug.elementalcraft.combat.details.resistance": "Resistance %s",
@@ -188,12 +188,25 @@
   "debug.elementalcraft.reaction.frostbite.header": "[Frostbite]",
   "debug.elementalcraft.reaction.frostbite.message": "%s applied Frostbite to %s (%s stacks, total %s, chance %s%%)",
   "debug.elementalcraft.reaction.freeze.header": "[Freeze]",
-  "debug.elementalcraft.reaction.freeze.message": "%s is frozen! Frostbite stacks %s, freeze stacks %s, duration %s tick %s, settlement damage %s",
+  "debug.elementalcraft.reaction.freeze.message": "%s is frozen! Frostbite stacks %s, freeze stacks %s, duration %s ticks %s, settlement damage %s",
   "debug.elementalcraft.reaction.freeze.normal": "(Normal Freeze)",
   "debug.elementalcraft.reaction.freeze.with_wetness": "(Wetness Bonus)",
 
-  "debug.elementalcraft.reaction.fire_frost_melt.header": "[Fire Frost Melt]",
-  "debug.elementalcraft.reaction.fire_frost_melt.message": "%s melted %s's %s Frostbite stacks (required %s enhancement, has %s)",
+  "debug.elementalcraft.reaction.fire_freeze_melt.header": "[Fire Freeze Melt]",
+  "debug.elementalcraft.reaction.fire_freeze_melt.message": "%s melted %s's %s Freeze stacks (required %s enhancement, has %s)",
+
+  "debug.elementalcraft.reaction.static_steam_cloud.header": "[Static Steam Cloud]",
+  "debug.elementalcraft.reaction.static_steam_cloud.message": "%s electrified steam cloud (Stacks %s): Settlement Damage %s, Cloud Duration %s ticks",
+
+  "debug.elementalcraft.reaction.contagion.header": "[Spore Contagion]",
+  "debug.elementalcraft.reaction.contagion.message": "%s spreads spores (Stacks %s): Transfer %s, Radius %s, Affected %s target(s)",
+
+  "debug.elementalcraft.reaction.frosted_steam_cloud.header": "[Frosted Steam Cloud]",
+  "debug.elementalcraft.reaction.frosted_steam_cloud.message": "%s frosted steam cloud (Stacks %s): Duration %s ticks, Affected %s target(s)",
+
+  "debug.elementalcraft.reaction.static_aura.message": "%s takes %s Static Aura damage (Source: %s)",
+  "debug.elementalcraft.reaction.scorched_aura.message": "%s takes %s Scorched Aura damage (Source: %s)",
+  "debug.elementalcraft.reaction.frostbite_aura.message": "%s takes %s Frostbite Aura damage (Source: %s)",
 
   "debug.elementalcraft.cooldown.remaining": "§7(%s ticks / %ss remaining)",
 
@@ -204,8 +217,15 @@
 
   "debug.elementalcraft.reaction.scorched.success": "§c[Scorched] §f%s §7→ §f%s §7applied §cScorched §7(fire power %s, chance §a%s%%)",
   "debug.elementalcraft.reaction.scorched.failed.chance": "§7[Scorched] §f%s §7→ §f%s §7failed (chance §e%s%%)",
+  "debug.elementalcraft.reaction.scorched.failed.power_low": "§7[Scorched] §f%s §7→ §f%s §7Fire power too low (current: %s, need ≥: %s)",
+  "debug.elementalcraft.reaction.scorched.failed.wet": "§7[Scorched] §f%s §7→ §f%s §7blocked: target wet",
+  "debug.elementalcraft.reaction.scorched.failed.already": "§7[Scorched] §f%s §7→ §f%s §7blocked: already scorched",
+  "debug.elementalcraft.reaction.poison_scorch.success": "§c[Poison Scorched] §f%s §7→ §f%s §7applied §cScorched §7(fire power §c%s§7, §aGuaranteed§7)",
   "debug.elementalcraft.reaction.scorched_spore.header": "[Scorched Spore]",
   "debug.elementalcraft.reaction.scorched_spore.message": "%s's spores detonated by %s! Spore stacks: %s",
+
+  "debug.elementalcraft.reaction.static_shock.success": "§d[Static Shock] §f%s §7→ §f%s §7applied §d%s §7stacks (Chance §a%s%%)",
+  "debug.elementalcraft.reaction.static_shock.failed.chance": "§7[Static Shock] §f%s §7→ §f%s §7not triggered (Chance §e%s%%)",
 
   "debug.elementalcraft.reaction.thunder_counter.failed.cooldown": "§e[Thunder Counter] §7blocked: per-target cooldown active",
 
@@ -214,9 +234,10 @@
 
   "debug.elementalcraft.reaction.steam.failed.cooldown": "§e[Steam Reaction] §7blocked: attacker cooldown active",
 
-  "debug.elementalcraft.reaction.scorch_frost_steam.success": "§b[Frost-Scorch Steam] §f%s §7triggered Low-Heat Steam Cloud (level %s)",
-  "debug.elementalcraft.reaction.scorch_frozen_steam.success": "§b[Frozen-Scorch Steam] §f%s §7→ §f%s §7broke freeze! High-Heat Steam Cloud (level %s, fire power §c%s§7)",
-  "debug.elementalcraft.reaction.scorched.failed.frozen_insufficient_fire": "§7[Scorched] §f%s §7→ §f%s §7blocked: frozen target needs §b%s §7fire power (has §c%s§7)",
+  "debug.elementalcraft.reaction.steam.failed.power_low": "§e[Steam Reaction] §7%s power too low (current: %s, need ≥: %s)",
+
+  "debug.elementalcraft.reaction.scorch_frozen_steam.success": "§b[Frozen-Scorch Steam] §f%s §7→ §f%s §7unfroze! Low-Heat Steam Cloud (level %s)",
+  "debug.elementalcraft.reaction.frostbite_steam.success": "§b[Frostbite Steam] §f%s §7→ §f%s §7cleared Frostbite! High-Heat Steam Cloud (level %s, fire power §c%s§7)",
 
   "debug.elementalcraft.reaction.paralysis.failed.cooldown": "§d[Paralysis] §7blocked: cooldown active",
 
@@ -234,35 +255,35 @@
   "jade.elementalcraft.strengths_title": "§lElemental Enhancements",
 
   "enchantment.elementalcraft.fire_enhancement": "§cFire Enhancement",
-  "enchantment.elementalcraft.fire_enhancement.desc": "§7Increases damage bonus for Fire attacks",
+  "enchantment.elementalcraft.fire_enhancement.desc": "§7Increases the equipment's Fire attack enhancement bonus",
   "enchantment.elementalcraft.fire_resistance": "§cFire Resistance",
   "enchantment.elementalcraft.fire_resistance.desc": "§7Provides resistance against Fire attacks",
   "enchantment.elementalcraft.fire_strike": "§cFire Aspect",
-  "enchantment.elementalcraft.fire_strike.desc": "§7Imbues weapon with Fire attribute, dealing additional Fire damage",
+  "enchantment.elementalcraft.fire_strike.desc": "§7Imbues weapon with Fire attribute, dealing additional Fire damage to enemies",
   "enchantment.elementalcraft.frost_enhancement": "§bFrost Enhancement",
-  "enchantment.elementalcraft.frost_enhancement.desc": "§7Increases damage bonus for Frost attacks",
+  "enchantment.elementalcraft.frost_enhancement.desc": "§7Increases the equipment's Frost attack enhancement bonus",
   "enchantment.elementalcraft.frost_resistance": "§bFrost Resistance",
   "enchantment.elementalcraft.frost_resistance.desc": "§7Provides resistance against Frost attacks",
   "enchantment.elementalcraft.frost_strike": "§bFrost Aspect",
-  "enchantment.elementalcraft.frost_strike.desc": "§7Imbues weapon with Frost attribute, dealing additional Frost damage",
+  "enchantment.elementalcraft.frost_strike.desc": "§7Imbues weapon with Frost attribute, dealing additional Frost damage to enemies",
   "enchantment.elementalcraft.nature_enhancement": "§2Nature Enhancement",
-  "enchantment.elementalcraft.nature_enhancement.desc": "§7Increases damage bonus for Nature attacks",
+  "enchantment.elementalcraft.nature_enhancement.desc": "§7Increases the equipment's Nature attack enhancement bonus",
   "enchantment.elementalcraft.nature_resistance": "§2Nature Resistance",
   "enchantment.elementalcraft.nature_resistance.desc": "§7Provides resistance against Nature attacks",
   "enchantment.elementalcraft.nature_strike": "§2Nature Aspect",
-  "enchantment.elementalcraft.nature_strike.desc": "§7Imbues weapon with Nature attribute, dealing additional Nature damage",
+  "enchantment.elementalcraft.nature_strike.desc": "§7Imbues weapon with Nature attribute, dealing additional Nature damage to enemies",
   "enchantment.elementalcraft.thunder_enhancement": "§5Thunder Enhancement",
-  "enchantment.elementalcraft.thunder_enhancement.desc": "§7Increases damage bonus for Thunder attacks",
+  "enchantment.elementalcraft.thunder_enhancement.desc": "§7Increases the equipment's Thunder attack enhancement bonus",
   "enchantment.elementalcraft.thunder_resistance": "§5Thunder Resistance",
   "enchantment.elementalcraft.thunder_resistance.desc": "§7Provides resistance against Thunder attacks",
   "enchantment.elementalcraft.thunder_strike": "§5Thunder Aspect",
-  "enchantment.elementalcraft.thunder_strike.desc": "§7Imbues weapon with Thunder attribute, dealing additional Thunder damage",
+  "enchantment.elementalcraft.thunder_strike.desc": "§7Imbues weapon with Thunder attribute, dealing additional Thunder damage to enemies",
 
   "death.attack.lava_magic": "%1$s was scorched to death",
-  "death.attack.lava_magic.player": "%1$s was scorched to death while fighting %2$s",
   "death.attack.scorched_aura": "%1$s was scalded to death by a scorched aura",
   "death.attack.scorched_aura.player": "%1$s was scalded to death by a scorched aura while fighting %2$s",
-  "death.attack.scorched": "%1$s burned to death",
+  "death.attack.lava_magic.player": "%1$s was scorched to death while fighting %2$s",
+  "death.attack.scorched": "%1$s was fatally scorched",
   "death.attack.static_shock": "%1$s was electrocuted",
   "death.attack.static_shock.player": "%1$s was electrocuted while fighting %2$s",
   "death.attack.steam_scalding": "%1$s was scalded to death by high-pressure steam",
@@ -273,24 +294,26 @@
   "death.attack.frostbite_thermal_shock.player": "%1$s was killed by thermal shock steam while fighting %2$s",
   "death.attack.toxic_blast": "%1$s was killed by a toxic blast",
   "death.attack.toxic_blast.player": "%1$s was killed by a toxic blast triggered by %2$s",
-  
+
   "effect.elementalcraft.flammable_spores": "Flammable Spores",
-  "effect.elementalcraft.flammable_spores.description": "Mysterious spores are parasitizing you. You become sluggish and extremely vulnerable to fire, but physical attacks hurt you less.",
+  "effect.elementalcraft.flammable_spores.description": "These mysterious spores are parasitizing you. Your equipment will be corroded, and Fire attacks and Static Shock will detonate them!",
   "effect.elementalcraft.paralysis": "Paralysis",
   "effect.elementalcraft.paralysis.description": "You are paralyzed! Unable to take any action.",
   "effect.elementalcraft.static_shock": "Static Shock",
-  "effect.elementalcraft.static_shock.description": "You are wrapped in static electricity, taking random damage periodically.",
+  "effect.elementalcraft.static_shock.description": "You are crackling with static electricity, taking random damage periodically.",
   "effect.elementalcraft.wetness": "Wetness",
   "effect.elementalcraft.wetness.description": "You are soaking wet! Elemental attacks will trigger reactions against you!",
   "effect.elementalcraft.frostbite": "Frostbite",
-  "effect.elementalcraft.frostbite.description": "You are being encased in frost, taking ice damage every 5 seconds and slowing your movement. Contact with Wetness will freeze you solid!",
+  "effect.elementalcraft.frostbite.description": "You are being encased in frost, taking ice damage every 5 seconds. Your movement speed and attack speed are reduced. Contact with Wetness will freeze you solid!",
   "effect.elementalcraft.freeze": "Freeze",
-  "effect.elementalcraft.freeze.description": "You are completely frozen! Unable to move or attack, taking increased elemental damage, but physical damage is blocked by the ice shell. Fire attacks immediately break the freeze and trigger a High-Heat Steam reaction.",
-  
+  "effect.elementalcraft.freeze.description": "You are completely frozen! Unable to move or attack, taking increased elemental damage but physical damage is blocked by the ice shell. Fire attacks will immediately break the freeze and convert it to Wetness (damage reduced by 50%).",
+
   "update.elementalcraft.header": "ElementalCraft : Reactions ",
   "update.elementalcraft.available": "Update Available",
   "update.elementalcraft.modrinth": "Modrinth Download",
   "update.elementalcraft.modrinth.hover": "Click to go to Modrinth",
   "update.elementalcraft.curseforge": "CurseForge Download",
-  "update.elementalcraft.curseforge.hover": "Click to go to CurseForge"
+  "update.elementalcraft.curseforge.hover": "Click to go to CurseForge",
+
+  "subtitles.elementalcraft.freezing": "Freezing"
 }
