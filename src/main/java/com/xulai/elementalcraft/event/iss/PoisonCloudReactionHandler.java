@@ -98,7 +98,7 @@ public class PoisonCloudReactionHandler {
 
     private static void triggerReactionFromScorch(Entity cloud, LivingEntity scorchedEntity) {
         CompoundTag data = scorchedEntity.getPersistentData();
-        int firePower = data.getInt(ScorchedHandler.NBT_SCORCHED_STRENGTH);
+        int firePower = ScorchedHandler.getScorchFireStrength(scorchedEntity);
 
         LivingEntity attacker = null;
         UUID attackerUUID = ScorchedHandler.getScorchedAttackerUUID(scorchedEntity);
@@ -181,7 +181,7 @@ public class PoisonCloudReactionHandler {
 
         for (LivingEntity e : candidates) {
             CompoundTag data = e.getPersistentData();
-            int sourceFirePower = data.getInt(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
+            int sourceFirePower = ScorchedHandler.getScorchFireStrength(e);
             if (sourceFirePower < auraThreshold) continue;
 
             double dx = Math.max(cloudBox.minX - e.getX(), Math.max(0, e.getX() - cloudBox.maxX));

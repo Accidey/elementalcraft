@@ -490,19 +490,21 @@ public class IronSpellsIntegrationHandler {
             data.putUUID(NBT_ROOT_SPORE_APPLIED, currentRootUUID);
         }
 
-        if (!data.contains(ScorchedHandler.NBT_SCORCHED_TICKS)) return;
+        if (!ScorchedHandler.isScorched(target)) return;
 
         ElementalCraft.LOGGER.info("[EC ROOT DEBUG] Tick detected scorched ROOT target, removing ROOT!");
 
         vehicle.ejectPassengers();
         vehicle.discard();
 
-        int currentTicks = data.getInt(ScorchedHandler.NBT_SCORCHED_TICKS);
-        int enhancedTicks = (int) (currentTicks * ElementalFireNatureReactionsConfig.poisonScorchDurationMultiplier);
-        data.putInt(ScorchedHandler.NBT_SCORCHED_TICKS, enhancedTicks);
+        if (data.contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+            int currentTicks = data.getInt(ScorchedHandler.NBT_SCORCHED_TICKS);
+            int enhancedTicks = (int) (currentTicks * ElementalFireNatureReactionsConfig.poisonScorchDurationMultiplier);
+            data.putInt(ScorchedHandler.NBT_SCORCHED_TICKS, enhancedTicks);
 
-        float enhancedDmgMult = (float) ElementalFireNatureReactionsConfig.poisonScorchDamageMultiplier;
-        data.putFloat(ScorchedHandler.NBT_SCORCHED_DAMAGE_MULT, enhancedDmgMult);
+            float enhancedDmgMult = (float) ElementalFireNatureReactionsConfig.poisonScorchDamageMultiplier;
+            data.putFloat(ScorchedHandler.NBT_SCORCHED_DAMAGE_MULT, enhancedDmgMult);
+        }
     }
 
     private static void onNatureMobTick(Mob mob, CompoundTag data) {

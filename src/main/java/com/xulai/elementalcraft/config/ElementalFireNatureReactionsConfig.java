@@ -638,8 +638,8 @@ public class ElementalFireNatureReactionsConfig {
     BUILDER.comment(" ");
 
     SCORCHED_AURA_DAMAGE_INTERVAL = BUILDER
-            .comment("灼烧造成伤害的间隔（Tick），同时用于灼烧主体伤害和光环伤害。20 Tick = 1秒。",
-                    "Interval (Ticks) for Scorched damage ticks (both main and aura). 20 Ticks = 1 second.",
+            .comment("灼烧光环内生物受到伤害的间隔（Tick），不影响灼烧主体。20 Tick = 1秒。",
+                    "Interval (Ticks) for Scorched Aura damage ticks on nearby entities. Does not affect the main scorched target. 20 Ticks = 1 second.",
                     "Default: 20")
             .defineInRange("scorched_aura_damage_interval", 20, 1, 600);
     BUILDER.comment(" ");

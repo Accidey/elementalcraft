@@ -71,6 +71,7 @@ public class DebugCommand {
         public float sporeVulnMult;
         public float freezeVulnMult;
         public float scorchVulnMult;
+        public ElementType scorchedElement;
         public float wetnessBaseMult;
         public float selfDryingPenaltyMult;
         public float combinedWetnessMult;
@@ -101,7 +102,13 @@ public class DebugCommand {
                 formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.freeze_vuln", String.format("%.2f", freezeVulnMult)).withStyle(ChatFormatting.AQUA));
             }
             if (Math.abs(scorchVulnMult - 1.0f) > 0.001f) {
-                formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.scorch_vuln", String.format("%.2f", scorchVulnMult)).withStyle(ChatFormatting.DARK_RED));
+                if (scorchedElement != null) {
+                    formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.scorch_vuln_element",
+                            String.format("%.2f", scorchVulnMult),
+                            Component.translatable("element." + scorchedElement.name().toLowerCase()).withStyle(ChatFormatting.YELLOW)).withStyle(ChatFormatting.DARK_RED));
+                } else {
+                    formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.scorch_vuln", String.format("%.2f", scorchVulnMult)).withStyle(ChatFormatting.DARK_RED));
+                }
             }
             if (Math.abs(frozenMeltMult - 1.0f) > 0.001f) {
                 formula.append(Component.literal(" × ")).append(Component.translatable("debug.elementalcraft.formula.frozen_melt", String.format("%.1f", frozenMeltMult)).withStyle(ChatFormatting.AQUA));

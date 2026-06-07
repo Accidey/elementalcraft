@@ -109,6 +109,9 @@ public final class ElementalThunderFrostReactionsConfig {
 
     public static final ForgeConfigSpec.BooleanValue FROST_SCORCH_STEAM_REACTION_ENABLED;
 
+    public static final ForgeConfigSpec.BooleanValue SCORCHED_FROSTBITE_TO_WETNESS_ENABLED;
+    public static final ForgeConfigSpec.IntValue SCORCHED_FROSTBITE_TO_WETNESS_RATIO;
+
     public static final ForgeConfigSpec.BooleanValue FROSTBITE_CLEAR_BY_HEAT_ENABLED;
     public static final ForgeConfigSpec.BooleanValue FROSTBITE_NETHER_CLEAR_ENABLED;
     public static final ForgeConfigSpec.DoubleValue FROSTBITE_NETHER_DURATION_MULTIPLIER;
@@ -861,6 +864,27 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
+        BUILDER.comment("Scorched-Frostbite to Wetness Conversion (Scorched + Frostbite converts to Wetness)",
+                        "灼烧-霜冻转潮湿（灼烧与霜冻共存时，霜冻转化为潮湿并清除灼烧）")
+                .push("scorched_frostbite_to_wetness");
+
+        SCORCHED_FROSTBITE_TO_WETNESS_ENABLED = BUILDER
+                .comment("启用后，灼烧与霜冻(Frostbite，未冻结)同时存在时，将霜冻层数转化为潮湿层数并清除灼烧。",
+                         "When enabled, Scorched + Frostbite (not Frozen) on the same entity converts Frostbite stacks to Wetness and clears Scorched.",
+                         "Default: true")
+                .define("scorched_frostbite_to_wetness_enabled", true);
+
+        BUILDER.comment(" ");
+
+        SCORCHED_FROSTBITE_TO_WETNESS_RATIO = BUILDER
+                .comment("霜冻转化为潮湿的层数比例。1 = 1层霜冻转1层潮湿，2 = 1层霜冻转2层潮湿。",
+                         "Ratio of Frostbite stacks converted to Wetness. 1 = 1 Frostbite → 1 Wetness, 2 = 1 Frostbite → 2 Wetness.",
+                         "0 = disabled (same as enabled=false)",
+                         "Default: 1")
+                .defineInRange("scorched_frostbite_to_wetness_ratio", 1, 0, 10);
+
+        BUILDER.pop();
+
         BUILDER.comment("Frostbite Heat Clearing (Heat Sources Remove Frostbite)",
                         "霜冻热源清除（热源清除霜冻效果）")
                 .push("frostbite_heat_clearing");
@@ -1080,6 +1104,8 @@ public final class ElementalThunderFrostReactionsConfig {
     public static double frostbiteSporeDecaySpeed;
     public static boolean freezeClearSporesEnabled;
     public static boolean frostScorchSteamReactionEnabled;
+    public static boolean scorchedFrostbiteToWetnessEnabled;
+    public static int scorchedFrostbiteToWetnessRatio;
     public static boolean frostbiteClearByHeatEnabled;
     public static boolean frostbiteNetherClearEnabled;
     public static double frostbiteNetherDurationMultiplier;
@@ -1197,6 +1223,8 @@ public final class ElementalThunderFrostReactionsConfig {
         frostbiteSporeDecaySpeed = FROSTBITE_SPORE_DECAY_SPEED.get();
         freezeClearSporesEnabled = FREEZE_CLEAR_SPORES_ENABLED.get();
         frostScorchSteamReactionEnabled = FROST_SCORCH_STEAM_REACTION_ENABLED.get();
+        scorchedFrostbiteToWetnessEnabled = SCORCHED_FROSTBITE_TO_WETNESS_ENABLED.get();
+        scorchedFrostbiteToWetnessRatio = SCORCHED_FROSTBITE_TO_WETNESS_RATIO.get();
         frostbiteClearByHeatEnabled = FROSTBITE_CLEAR_BY_HEAT_ENABLED.get();
         frostbiteNetherClearEnabled = FROSTBITE_NETHER_CLEAR_ENABLED.get();
         frostbiteNetherDurationMultiplier = FROSTBITE_NETHER_DURATION_MULTIPLIER.get();

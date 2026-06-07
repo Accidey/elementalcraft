@@ -63,10 +63,7 @@ public class WetnessHandler {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide) return;
 
-        if (entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
-            if (getWetnessLevel(entity) > 0) {
-                clearWetnessData(entity);
-            }
+        if (ScorchedHandler.isScorched(entity)) {
             return;
         }
 
@@ -111,7 +108,7 @@ public class WetnessHandler {
     }
 
     private static void spawnWetnessParticles(LivingEntity entity) {
-        if (entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+        if (ScorchedHandler.isScorched(entity)) {
             return;
         }
         int wetnessLevel = getWetnessLevel(entity);
@@ -149,7 +146,7 @@ public class WetnessHandler {
 
     private static void handleWetnessLogic(LivingEntity entity) {
         if (entity instanceof Player player && player.isCreative()) return;
-        if (entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+        if (ScorchedHandler.isScorched(entity)) {
             if (getWetnessLevel(entity) > 0) {
                 clearWetnessData(entity);
             }
@@ -340,7 +337,7 @@ public class WetnessHandler {
     }
 
     private static void syncEffect(LivingEntity entity, int level, boolean isPaused) {
-        if (entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+        if (ScorchedHandler.isScorched(entity)) {
             if (entity.hasEffect(ModMobEffects.WETNESS.get())) {
                 entity.removeEffect(ModMobEffects.WETNESS.get());
             }
@@ -491,7 +488,7 @@ public class WetnessHandler {
         Entity projectile = event.getProjectile();
         Entity target = ((EntityHitResult) event.getRayTraceResult()).getEntity();
         if (!(target instanceof LivingEntity livingTarget)) return;
-        if (livingTarget.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+        if (ScorchedHandler.isScorched(livingTarget)) {
             return;
         }
         if (isImmune(livingTarget)) return;

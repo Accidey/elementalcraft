@@ -231,13 +231,14 @@ public class CombatEvents {
         }
 
         float scorchVulnMult = 1.0f;
-        if (target.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)
+        ElementType scorchedElement = null;
+        if (ScorchedHandler.isScorched(target)
                 && attackElement != ElementType.NONE) {
             switch (attackElement) {
-                case FROST -> scorchVulnMult = (float) ElementalFireNatureReactionsConfig.scorchedFrostDmgMultiplier;
-                case NATURE -> scorchVulnMult = (float) ElementalFireNatureReactionsConfig.scorchedNatureDmgMultiplier;
-                case FIRE -> scorchVulnMult = (float) ElementalFireNatureReactionsConfig.scorchedFireDmgMultiplier;
-                case THUNDER -> scorchVulnMult = (float) ElementalFireNatureReactionsConfig.scorchedThunderDmgMultiplier;
+                case FROST -> { scorchVulnMult = (float) ElementalFireNatureReactionsConfig.scorchedFrostDmgMultiplier; scorchedElement = ElementType.FROST; }
+                case NATURE -> { scorchVulnMult = (float) ElementalFireNatureReactionsConfig.scorchedNatureDmgMultiplier; scorchedElement = ElementType.NATURE; }
+                case FIRE -> { scorchVulnMult = (float) ElementalFireNatureReactionsConfig.scorchedFireDmgMultiplier; scorchedElement = ElementType.FIRE; }
+                case THUNDER -> { scorchVulnMult = (float) ElementalFireNatureReactionsConfig.scorchedThunderDmgMultiplier; scorchedElement = ElementType.THUNDER; }
                 case NONE -> {}
             }
         }
@@ -285,6 +286,7 @@ public class CombatEvents {
         combatCtx.sporeVulnMult = sporeVulnMult;
         combatCtx.freezeVulnMult = freezeVulnMult;
         combatCtx.scorchVulnMult = scorchVulnMult;
+        combatCtx.scorchedElement = scorchedElement;
         combatCtx.wetnessBaseMult = wetnessBaseMult;
         combatCtx.selfDryingPenaltyMult = selfDryingPenaltyMult;
         combatCtx.combinedWetnessMult = combinedWetnessMult;
@@ -421,6 +423,7 @@ public class CombatEvents {
             if (ElementalThunderFrostReactionsConfig.fireFrostMeltBaseThreshold > 0 && firePower >= required) {
                 FrostbiteHandler.clearFrostbite(target);
                 ScorchedHandler.clearScorched(target);
+                SteamReactionHandler.discardFrostedCloudsNear(target);
                 int fireStep = 20;
                 int level = Math.max(1, Math.min(firePower / fireStep, ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel));
                 if (ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel > 0
@@ -457,7 +460,7 @@ public class CombatEvents {
                     target.getDisplayName());
             return;
         }
-        if (target.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+        if (ScorchedHandler.isScorched(target)) {
             DebugCommand.sendReactionFailed(target, "scorched", "already",
                     attacker.getDisplayName(),
                     target.getDisplayName());
@@ -548,6 +551,7 @@ public class CombatEvents {
 
         FrostbiteHandler.clearFrostbite(target);
         ScorchedHandler.clearScorched(target);
+        SteamReactionHandler.discardFrostedCloudsNear(target);
 
         int maxWetness = ElementalFireNatureReactionsConfig.wetnessMaxLevel;
         int newWetness = Math.min(frozenStacks, maxWetness);

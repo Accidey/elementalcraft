@@ -99,11 +99,11 @@ public class ReactionHandler {
 
         if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
                 && entity.hasEffect(ModMobEffects.SPORES.get())
-                && entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
+                && ScorchedHandler.isScorched(entity)) {
             MobEffectInstance sporeEffect = entity.getEffect(ModMobEffects.SPORES.get());
             if (sporeEffect != null) {
                 int stacks = sporeEffect.getAmplifier() + 1;
-                int sourceFirePower = entity.getPersistentData().getInt(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
+                int sourceFirePower = ScorchedHandler.getScorchFireStrength(entity);
                 triggerToxicBlastFromScorched(entity, stacks, sourceFirePower, entity);
             }
         }
@@ -249,7 +249,7 @@ public class ReactionHandler {
 
             double victimNaturePower = ElementUtils.getDisplayEnhancement(target, ElementType.NATURE);
             boolean isNatureTarget = ElementUtils.getConsistentAttackElement(target) == ElementType.NATURE;
-            boolean hasScorched = target.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS);
+            boolean hasScorched = ScorchedHandler.isScorched(target);
             boolean cooldownOk = checkCooldown(target, NBT_WILDFIRE_COOLDOWN);
             boolean powerOk = ElementalFireNatureReactionsConfig.wildfireTriggerThreshold > 0
                     && victimNaturePower >= ElementalFireNatureReactionsConfig.wildfireTriggerThreshold;
@@ -351,8 +351,8 @@ public class ReactionHandler {
             if(target.hasEffect(ModMobEffects.STATIC_SHOCK.get())){
                 StaticShockHandler.tryTriggerSporeBlast(target);
             }
-            if (target.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
-                int sourceFirePower = target.getPersistentData().getInt(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
+            if (ScorchedHandler.isScorched(target)) {
+                int sourceFirePower = ScorchedHandler.getScorchFireStrength(target);
                 triggerToxicBlastFromScorched(target, newStacks, sourceFirePower, applier);
             }
         }

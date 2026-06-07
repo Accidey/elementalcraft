@@ -832,6 +832,19 @@ public class SteamReactionHandler {
         return key != null && ElementalThunderFrostReactionsConfig.cachedParalysisImmunityBlacklist.contains(key.toString());
     }
 
+    public static void discardFrostedCloudsNear(LivingEntity target) {
+        double scanRadius = ElementalFireNatureReactionsConfig.steamCloudRadius * 2.0;
+        for (AreaEffectCloud cloud : ACTIVE_STEAM_CLOUDS) {
+            if (cloud.isRemoved()) continue;
+            if (!cloud.getTags().contains(TAG_FROSTED)) continue;
+            if (cloud.level() != target.level()) continue;
+            if (cloud.distanceTo(target) <= scanRadius + cloud.getRadius()) {
+                cloud.discard();
+            }
+        }
+        target.getPersistentData().remove(NBT_FROSTED_CLOUD_UUID);
+    }
+
     public static AreaEffectCloud spawnSteamCloud(LivingEntity target, boolean isHighHeat, int fuelLevel) {
         if (!(target.level() instanceof ServerLevel serverLevel)) return null;
         return spawnSteamCloud(serverLevel, target.getX(), target.getY(), target.getZ(), target.getBbHeight(), isHighHeat, fuelLevel);

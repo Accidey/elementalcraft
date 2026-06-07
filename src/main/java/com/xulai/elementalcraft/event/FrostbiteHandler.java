@@ -414,15 +414,12 @@ public class FrostbiteHandler {
 
         if (ElementalThunderFrostReactionsConfig.frostbiteClearByHeatEnabled) {
             if (entity.isOnFire()) {
-                boolean hasScorch = entity.getPersistentData().contains(ScorchedHandler.NBT_SCORCHED_TICKS);
-                if (!hasScorch) {
-                    if (auraActive) {
-                        clearFrostbiteAuraEffects(entity, stacks);
-                    }
-                    clearFrostbite(entity);
-                    entity.playSound(SoundEvents.FIRE_EXTINGUISH, 1.0f, 1.0f);
-                    return;
+                if (auraActive) {
+                    clearFrostbiteAuraEffects(entity, stacks);
                 }
+                clearFrostbite(entity);
+                entity.playSound(SoundEvents.FIRE_EXTINGUISH, 1.0f, 1.0f);
+                return;
             }
 
             if (ElementalThunderFrostReactionsConfig.frostbiteNetherClearEnabled
@@ -830,8 +827,8 @@ public class FrostbiteHandler {
             if (ElementalThunderFrostReactionsConfig.frostScorchSteamReactionEnabled
                     && ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel > 0) {
                 CompoundTag targetData = target.getPersistentData();
-                if (isFrozen(target) && targetData.contains(ScorchedHandler.NBT_SCORCHED_TICKS)) {
-                    int firePower = targetData.getInt(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
+                if (isFrozen(target) && ScorchedHandler.isScorched(target)) {
+                    int firePower = ScorchedHandler.getScorchFireStrength(target);
                     int frozenStacks = targetData.getInt(NBT_FREEZE_STACKS);
                     if (frozenStacks <= 0) frozenStacks = 1;
 
@@ -841,11 +838,7 @@ public class FrostbiteHandler {
                     targetData.putLong(NBT_FREEZE_COOLDOWN,
                             target.level().getGameTime() + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
                     clearFrostbite(target);
-                    target.clearFire();
-                    targetData.remove(ScorchedHandler.NBT_SCORCHED_TICKS);
-                    targetData.remove(ScorchedHandler.NBT_SCORCHED_STRENGTH);
-                    targetData.remove(ScorchedHandler.NBT_SCORCHED_SOURCE_FIRE_POWER);
-                    targetData.remove(ScorchedHandler.NBT_SCORCHED_DAMAGE_MULT);
+                    ScorchedHandler.clearScorched(target);
 
                     int step = 20;
                     int level = Math.max(1, Math.min(firePower / step + frozenStacks, ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel));

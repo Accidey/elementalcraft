@@ -44,6 +44,10 @@ public class ScorchedHandler {
     public static final String NBT_SCORCHED_DAMAGE_MULT = "ec_scorched_dmg_mult";
     public static final String NBT_SCORCHED_ATTACKER = "ec_scorched_attacker";
     public static final String NBT_SCORCHED_TICK_LOGGED = "ec_scorched_tick_logged";
+    public static final String NBT_SCORCHED_AURA_LOGGED = "ec_scorched_aura_logged";
+    public static final String NBT_TEMP_SCORCH = "ec_temp_scorch";
+    public static final String NBT_TEMP_SCORCH_STRENGTH = "ec_temp_scorch_str";
+    public static final String NBT_TEMP_SCORCH_TTL = "ec_temp_scorch_ttl";
 
     public static class ScorchedApplyResult {
         public static final ScorchedApplyResult FAILED = new ScorchedApplyResult(0, ElementType.NONE, 1.0f);
@@ -126,7 +130,8 @@ public class ScorchedHandler {
 
     public static boolean isScorched(LivingEntity entity) {
         CompoundTag data = entity.getPersistentData();
-        return data.contains(NBT_SCORCHED_TICKS) && data.getInt(NBT_SCORCHED_TICKS) > 0;
+        return (data.contains(NBT_SCORCHED_TICKS) && data.getInt(NBT_SCORCHED_TICKS) > 0)
+                || data.getBoolean(NBT_TEMP_SCORCH);
     }
 
     public static UUID getScorchedAttackerUUID(LivingEntity entity) {
@@ -138,7 +143,6 @@ public class ScorchedHandler {
     }
 
     public static void clearScorched(LivingEntity entity) {
-        entity.clearFire();
         CompoundTag data = entity.getPersistentData();
         data.remove(NBT_SCORCHED_TICKS);
         data.remove(NBT_SCORCHED_STRENGTH);
@@ -146,6 +150,49 @@ public class ScorchedHandler {
         data.remove(NBT_SCORCHED_DAMAGE_MULT);
         data.remove(NBT_SCORCHED_ATTACKER);
         data.remove(NBT_SCORCHED_TICK_LOGGED);
+        data.remove(NBT_SCORCHED_AURA_LOGGED);
+        data.remove(NBT_TEMP_SCORCH);
+        data.remove(NBT_TEMP_SCORCH_STRENGTH);
+        data.remove(NBT_TEMP_SCORCH_TTL);
+        entity.clearFire();
+    }
+
+    public static boolean isTempScorched(LivingEntity entity) {
+        CompoundTag data = entity.getPersistentData();
+        return data.getBoolean(NBT_TEMP_SCORCH);
+    }
+
+    public static int getTempScorchFireStrength(LivingEntity entity) {
+        return entity.getPersistentData().getInt(NBT_TEMP_SCORCH_STRENGTH);
+    }
+
+    public static int getScorchFireStrength(LivingEntity entity) {
+        CompoundTag data = entity.getPersistentData();
+        if (data.contains(NBT_SCORCHED_TICKS) && data.getInt(NBT_SCORCHED_TICKS) > 0) {
+            return data.getInt(NBT_SCORCHED_SOURCE_FIRE_POWER);
+        }
+        if (data.getBoolean(NBT_TEMP_SCORCH)) {
+            return data.getInt(NBT_TEMP_SCORCH_STRENGTH);
+        }
+        return 0;
+    }
+
+    public static void applyTempScorch(LivingEntity target, int fireStrength, int ttl) {
+        CompoundTag data = target.getPersistentData();
+        data.putBoolean(NBT_TEMP_SCORCH, true);
+        data.putInt(NBT_TEMP_SCORCH_STRENGTH, fireStrength);
+        data.putInt(NBT_TEMP_SCORCH_TTL, ttl);
+        target.setRemainingFireTicks(Math.max(target.getRemainingFireTicks(), ttl));
+    }
+
+    public static void clearTempScorch(LivingEntity entity) {
+        CompoundTag data = entity.getPersistentData();
+        data.remove(NBT_TEMP_SCORCH);
+        data.remove(NBT_TEMP_SCORCH_STRENGTH);
+        data.remove(NBT_TEMP_SCORCH_TTL);
+        if (!isScorched(entity)) {
+            entity.clearFire();
+        }
     }
 
     @SubscribeEvent
@@ -162,7 +209,127 @@ public class ScorchedHandler {
             }
         }
 
-        if (!data.contains(NBT_SCORCHED_TICKS)) return;
+        if (!data.contains(NBT_SCORCHED_TICKS)) {
+            if (data.getBoolean(NBT_TEMP_SCORCH)) {
+                int ttl = data.getInt(NBT_TEMP_SCORCH_TTL) - 1;
+                if (ttl <= 0) {
+                    clearTempScorch(entity);
+                    return;
+                }
+                data.putInt(NBT_TEMP_SCORCH_TTL, ttl);
+
+                int tempResist = ElementUtils.getDisplayResistance(entity, ElementType.FIRE);
+                if (tempResist >= ElementalFireNatureReactionsConfig.scorchedResistThreshold) {
+                    clearTempScorch(entity);
+                    return;
+                }
+
+                int tempStrength = data.getInt(NBT_TEMP_SCORCH_STRENGTH);
+
+                if (entity.hasEffect(net.minecraft.world.effect.MobEffects.POISON)) {
+                    float poisonMult = (float) ElementalFireNatureReactionsConfig.poisonScorchDamageMultiplier;
+                    data.putFloat(NBT_SCORCHED_DAMAGE_MULT, poisonMult);
+                    entity.removeEffect(net.minecraft.world.effect.MobEffects.POISON);
+                    if (entity.getRemainingFireTicks() < ttl) {
+                        entity.setRemainingFireTicks(ttl);
+                    }
+                }
+
+                if (FrostbiteHandler.isFrozen(entity) && ElementalThunderFrostReactionsConfig.frostScorchSteamReactionEnabled
+                        && ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel > 0) {
+                    int frozenStacks = data.getInt(FrostbiteHandler.NBT_FREEZE_STACKS);
+                    if (frozenStacks <= 0) frozenStacks = 1;
+                    int fireStep = 20;
+                    int level = Math.max(1, Math.min(tempStrength / fireStep + frozenStacks, ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel));
+
+                    entity.removeEffect(ModMobEffects.FREEZE.get());
+                    data.remove(FrostbiteHandler.NBT_FREEZE_STACKS);
+                    data.remove(FrostbiteHandler.NBT_FROZEN_FROSTBITE_STACKS);
+                    data.putLong(FrostbiteHandler.NBT_FREEZE_COOLDOWN,
+                            entity.level().getGameTime() + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
+                    FrostbiteHandler.clearFrostbite(entity);
+                    clearTempScorch(entity);
+
+                    if (!SteamReactionHandler.isOnSteamCooldown(entity)) {
+                        SteamReactionHandler.spawnSteamCloud(entity, false, level);
+                        SteamReactionHandler.applySteamCooldown(entity, SteamReactionHandler.computeCloudDuration(false, level));
+                    }
+                    DebugCommand.sendReactionSuccess(entity, "temp_scorch_frozen_steam",
+                            entity.getDisplayName(),
+                            Component.literal(String.valueOf(level)));
+                    return;
+                }
+
+                if (FrostbiteHandler.hasFrostbite(entity) && !FrostbiteHandler.isFrozen(entity)
+                        && ElementalThunderFrostReactionsConfig.scorchedFrostbiteToWetnessEnabled
+                        && ElementalThunderFrostReactionsConfig.scorchedFrostbiteToWetnessRatio > 0) {
+                    int frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(entity);
+                    int wetnessToAdd = frostbiteStacks * ElementalThunderFrostReactionsConfig.scorchedFrostbiteToWetnessRatio;
+                    if (wetnessToAdd > 0) {
+                        WetnessHandler.updateWetnessLevel(entity, wetnessToAdd);
+                    }
+                    FrostbiteHandler.clearFrostbite(entity);
+                    DebugCommand.sendReactionSuccess(entity, "temp_scorch_frostbite_to_wetness",
+                            entity.getDisplayName(),
+                            Component.literal(String.valueOf(frostbiteStacks)),
+                            Component.literal(String.valueOf(wetnessToAdd)));
+                }
+
+                if (WetnessHandler.getWetnessLevel(entity) > 0
+                        && ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel > 0) {
+                    int wetness = WetnessHandler.getWetnessLevel(entity);
+                    int steamLevel = Math.max(1, Math.min(wetness, ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel));
+                    WetnessHandler.clearWetnessData(entity);
+                    clearTempScorch(entity);
+                    SteamReactionHandler.spawnSteamCloud(entity, true, steamLevel);
+                    DebugCommand.sendReactionSuccess(entity, "temp_scorch_wet_steam",
+                            entity.getDisplayName(),
+                            Component.literal(String.valueOf(steamLevel)));
+                    return;
+                }
+
+                if (entity.isInWater()) {
+                    ServerLevel sLevel = (ServerLevel) entity.level();
+                    triggerThermalShock(entity, sLevel, ttl, data.getInt(NBT_TEMP_SCORCH_STRENGTH));
+                    clearTempScorch(entity);
+                    return;
+                }
+
+                if (entity.getRemainingFireTicks() < ttl) {
+                    entity.setRemainingFireTicks(ttl);
+                }
+
+                int auraInterval = ElementalFireNatureReactionsConfig.scorchedAuraDamageInterval;
+                if (auraInterval < 1) auraInterval = 20;
+                if (entity.tickCount % auraInterval == 0) {
+                    int fs = data.getInt(NBT_TEMP_SCORCH_STRENGTH);
+                    float baseDamage = calculateScorchedDamage(fs, entity);
+                    float poisonMult = data.getFloat(NBT_SCORCHED_DAMAGE_MULT);
+                    if (poisonMult <= 0.0f) poisonMult = 1.0f;
+                    float rawBase = baseDamage / poisonMult;
+                    ElementType entityElement = ElementUtils.getConsistentAttackElement(entity);
+                    float elementMult = 1.0f;
+                    if (entityElement == ElementType.FIRE) {
+                        elementMult = (float) ElementalFireNatureReactionsConfig.scorchedFireDurationMultiplier;
+                    } else if (entityElement == ElementType.NATURE) {
+                        elementMult = (float) ElementalFireNatureReactionsConfig.scorchedNatureDurationMultiplier;
+                    } else if (entityElement == ElementType.THUNDER) {
+                        elementMult = (float) ElementalFireNatureReactionsConfig.scorchedThunderDurationMultiplier;
+                    } else if (entityElement == ElementType.FROST) {
+                        elementMult = (float) ElementalFireNatureReactionsConfig.scorchedFrostDurationMultiplier;
+                    }
+                    float damage = rawBase * elementMult * poisonMult;
+                    if (damage > 0) {
+                        ElementDamageHelper.applyDamage(entity, damage, ModDamageTypes.source(entity.level(), ModDamageTypes.LAVA_MAGIC));
+                        ServerLevel sLevel = (ServerLevel) entity.level();
+                        sLevel.sendParticles(ParticleTypes.LAVA, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(), 10, 0.2, 0.2, 0.2, 0.0);
+                        sLevel.sendParticles(ParticleTypes.SMOKE, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5, entity.getZ(), 5, 0.2, 0.2, 0.2, 0.0);
+                        sLevel.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.2f, 1.0f);
+                    }
+                }
+            }
+            return;
+        }
         int ticks = data.getInt(NBT_SCORCHED_TICKS);
 
         if (ticks <= 0) {
@@ -200,6 +367,21 @@ public class ScorchedHandler {
                     entity.getDisplayName(),
                     Component.literal(String.valueOf(level)));
             return;
+        }
+
+        if (FrostbiteHandler.hasFrostbite(entity) && !FrostbiteHandler.isFrozen(entity)
+                && ElementalThunderFrostReactionsConfig.scorchedFrostbiteToWetnessEnabled
+                && ElementalThunderFrostReactionsConfig.scorchedFrostbiteToWetnessRatio > 0) {
+            int frostbiteStacks = FrostbiteHandler.getFrostbiteStacks(entity);
+            int wetnessToAdd = frostbiteStacks * ElementalThunderFrostReactionsConfig.scorchedFrostbiteToWetnessRatio;
+            if (wetnessToAdd > 0) {
+                WetnessHandler.updateWetnessLevel(entity, wetnessToAdd);
+            }
+            FrostbiteHandler.clearFrostbite(entity);
+            DebugCommand.sendReactionSuccess(entity, "scorched_frostbite_to_wetness",
+                    entity.getDisplayName(),
+                    Component.literal(String.valueOf(frostbiteStacks)),
+                    Component.literal(String.valueOf(wetnessToAdd)));
         }
 
         if (entity.hasEffect(net.minecraft.world.effect.MobEffects.POISON)) {
@@ -272,8 +454,7 @@ public class ScorchedHandler {
     @SubscribeEvent
     public static void onEffectApplicable(MobEffectEvent.Applicable event) {
         if (event.getEffectInstance().getEffect() == ModMobEffects.WETNESS.get()) {
-            boolean blocked = event.getEntity().getPersistentData().contains(NBT_SCORCHED_TICKS);
-            if (blocked) {
+            if (isScorched(event.getEntity())) {
                 event.setResult(Event.Result.DENY);
             }
         }
@@ -283,7 +464,7 @@ public class ScorchedHandler {
     public static void onLivingHurt(LivingHurtEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide) return;
-        if (!entity.getPersistentData().contains(NBT_SCORCHED_TICKS)) return;
+        if (!isScorched(entity)) return;
         DamageSource source = event.getSource();
         if (source.is(DamageTypeTags.IS_FIRE) && !source.is(ModDamageTypes.LAVA_MAGIC)) {
             if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null && entity.hasEffect(ModMobEffects.SPORES.get())) {
@@ -354,12 +535,12 @@ public class ScorchedHandler {
         if (nearby.isEmpty()) return;
 
         int resistThreshold = ElementalFireNatureReactionsConfig.scorchedResistThreshold;
-
-        boolean steamEnabled = ElementalFireNatureReactionsConfig.scorchedAuraSteamEnabled;
+        int auraInterval = ElementalFireNatureReactionsConfig.scorchedAuraDamageInterval;
+        if (auraInterval < 1) auraInterval = 20;
+        int tempTtl = auraInterval + 10;
 
         for (LivingEntity target : nearby) {
             if (target.isDeadOrDying()) continue;
-            boolean fireImmune = target.fireImmune();
 
             int resist = ElementUtils.getDisplayResistance(target, ElementType.FIRE);
             if (resist >= resistThreshold) continue;
@@ -368,62 +549,34 @@ public class ScorchedHandler {
             double dz = target.getZ() - source.getZ();
             if (Math.sqrt(dx * dx + dz * dz) > radius) continue;
 
-            if (steamEnabled) {
-                int wetness = WetnessHandler.getWetnessLevel(target);
-                if (wetness > 0 && ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel > 0) {
-                    int steamLevel = Math.max(1, Math.min(wetness, ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel));
-                    WetnessHandler.clearWetnessData(target);
-                    SteamReactionHandler.spawnSteamCloud(target, true, steamLevel);
-                    continue;
-                }
-            }
+            if (isScorched(target)) continue;
 
-            if (ElementalThunderFrostReactionsConfig.frostbiteAuraScorchedSteamEnabled
-                    && FrostbiteHandler.isFrozen(target)
-                    && ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel > 0) {
-                CompoundTag frozenData = target.getPersistentData();
-                int frozenStacks = frozenData.getInt(FrostbiteHandler.NBT_FREEZE_STACKS);
-                if (frozenStacks <= 0) frozenStacks = 1;
-                target.removeEffect(ModMobEffects.FREEZE.get());
-                frozenData.remove(FrostbiteHandler.NBT_FREEZE_STACKS);
-                frozenData.remove(FrostbiteHandler.NBT_FROZEN_FROSTBITE_STACKS);
-                frozenData.putLong(FrostbiteHandler.NBT_FREEZE_COOLDOWN,
-                        target.level().getGameTime() + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
-                FrostbiteHandler.clearFrostbite(target);
-                clearScorched(target);
-                int steamLevel = Math.max(1, Math.min(frozenStacks, ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel));
-                SteamReactionHandler.spawnSteamCloud(target, true, steamLevel);
-                continue;
-            }
+            applyTempScorch(target, fireStrength, tempTtl);
 
-            if (ElementalFireNatureReactionsConfig.scorchedAuraSporeDetonationEnabled
-                    && ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null
-                    && target.hasEffect(ModMobEffects.SPORES.get())
-                    && !(ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled && FrostbiteHandler.hasFrostbite(target))) {
-                ReactionHandler.triggerToxicBlast(level, source, target, sourceFirePower, source);
-                continue;
-            }
-
-            float baseAuraDamage = calculateScorchedDamage(fireStrength, target);
-            float auraPoisonMult = source.getPersistentData().getFloat(NBT_SCORCHED_DAMAGE_MULT);
-            if (auraPoisonMult <= 0.0f) auraPoisonMult = 1.0f;
-            float rawAuraBase = baseAuraDamage / auraPoisonMult;
-            float auraDamage = baseAuraDamage;
+            float auraDamage = calculateScorchedDamage(fireStrength, target);
+            float poisonMult = target.getPersistentData().getFloat(NBT_SCORCHED_DAMAGE_MULT);
+            if (poisonMult <= 0.0f) poisonMult = 1.0f;
+            float rawBase = auraDamage / poisonMult;
             ElementType targetElement = ElementUtils.getConsistentAttackElement(target);
-            float auraElementMult = 1.0f;
+            float elementMult = 1.0f;
             if (targetElement == ElementType.FIRE) {
-                auraElementMult = (float) ElementalFireNatureReactionsConfig.scorchedFireDurationMultiplier;
+                elementMult = (float) ElementalFireNatureReactionsConfig.scorchedFireDurationMultiplier;
             } else if (targetElement == ElementType.NATURE) {
-                auraElementMult = (float) ElementalFireNatureReactionsConfig.scorchedNatureDurationMultiplier;
+                elementMult = (float) ElementalFireNatureReactionsConfig.scorchedNatureDurationMultiplier;
             } else if (targetElement == ElementType.THUNDER) {
-                auraElementMult = (float) ElementalFireNatureReactionsConfig.scorchedThunderDurationMultiplier;
+                elementMult = (float) ElementalFireNatureReactionsConfig.scorchedThunderDurationMultiplier;
             } else if (targetElement == ElementType.FROST) {
-                auraElementMult = (float) ElementalFireNatureReactionsConfig.scorchedFrostDurationMultiplier;
+                elementMult = (float) ElementalFireNatureReactionsConfig.scorchedFrostDurationMultiplier;
             }
-            auraDamage *= auraElementMult;
-            ElementDamageHelper.applyDamage(target, auraDamage, ModDamageTypes.source(level, ModDamageTypes.LAVA_MAGIC));
-            DebugCommand.sendScorchedAuraLog(source, target, rawAuraBase, targetElement, auraElementMult, auraDamage, auraPoisonMult);
-            level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.1, target.getZ(), 5, 0.3, 0.1, 0.3, 0.01);
+            auraDamage *= elementMult;
+            if (auraDamage > 0) {
+                ElementDamageHelper.applyDamage(target, auraDamage, ModDamageTypes.source(level, ModDamageTypes.LAVA_MAGIC));
+                if (source.getPersistentData().getInt(NBT_SCORCHED_AURA_LOGGED) == 0) {
+                    DebugCommand.sendScorchedAuraLog(source, target, rawBase, targetElement, elementMult, auraDamage, poisonMult);
+                    source.getPersistentData().putInt(NBT_SCORCHED_AURA_LOGGED, 1);
+                }
+                level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.1, target.getZ(), 5, 0.3, 0.1, 0.3, 0.01);
+            }
         }
     }
 
