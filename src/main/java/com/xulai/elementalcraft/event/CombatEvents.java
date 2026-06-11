@@ -21,7 +21,6 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.item.ItemStack;
@@ -308,10 +307,6 @@ public class CombatEvents {
             } else {
                 tryTriggerScorched(attacker, target, enhancementPoints);
             }
-            if (target instanceof Creeper creeper && creeper.isAlive() && !creeper.isDeadOrDying() && enhancementPoints >= 50) {
-                target.level().explode(creeper, creeper.getX(), creeper.getY(), creeper.getZ(),
-                        creeper.isPowered() ? 6.0f : 3.0f, Level.ExplosionInteraction.MOB);
-            }
         } else if (attackElement == ElementType.NATURE) {
             if (ElementUtils.getConsistentAttackElement(target) == ElementType.THUNDER) {
                 net.minecraft.world.effect.MobEffect spore = SPORES_EFFECT.get();
@@ -407,15 +402,6 @@ public class CombatEvents {
     }
 
     private static void tryTriggerScorched(LivingEntity attacker, LivingEntity target, int firePower) {
-        net.minecraft.world.effect.MobEffect sporeEffect = SPORES_EFFECT.get();
-        if (sporeEffect != null && target.hasEffect(sporeEffect)) {
-            if (ElementalFireNatureReactionsConfig.blastTriggerThreshold > 0
-                    && firePower >= ElementalFireNatureReactionsConfig.blastTriggerThreshold
-                    && !(ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled && FrostbiteHandler.hasFrostbite(target))) {
-                return;
-            }
-        }
-
         if (FrostbiteHandler.hasFrostbite(target)) {
             int fbStacks = FrostbiteHandler.getFrostbiteStacks(target);
             int required = ElementalThunderFrostReactionsConfig.fireFrostMeltBaseThreshold
@@ -484,8 +470,10 @@ public class CombatEvents {
         double growth = Math.floor((firePower - threshold) / (double) pointsPerStep) * 0.05;
         double totalChance = Math.min(1.0, Math.max(0.0, baseChance + growth));
         boolean hasPoison = target.hasEffect(net.minecraft.world.effect.MobEffects.POISON);
+        net.minecraft.world.effect.MobEffect sporeEffect2 = SPORES_EFFECT.get();
+        boolean hasSpores = sporeEffect2 != null && target.hasEffect(sporeEffect2);
         boolean triggered;
-        if (hasPoison) {
+        if (hasPoison || hasSpores) {
             totalChance = 1.0;
             triggered = true;
         } else {
@@ -495,6 +483,7 @@ public class CombatEvents {
         if (triggered) {
             int duration = ElementalFireNatureReactionsConfig.scorchedDuration;
             ScorchedHandler.ScorchedApplyResult result = ScorchedHandler.applyScorched(target, attacker, firePower, duration, firePower, 1.0f, false);
+            if (result != ScorchedHandler.ScorchedApplyResult.FAILED) { ScorchedHandler.igniteCreeperIfScorched(target); }
 
             target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0f, 0.8f);
             String durationInfo;
@@ -509,9 +498,16 @@ public class CombatEvents {
                         String.format("%.1f", adjustedSec)).getString();
             }
             String chanceInfo;
-            if (hasPoison) {
+            if (hasPoison && hasSpores) {
+                chanceInfo = String.format("%.0f%%", totalChance * 100)
+                        + "(" + Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString()
+                        + "+" + Component.translatable("debug.elementalcraft.reaction.scorched.spore_label").getString() + ")";
+            } else if (hasPoison) {
                 chanceInfo = String.format("%.0f%%", totalChance * 100)
                         + "(" + Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString() + ")";
+            } else if (hasSpores) {
+                chanceInfo = String.format("%.0f%%", totalChance * 100)
+                        + "(" + Component.translatable("debug.elementalcraft.reaction.scorched.spore_label").getString() + ")";
             } else {
                 chanceInfo = String.format("%.0f%%", totalChance * 100);
             }

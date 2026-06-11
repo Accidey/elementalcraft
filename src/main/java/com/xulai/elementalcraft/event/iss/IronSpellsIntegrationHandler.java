@@ -677,7 +677,7 @@ public class IronSpellsIntegrationHandler {
         if (RANDOM.nextDouble() >= chance) return;
 
         ReactionHandler.triggerStaticSporeBlast(target,
-                ElementalFireNatureReactionsConfig.blastTriggerThreshold);
+                ElementalFireNatureReactionsConfig.scorchedTriggerThreshold);
     }
 
     private static void equipCasterMob(Mob mob, CompoundTag data) {

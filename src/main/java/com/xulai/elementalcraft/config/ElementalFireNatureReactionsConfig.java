@@ -55,18 +55,13 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue WILDFIRE_VERTICAL_KNOCKBACK;
     public static final ForgeConfigSpec.IntValue WILDFIRE_SPORE_AMOUNT;
     public static final ForgeConfigSpec.BooleanValue WILDFIRE_CLEAR_BURNING;
-    public static final ForgeConfigSpec.DoubleValue BLAST_TRIGGER_THRESHOLD;
     public static final ForgeConfigSpec.DoubleValue BLAST_WEAK_IGNITE_MULT;
     public static final ForgeConfigSpec.DoubleValue BLAST_BASE_DAMAGE;
-    public static final ForgeConfigSpec.DoubleValue BLAST_DMG_STEP;
-    public static final ForgeConfigSpec.DoubleValue BLAST_DMG_AMOUNT;
     public static final ForgeConfigSpec.DoubleValue BLAST_GROWTH_DAMAGE;
     public static final ForgeConfigSpec.DoubleValue BLAST_BASE_RANGE;
     public static final ForgeConfigSpec.DoubleValue BLAST_GROWTH_RANGE;
-    public static final ForgeConfigSpec.DoubleValue BLAST_SCORCH_BASE;
-    public static final ForgeConfigSpec.DoubleValue BLAST_BASE_SCORCH_TIME;
     public static final ForgeConfigSpec.DoubleValue BLAST_GROWTH_SCORCH_TIME;
-    public static final ForgeConfigSpec.BooleanValue BLAST_CHAIN_REACTION;
+
     public static final ForgeConfigSpec.BooleanValue SPORE_ENVIRONMENTAL_BLAST_ENABLED;
     public static final ForgeConfigSpec.DoubleValue BLAST_MAX_BLAST_PROT_CAP;
     public static final ForgeConfigSpec.DoubleValue BLAST_MAX_GENERAL_PROT_CAP;
@@ -955,25 +950,18 @@ public class ElementalFireNatureReactionsConfig {
 
     BUILDER.push("fire_reaction");
     BUILDER.comment("赤焰元素反应 - Fire Reaction System",
-            "主要包括赤焰属性攻击引爆易燃孢子（毒火爆燃）的机制。",
-            "Primarily handles the detonation of Flammable Spores by Fire attacks (Toxic Blast).");
+            "赤焰属性攻击命中带孢子目标时必定施加灼烧，灼烧与孢子共存时触发毒火爆燃。",
+            "Fire attacks on spore-infected targets guarantee Scorched application. Scorched + Spores triggers Toxic Blast.");
 
     BUILDER.push("toxic_blast");
     BUILDER.comment("毒火爆燃 - Toxic Blast",
-            "当赤焰属性攻击命中带有足够孢子层数的目标时，会引发爆炸，伤害、半径和附加灼烧时间随孢子层数和赤焰强化点数成长。",
-            "Detonates spore-infected targets, causing an explosion. Damage, radius, and scorch duration scale with spore stacks and Fire points.");
+            "灼烧与易燃孢子共存时触发爆炸，伤害和半径随孢子层数成长。孢子层数不足时仅增强灼烧伤害。",
+            "Triggers when Scorched and Flammable Spores coexist. Damage and radius scale with spore stacks. Insufficient stacks enhance Scorched damage instead.");
     BUILDER.comment(" ");
 
-    BLAST_TRIGGER_THRESHOLD = BUILDER
-            .comment("触发毒火爆燃（引爆易燃孢子）所需的最小赤焰属性强化点数，设为0则关闭毒火爆燃。",
-                    "Minimum Fire points required to trigger Toxic Blast (detonate Flammable Spores). Set to 0 to disable Toxic Blast.",
-                    "Default: 50.0")
-            .defineInRange("blast_trigger_threshold", 50.0, 0.0, 10000.0);
-    BUILDER.comment(" ");
-
-     SPORE_ENVIRONMENTAL_BLAST_ENABLED = BUILDER
+    SPORE_ENVIRONMENTAL_BLAST_ENABLED = BUILDER
             .comment("Environmentally triggered Toxic Blast (magma, lava, fire, Nether).",
-                     "生物在岩浆块/熔岩/火焰中受伤或进入下界时，直接触发毒火爆燃。",
+                     "生物在岩浆块/熔岩/火焰中受伤或进入下界时，施加灼烧并通过灼烧+孢子触发毒火爆燃。",
                      "Default: true")
             .define("spore_environmental_blast_enabled", true);
     BUILDER.comment(" ");
@@ -985,33 +973,15 @@ public class ElementalFireNatureReactionsConfig {
                     "Scorch damage multiplier for weak blast (when spore stacks are below reaction threshold).",
                     "Directly multiplies the final Scorch damage per tick.",
                     "Example: 1.5 = 1.5x damage per tick.",
-                    "Default: 1.5")
-            .defineInRange("blast_weak_ignite_mult", 1.5, 1.0, 100.0);
+                    "Default: 2.0")
+            .defineInRange("blast_weak_ignite_mult", 2.0, 1.0, 100.0);
     BUILDER.comment(" ");
 
     BLAST_BASE_DAMAGE = BUILDER
             .comment("达到反应阈值（默认3层）引爆时的基础爆炸伤害。",
                     "Base explosion damage when detonating at the reaction threshold (default 3).",
-                    "Default: 5.0")
-            .defineInRange("blast_base_damage", 5.0, 0.0, 1000.0);
-    BUILDER.comment(" ");
-
-    BLAST_DMG_STEP = BUILDER
-            .comment("爆炸伤害提升一级所需的额外赤焰属性强化点数（基于触发阈值计算）。",
-                    "即：赤焰强化点数超过 blast_trigger_threshold 后，每超出该步长值，爆炸伤害增加一级。",
-                    "例如：阈值为50，步长为20，则70点强化提升1级，90点提升2级，以此类推。",
-                    "Additional Fire points required to increase explosion damage tier (calculated above the trigger threshold).",
-                    "Meaning: For every multiple of this step value beyond the blast_trigger_threshold, the explosion damage increases by one tier.",
-                    "Example: threshold=50, step=20, then 70 points gives +1 tier, 90 points gives +2 tiers, etc.",
-                    "Default: 25.0")
-            .defineInRange("blast_dmg_step", 25.0, 1.0, 10000.0);
-    BUILDER.comment(" ");
-
-    BLAST_DMG_AMOUNT = BUILDER
-            .comment("每一级提升增加的爆炸伤害点数。",
-                    "Explosion damage added per tier.",
-                    "Default: 2.0")
-            .defineInRange("blast_dmg_amount", 2.0, 0.0, 1000.0);
+                    "Default: 10.0")
+            .defineInRange("blast_base_damage", 10.0, 0.0, 1000.0);
     BUILDER.comment(" ");
 
     BLAST_GROWTH_DAMAGE = BUILDER
@@ -1035,32 +1005,11 @@ public class ElementalFireNatureReactionsConfig {
             .defineInRange("blast_growth_range", 1.0, 0.0, 5.0);
     BUILDER.comment(" ");
 
-    BLAST_SCORCH_BASE = BUILDER
-            .comment("弱效引燃（低于反应阈值）造成的灼烧持续时间（秒）。",
-                    "Duration (seconds) of weak scorching applied by low stacks (below reaction threshold).",
-                    "Default: 3.0")
-            .defineInRange("blast_scorch_base", 3.0, 0.0, 6000.0);
-    BUILDER.comment(" ");
-
-    BLAST_BASE_SCORCH_TIME = BUILDER
-            .comment("成功爆炸（达到反应阈值）后造成的灼烧持续时间（秒）。",
-                    "Duration (seconds) of scorching applied by a successful explosion (at reaction threshold).",
-                    "Default: 3.0")
-            .defineInRange("blast_base_scorch_time", 3.0, 0.0, 6000.0);
-    BUILDER.comment(" ");
-
     BLAST_GROWTH_SCORCH_TIME = BUILDER
             .comment("超过反应阈值后，每多一层易燃孢子增加的灼烧时间（秒）。",
                     "Bonus scorch time (seconds) per extra Flammable Spore stack above the threshold.",
                     "Default: 1.0")
             .defineInRange("blast_growth_scorch_time", 1.0, 0.0, 1000.0);
-    BUILDER.comment(" ");
-
-    BLAST_CHAIN_REACTION = BUILDER
-            .comment("是否开启毒火爆燃的连锁反应机制？如果开启，当爆炸波及到身上有孢子的生物时，会立即诱发它们也发生爆炸（连环爆炸）。",
-                    "Whether to enable the Chain Reaction mechanic for Toxic Blast. If enabled, detonating a spore-infected entity will recursively detonate other nearby infected entities immediately.",
-                    "Default: true")
-            .define("blast_chain_reaction", true);
     BUILDER.comment(" ");
 
     BLAST_MAX_BLAST_PROT_CAP = BUILDER
@@ -1128,18 +1077,13 @@ public class ElementalFireNatureReactionsConfig {
     public static double wildfireVerticalKnockback;
     public static int wildfireSporeAmount;
     public static boolean wildfireClearBurning;
-    public static double blastTriggerThreshold;
     public static double blastWeakIgniteMult;
     public static double blastBaseDamage;
-    public static double blastDmgStep;
-    public static double blastDmgAmount;
     public static double blastGrowthDamage;
     public static double blastBaseRange;
     public static double blastGrowthRange;
-    public static double blastScorchBase;
-    public static double blastBaseScorchTime;
     public static double blastGrowthScorchTime;
-    public static boolean blastChainReaction;
+
     public static double blastMaxBlastProtCap;
     public static double blastMaxGeneralProtCap;
     public static double enchantmentCalculationDenominator;
@@ -1245,18 +1189,13 @@ public class ElementalFireNatureReactionsConfig {
         wildfireVerticalKnockback = WILDFIRE_VERTICAL_KNOCKBACK.get();
         wildfireSporeAmount = WILDFIRE_SPORE_AMOUNT.get();
         wildfireClearBurning = WILDFIRE_CLEAR_BURNING.get();
-        blastTriggerThreshold = BLAST_TRIGGER_THRESHOLD.get();
         blastWeakIgniteMult = BLAST_WEAK_IGNITE_MULT.get();
         blastBaseDamage = BLAST_BASE_DAMAGE.get();
-        blastDmgStep = BLAST_DMG_STEP.get();
-        blastDmgAmount = BLAST_DMG_AMOUNT.get();
         blastGrowthDamage = BLAST_GROWTH_DAMAGE.get();
         blastBaseRange = BLAST_BASE_RANGE.get();
         blastGrowthRange = BLAST_GROWTH_RANGE.get();
-        blastScorchBase = BLAST_SCORCH_BASE.get();
-        blastBaseScorchTime = BLAST_BASE_SCORCH_TIME.get();
         blastGrowthScorchTime = BLAST_GROWTH_SCORCH_TIME.get();
-        blastChainReaction = BLAST_CHAIN_REACTION.get();
+
         blastMaxBlastProtCap = BLAST_MAX_BLAST_PROT_CAP.get();
         blastMaxGeneralProtCap = BLAST_MAX_GENERAL_PROT_CAP.get();
         enchantmentCalculationDenominator = ENCHANTMENT_CALCULATION_DENOMINATOR.get();

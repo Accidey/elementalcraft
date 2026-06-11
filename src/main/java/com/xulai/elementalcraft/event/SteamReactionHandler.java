@@ -492,10 +492,24 @@ public class SteamReactionHandler {
                     damage *= (float) ElementalFireNatureReactionsConfig.scorchedImmuneModifier;
                 }
 
+                float preEnchDamage = damage;
+                int fireProtLevel = 0;
+                int genProtLevel = 0;
+                for (net.minecraft.world.item.ItemStack stack : entity.getArmorSlots()) {
+                    fireProtLevel += stack.getEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.FIRE_PROTECTION);
+                    genProtLevel += stack.getEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.ALL_DAMAGE_PROTECTION);
+                }
+                double denom = Math.max(1.0, ElementalFireNatureReactionsConfig.enchantmentCalculationDenominator);
+                double fireProtRed = (Math.min(fireProtLevel, denom) / denom) * ElementalFireNatureReactionsConfig.scorchedFireProtReduction;
+                double genProtRed = (Math.min(genProtLevel, denom) / denom) * ElementalFireNatureReactionsConfig.scorchedGenProtReduction;
+                float enchReduction = (float)(1.0 - (1.0 - fireProtRed) * (1.0 - genProtRed));
+                damage *= (1.0f - enchReduction);
+
                 if (damage > 0 && !checkImmunity(entity)) {
                     ElementDamageHelper.applyDamage(entity, damage, ModDamageTypes.source(entity.level(), ModDamageTypes.STEAM_SCALDING, heatSource));
+                    ScorchedHandler.igniteCreeperIfScorched(entity);
                     if (!entity.getPersistentData().getBoolean(NBT_STEAM_SCALDING_LOGGED)) {
-                        DebugCommand.sendSteamScaldingTickLog(entity, baseDamage, levelMultiplier, type, elementMultiplier, damage);
+                        DebugCommand.sendSteamScaldingTickLog(entity, baseDamage, levelMultiplier, type, elementMultiplier, preEnchDamage, fireProtLevel, genProtLevel, enchReduction, damage);
                         entity.getPersistentData().putBoolean(NBT_STEAM_SCALDING_LOGGED, true);
                     }
                 }

@@ -6,6 +6,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 
 import java.util.*;
 
@@ -52,6 +53,11 @@ public class AttributeEquipUtils {
         if (stack.isEmpty() || type == null || type == ElementType.NONE) return;
         Enchantment ench = getAttackEnchantment(type);
         if (ench != null) stack.enchant(ench, 1);
+    }
+
+    public static void applyUnbreaking(ItemStack stack, int level) {
+        if (stack.isEmpty()) return;
+        stack.enchant(Enchantments.UNBREAKING, level);
     }
 
     public static void applyArmorEnchants(ItemStack stack, ElementType enhType, int enhPoints, ElementType resType, int resPoints, int pointsPerLevelDivider) {

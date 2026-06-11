@@ -52,6 +52,7 @@ public final class ElementalThunderFrostReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue STATIC_SPORE_BLAST_BASE_CHANCE;
     public static final ForgeConfigSpec.DoubleValue STATIC_SPORE_BLAST_PER_STATIC_STACK;
     public static final ForgeConfigSpec.DoubleValue STATIC_SPORE_BLAST_PER_SPORE_STACK;
+    public static final ForgeConfigSpec.DoubleValue STATIC_CREEPER_IGNITE_CHANCE;
 
 
     public static final ForgeConfigSpec.DoubleValue STATIC_MAX_PROT_CAP;
@@ -150,8 +151,8 @@ public final class ElementalThunderFrostReactionsConfig {
         STATIC_BASE_CHANCE = BUILDER
                 .comment("达到门槛后，攻击触发静电的基础概率。",
                          "Base chance to apply Static Shock on attack when the threshold is met.",
-                         "Default: 0.2 (20%)")
-                .defineInRange("static_base_chance", 0.2, 0.0, 1.0);
+                         "Default: 0.3 (30%)")
+                .defineInRange("static_base_chance", 0.3, 0.0, 1.0);
 
         BUILDER.comment(" ");
 
@@ -349,18 +350,18 @@ public final class ElementalThunderFrostReactionsConfig {
                 .push("static_spore_blast");
 
         STATIC_SPORE_BLAST_BASE_CHANCE = BUILDER
-                .comment("静电伤害触发毒火爆燃的基础概率，设为0则静电伤害不会触发毒火爆燃。",
-                         "Base chance for Static Shock to trigger Toxic Blast on a target with Spores. Set to 0 to disable.",
-                         "Default: 0.2 (20%)")
-                .defineInRange("base_chance", 0.2, 0.0, 1.0);
+                .comment("静电+孢子触发毒火爆燃的基础概率，设为0则关闭。",
+                         "Base chance for Static Shock + Spores to trigger Toxic Blast. Set to 0 to disable.",
+                         "Default: 0.30 (30%)")
+                .defineInRange("base_chance", 0.30, 0.0, 1.0);
 
         BUILDER.comment(" ");
 
         STATIC_SPORE_BLAST_PER_STATIC_STACK = BUILDER
                 .comment("目标每层静电增加的额外概率。",
                          "Additional chance per stack of Static Shock on the target.",
-                         "Default: 0.05 (5%)")
-                .defineInRange("per_static_stack", 0.05, 0.0, 1.0);
+                         "Default: 0.10 (10%)")
+                .defineInRange("per_static_stack", 0.10, 0.0, 1.0);
 
         BUILDER.comment(" ");
 
@@ -369,6 +370,18 @@ public final class ElementalThunderFrostReactionsConfig {
                          "Additional chance per stack of Spores on the target.",
                          "Default: 0.05 (5%)")
                 .defineInRange("per_spore_stack", 0.05, 0.0, 1.0);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Static Shock Creeper Ignite (Converts to Charged Creeper then Ignites)",
+                        "静电苦力怕变高压+引爆")
+                .push("static_creeper_ignite");
+
+        STATIC_CREEPER_IGNITE_CHANCE = BUILDER
+                .comment("静电击中的苦力怕变高压并引爆的概率。设为0则关闭此反应。",
+                         "Chance for Static Shock to prime (->charged) and ignite a Creeper. Set to 0 to disable.",
+                         "Default: 0.4 (40%)")
+                .defineInRange("chance", 0.4, 0.0, 1.0);
 
         BUILDER.pop();
 
@@ -1056,6 +1069,7 @@ public final class ElementalThunderFrostReactionsConfig {
     public static double staticSporeBlastBaseChance;
     public static double staticSporeBlastPerStaticStack;
     public static double staticSporeBlastPerSporeStack;
+    public static double staticCreeperIgniteChance;
 
 
     public static double staticMaxProtCap;
@@ -1176,6 +1190,7 @@ public final class ElementalThunderFrostReactionsConfig {
         staticSporeBlastBaseChance = STATIC_SPORE_BLAST_BASE_CHANCE.get();
         staticSporeBlastPerStaticStack = STATIC_SPORE_BLAST_PER_STATIC_STACK.get();
         staticSporeBlastPerSporeStack = STATIC_SPORE_BLAST_PER_SPORE_STACK.get();
+        staticCreeperIgniteChance = STATIC_CREEPER_IGNITE_CHANCE.get();
 
         staticMaxProtCap = STATIC_MAX_PROT_CAP.get();
         staticMaxProjectileProtCap = STATIC_MAX_PROJECTILE_PROT_CAP.get();

@@ -120,14 +120,13 @@ public class PoisonCloudReactionHandler {
     private static void executeBlast(Entity cloud, LivingEntity attacker, int firePower) {
         int tierStep = ElementalISSIntegrationConfig.poisonCloudFireTierStep;
         int extraStacks = (firePower + tierStep - 1) / tierStep;
-        double effectiveFirePower = Math.max(firePower,
-                ElementalFireNatureReactionsConfig.blastTriggerThreshold);
+        double effectiveFirePower = firePower;
         float baseDamage = (float) (ElementalFireNatureReactionsConfig.blastBaseDamage
                 + extraStacks * ElementalFireNatureReactionsConfig.blastGrowthDamage);
         double blastRadius = ElementalFireNatureReactionsConfig.blastBaseRange
                 + extraStacks * ElementalFireNatureReactionsConfig.blastGrowthRange;
-        int scorchDuration = (int) ((ElementalFireNatureReactionsConfig.blastBaseScorchTime
-                + extraStacks * ElementalFireNatureReactionsConfig.blastGrowthScorchTime) * 20);
+        int scorchDuration = (int) (ElementalFireNatureReactionsConfig.scorchedDuration
+                + extraStacks * ElementalFireNatureReactionsConfig.blastGrowthScorchTime * 20);
 
         LivingEntity killCredit = attacker;
         Level level = cloud.level();
@@ -164,8 +163,9 @@ public class PoisonCloudReactionHandler {
                     actualDuration = (int) (scorchDuration * ElementalFireNatureReactionsConfig.poisonScorchDurationMultiplier);
                     actualDmgMult = (float) ElementalFireNatureReactionsConfig.poisonScorchDamageMultiplier;
                 }
-                ScorchedHandler.applyScorched(entity, credit, (int) effectiveFirePower,
-                        actualDuration, (int) effectiveFirePower, actualDmgMult, true);
+                if (ScorchedHandler.applyScorched(entity, credit, (int) effectiveFirePower,
+                        actualDuration, (int) effectiveFirePower, actualDmgMult, true) != ScorchedHandler.ScorchedApplyResult.FAILED)
+                    ScorchedHandler.igniteCreeperIfScorched(entity);
             }
         }
     }

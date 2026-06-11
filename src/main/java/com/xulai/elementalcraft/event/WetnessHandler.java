@@ -145,7 +145,6 @@ public class WetnessHandler {
     }
 
     private static void handleWetnessLogic(LivingEntity entity) {
-        if (entity instanceof Player player && player.isCreative()) return;
         if (ScorchedHandler.isScorched(entity)) {
             if (getWetnessLevel(entity) > 0) {
                 clearWetnessData(entity);
@@ -234,9 +233,7 @@ public class WetnessHandler {
             }
         }
 
-        if (getWetnessLevel(entity) > 0) {
-            syncEffect(entity, currentLevel, inWater || inPrecipitation || inCondensingCloud);
-        }
+        syncEffect(entity, currentLevel, inWater || inPrecipitation || inCondensingCloud);
     }
 
     private static boolean isSnowingHere(LivingEntity entity) {

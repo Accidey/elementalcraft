@@ -16,6 +16,7 @@ import com.xulai.elementalcraft.util.ElementDamageHelper;
 import com.xulai.elementalcraft.event.WetnessHandler;
 import com.xulai.elementalcraft.util.EffectHelper;
 import com.xulai.elementalcraft.client.ModParticles;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
@@ -25,10 +26,12 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
 
+import com.xulai.elementalcraft.event.ScorchedHandler;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
@@ -66,6 +69,7 @@ public class StaticShockHandler {
     private static final String NBT_PARALYSIS_STACKS = "ec_paralysis_stacks";
     private static final String NBT_PARALYSIS_TIMER = "ec_paralysis_timer";
     private static final String NBT_PARALYSIS_COOLDOWN_TIMER = "ec_paralysis_cooldown_timer";
+    private static final String NBT_STATIC_PRIMED = "ec_static_primed";
     private static final Map<ResourceKey<Level>, ActiveElectrification> activeElectrifications = new HashMap<>();
 
     private static class ActiveElectrification {
@@ -140,8 +144,10 @@ public class StaticShockHandler {
     @SubscribeEvent
     public static void onLivingDamage(LivingDamageEvent event) {
         if (event.getEntity().level().isClientSide) return;
-        if (!(event.getSource().getEntity() instanceof LivingEntity attacker)) return;
         LivingEntity target = event.getEntity();
+        if (!(event.getSource().getEntity() instanceof LivingEntity attacker)) {
+            return;
+        }
         if (target instanceof Player player && player.isCreative()) return;
 
         if (isImmuneToStatic(target)) {
@@ -287,6 +293,12 @@ public class StaticShockHandler {
             }
         }
 
+        if (effectInstance != null && data.contains(NBT_STATIC_STACKS)) {
+            if (effectInstance.getDuration() > data.getInt(NBT_STATIC_TIMER)) {
+                data.putInt(NBT_STATIC_TIMER, effectInstance.getDuration());
+            }
+        }
+
         if (!data.contains(NBT_STATIC_STACKS)) {
             if (entity.hasEffect(ModMobEffects.STATIC_SHOCK.get())) {
                 entity.removeEffect(ModMobEffects.STATIC_SHOCK.get());
@@ -362,6 +374,7 @@ public class StaticShockHandler {
         if (damageTimer >= interval) {
             if (totalTimer > 0) {
                 triggerStaticDamage(entity);
+                tryPrimingOrIgniteCreeper(entity);
             }
             damageTimer = 0;
         }
@@ -719,7 +732,7 @@ public class StaticShockHandler {
                 if (RANDOM.nextDouble() < totalChance) {
                     targetData.putLong("ec_static_aura_spore_cd", gameTime + 100);
                     ReactionHandler.triggerToxicBlast(target.level(), source, target,
-                            ElementalFireNatureReactionsConfig.blastTriggerThreshold, source,
+                            ElementalFireNatureReactionsConfig.scorchedTriggerThreshold, source,
                             ElementalFireNatureReactionsConfig.sporeReactionThreshold);
                 }
             }
@@ -846,6 +859,52 @@ public class StaticShockHandler {
     }
 
 
+    private static void tryPrimingOrIgniteCreeper(LivingEntity target) {
+        double chance = ElementalThunderFrostReactionsConfig.staticCreeperIgniteChance;
+        if (chance <= 0) return;
+        if (!(target instanceof Creeper creeper) || !creeper.isAlive()) return;
+
+        CompoundTag data = creeper.getPersistentData();
+        boolean alreadyPrimed = data.getBoolean(NBT_STATIC_PRIMED);
+        boolean isLightningCharged = creeper.isPowered();
+
+        ElementalCraft.LOGGER.info("[静电苦力怕] 判定: primed={}, powered={}, chance={}", alreadyPrimed, isLightningCharged, chance);
+
+        if (isLightningCharged) {
+            ElementalCraft.LOGGER.info("[静电苦力怕] → 高压, 执行引爆");
+            if (alreadyPrimed) {
+                creeper.clearFire();
+            }
+            data.putBoolean(NBT_STATIC_PRIMED, true);
+            ScorchedHandler.igniteCreeperIfScorched(creeper);
+            data.remove(NBT_STATIC_PRIMED);
+            if (creeper.level() instanceof ServerLevel sl) {
+                sl.sendParticles(ParticleTypes.FLASH,
+                    creeper.getX(), creeper.getY() + 1, creeper.getZ(), 1, 0, 0, 0, 0);
+            }
+        } else if (!alreadyPrimed) {
+            double roll = RANDOM.nextDouble();
+            ElementalCraft.LOGGER.info("[静电苦力怕] → 首次判定: roll={}, 需<{}", roll, chance);
+            if (roll >= chance) {
+                ElementalCraft.LOGGER.info("[静电苦力怕] → 概率未通过, 跳过");
+                return;
+            }
+            ElementalCraft.LOGGER.info("[静电苦力怕] → 概率通过, 召唤闪电变高压(不引爆)");
+            data.putBoolean(NBT_STATIC_PRIMED, true);
+            if (creeper.level() instanceof ServerLevel sl) {
+                net.minecraft.world.entity.LightningBolt lightning =
+                    net.minecraft.world.entity.EntityType.LIGHTNING_BOLT.create(sl);
+                if (lightning != null) {
+                    lightning.setDamage(0);
+                    lightning.setPos(creeper.getX(), creeper.getY(), creeper.getZ());
+                    sl.addFreshEntity(lightning);
+                }
+            }
+        } else {
+            ElementalCraft.LOGGER.info("[静电苦力怕] → 已标记未高压, 等闪电打击");
+        }
+    }
+
     public static void tryTriggerSporeBlast(LivingEntity target) {
         if (!target.hasEffect(ModMobEffects.SPORES.get())) return;
         if (ElementalThunderFrostReactionsConfig.frostbiteReduceSporesEnabled && FrostbiteHandler.hasFrostbite(target)) return;
@@ -864,7 +923,7 @@ public class StaticShockHandler {
         boolean triggered = RANDOM.nextDouble() < totalChance;
         if (!triggered) return;
 
-        double firePower = ElementalFireNatureReactionsConfig.blastTriggerThreshold;
+        double firePower = ElementalFireNatureReactionsConfig.scorchedTriggerThreshold;
         ReactionHandler.triggerStaticSporeBlast(target, firePower);
     }
 
@@ -912,6 +971,7 @@ public class StaticShockHandler {
         data.remove(NBT_STATIC_TIMER);
         data.remove(NBT_STATIC_DAMAGE_TIMER);
         data.remove(NBT_STATIC_AURA_DAMAGE_TIMER);
+        data.remove(NBT_STATIC_PRIMED);
         if (entity.hasEffect(ModMobEffects.STATIC_SHOCK.get())) {
             entity.removeEffect(ModMobEffects.STATIC_SHOCK.get());
         }

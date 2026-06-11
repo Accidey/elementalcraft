@@ -8,33 +8,15 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-
-
 @Mod.EventBusSubscriber(modid = "elementalcraft")
-public class PlayerTrackEvents {
-
-
-
-
-    @SubscribeEvent
+    public class PlayerTrackEvents {
+@SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-
-
         if (event.side.isClient()) return;
-
-
-
         if (event.phase != TickEvent.Phase.START) return;
-
         if (!(event.player instanceof ServerPlayer player)) return;
-
-
-
         if (player.tickCount % 40 != 0) return;
-
         ServerLevel level = player.serverLevel();
-
-
 
         level.getEntitiesOfClass(Mob.class, player.getBoundingBox().inflate(20, 5, 20),
                 mob -> mob.isAlive() && !mob.getPersistentData().getBoolean("ElementalCraft_AttributesSet")

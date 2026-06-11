@@ -147,6 +147,17 @@ public class DebugCommand {
         }
     }
 
+    private static String buildEnchDetail(int blastProtLevel, int generalProtLevel) {
+        if (blastProtLevel > 0 && generalProtLevel > 0) {
+            return Component.translatable("debug.elementalcraft.reaction.toxic_blast.ench_blast").getString() + " " + blastProtLevel
+                    + " + " + Component.translatable("debug.elementalcraft.reaction.toxic_blast.ench_general").getString() + " " + generalProtLevel;
+        } else if (blastProtLevel > 0) {
+            return Component.translatable("debug.elementalcraft.reaction.toxic_blast.ench_blast").getString() + " " + blastProtLevel;
+        } else {
+            return Component.translatable("debug.elementalcraft.reaction.toxic_blast.ench_general").getString() + " " + generalProtLevel;
+        }
+    }
+
     public static class ToxicBlastLogContext {
         public LivingEntity attacker;
         public LivingEntity target;
@@ -154,6 +165,10 @@ public class DebugCommand {
         public double radius;
         public int affectedCount;
         public float rawBaseDamage;
+        public float mitigation;
+        public float finalDamage;
+        public int blastProtLevel;
+        public int generalProtLevel;
     }
 
     public static class WildfireLogContext {
@@ -296,13 +311,25 @@ public class DebugCommand {
     public static void sendToxicBlastLog(ToxicBlastLogContext ctx) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.toxic_blast.header").withStyle(ChatFormatting.RED);
+        String damageInfo;
+        if (ctx.mitigation > 0) {
+            String enchDetail = buildEnchDetail(ctx.blastProtLevel, ctx.generalProtLevel);
+            damageInfo = Component.translatable("debug.elementalcraft.reaction.toxic_blast.damage_with_mitigation",
+                    Component.literal(String.format("%.1f", ctx.rawBaseDamage)).withStyle(ChatFormatting.RED),
+                    Component.literal(String.format("%.1f", ctx.finalDamage)).withStyle(ChatFormatting.GOLD),
+                    enchDetail,
+                    String.format("%.0f", ctx.mitigation * 100)).getString();
+        } else {
+            damageInfo = Component.translatable("debug.elementalcraft.reaction.toxic_blast.damage_no_mitigation",
+                    Component.literal(String.format("%.1f", ctx.rawBaseDamage)).withStyle(ChatFormatting.RED)).getString();
+        }
         MutableComponent content = Component.translatable("debug.elementalcraft.reaction.toxic_blast.message",
                 ctx.attacker.getDisplayName(),
                 ctx.target.getDisplayName(),
                 Component.literal(String.valueOf(ctx.stacks)).withStyle(ChatFormatting.DARK_GREEN),
                 String.format("%.1f", ctx.radius),
                 ctx.affectedCount,
-                Component.literal(String.format("%.1f", ctx.rawBaseDamage)).withStyle(ChatFormatting.RED)
+                Component.literal(damageInfo)
         ).withStyle(ChatFormatting.WHITE);
         sendDebugMessage(ctx.attacker, prefix.append(Component.literal(" ")).append(content));
     }
@@ -471,7 +498,7 @@ public class DebugCommand {
         sendDebugMessage(ctx.target, message);
     }
 
-    public static void sendScorchedTickLog(LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage, float poisonMult) {
+    public static void sendScorchedTickLog(LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage, float dmgMult, String multSrc, int fireProtLevel, int genProtLevel, float enchReduction) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.scorched_tick.header").withStyle(ChatFormatting.GOLD);
         msg.append(Component.literal(" "));
@@ -479,6 +506,12 @@ public class DebugCommand {
         msg.append(Component.literal(" "));
         msg.append(Component.translatable("debug.elementalcraft.reaction.scorched_tick.base",
                 Component.literal(String.format("%.1f", baseDamage)).withStyle(ChatFormatting.WHITE)));
+        if (enchReduction > 0) {
+            String enchDetail = buildEnchDetail(fireProtLevel, genProtLevel);
+            msg.append(Component.translatable("debug.elementalcraft.reaction.toxic_blast.damage_ench_format",
+                    Component.literal(enchDetail).withStyle(ChatFormatting.BLUE),
+                    Component.literal(String.format("%.0f", enchReduction * 100)).withStyle(ChatFormatting.BLUE)));
+        }
         msg.append(Component.literal(" | "));
         msg.append(Component.translatable("debug.elementalcraft.reaction.scorched_tick.final",
                 Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED)));
@@ -486,10 +519,17 @@ public class DebugCommand {
         if (element != ElementType.NONE && elementMult != 1.0f) {
             multipliers = element.getDisplayName().getString() + String.format(" × %.1f", elementMult);
         }
-        if (poisonMult > 1.0f) {
+        if (dmgMult > 1.0f) {
             if (!multipliers.isEmpty()) multipliers += ", ";
-            multipliers += Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString()
-                    + String.format(" × %.1f", poisonMult);
+            String label;
+            if ("poison".equals(multSrc)) {
+                label = Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString();
+            } else if ("weak_blast".equals(multSrc)) {
+                label = Component.translatable("debug.elementalcraft.reaction.scorched.weak_blast_label").getString();
+            } else {
+                label = Component.translatable("debug.elementalcraft.reaction.scorched.damage_mult_label").getString();
+            }
+            multipliers += label + String.format(" × %.1f", dmgMult);
         }
         if (!multipliers.isEmpty()) {
             msg.append(Component.translatable("debug.elementalcraft.reaction.scorched.multiplier_format", multipliers).withStyle(ChatFormatting.GOLD));
@@ -497,7 +537,7 @@ public class DebugCommand {
         sendDebugMessage(target, msg);
     }
 
-    public static void sendScorchedAuraLog(LivingEntity source, LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage, float poisonMult) {
+    public static void sendScorchedAuraLog(LivingEntity source, LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage, float dmgMult, String multSrc) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.scorched_aura.header").withStyle(ChatFormatting.GOLD);
         msg.append(Component.literal(" "));
@@ -512,10 +552,17 @@ public class DebugCommand {
         if (element != ElementType.NONE && elementMult != 1.0f) {
             multipliers = element.getDisplayName().getString() + String.format(" × %.1f", elementMult);
         }
-        if (poisonMult > 1.0f) {
+        if (dmgMult > 1.0f) {
             if (!multipliers.isEmpty()) multipliers += ", ";
-            multipliers += Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString()
-                    + String.format(" × %.1f", poisonMult);
+            String label;
+            if ("poison".equals(multSrc)) {
+                label = Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString();
+            } else if ("weak_blast".equals(multSrc)) {
+                label = Component.translatable("debug.elementalcraft.reaction.scorched.weak_blast_label").getString();
+            } else {
+                label = Component.translatable("debug.elementalcraft.reaction.scorched.damage_mult_label").getString();
+            }
+            multipliers += label + String.format(" × %.1f", dmgMult);
         }
         if (!multipliers.isEmpty()) {
             msg.append(Component.translatable("debug.elementalcraft.reaction.scorched.multiplier_format", multipliers).withStyle(ChatFormatting.GOLD));
@@ -540,7 +587,7 @@ public class DebugCommand {
         sendDebugMessage(ctx.target, prefix.append(Component.literal(" ")).append(content));
     }
 
-    public static void sendSteamScaldingTickLog(LivingEntity target, float baseDamage, float levelMultiplier, ElementType element, float elementMultiplier, float finalDamage) {
+    public static void sendSteamScaldingTickLog(LivingEntity target, float baseDamage, float levelMultiplier, ElementType element, float elementMultiplier, float preEnchDamage, int fireProtLevel, int genProtLevel, float enchReduction, float finalDamage) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.steam_scalding_tick.header").withStyle(ChatFormatting.GOLD);
         msg.append(Component.literal(" "));
@@ -551,13 +598,19 @@ public class DebugCommand {
         msg.append(Component.literal(" | "));
         msg.append(Component.translatable("debug.elementalcraft.reaction.steam_scalding_tick.level_mult",
                 Component.literal(String.format("× %.1f", levelMultiplier)).withStyle(ChatFormatting.YELLOW)));
-        msg.append(Component.literal(" | "));
-        msg.append(Component.translatable("debug.elementalcraft.reaction.steam_scalding_tick.final",
-                Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED)));
         if (element != ElementType.NONE && elementMultiplier != 1.0f) {
             msg.append(Component.translatable("debug.elementalcraft.reaction.scorched.multiplier_format",
                     element.getDisplayName().getString() + String.format(" × %.1f", elementMultiplier)).withStyle(ChatFormatting.GOLD));
         }
+        if (enchReduction > 0) {
+            String enchDetail = buildEnchDetail(fireProtLevel, genProtLevel);
+            msg.append(Component.translatable("debug.elementalcraft.reaction.toxic_blast.damage_ench_format",
+                    Component.literal(enchDetail).withStyle(ChatFormatting.BLUE),
+                    Component.literal(String.format("%.0f", enchReduction * 100)).withStyle(ChatFormatting.BLUE)));
+        }
+        msg.append(Component.literal(" | "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.steam_scalding_tick.final",
+                Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED)));
         sendDebugMessage(target, msg);
     }
 

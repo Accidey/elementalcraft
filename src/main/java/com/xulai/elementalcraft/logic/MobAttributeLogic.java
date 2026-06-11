@@ -117,15 +117,23 @@ public class MobAttributeLogic {
                 if (!hasHandItem) {
                     ItemStack sword = new ItemStack(Items.IRON_SWORD);
                     AttributeEquipUtils.applyAttackEnchant(sword, attackType);
+                    AttributeEquipUtils.applyUnbreaking(sword, 3);
                     mob.setItemSlot(EquipmentSlot.MAINHAND, sword);
                     mob.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
                 }
             } else if (hasHandItem) {
-                if (!mainHand.isEmpty()) AttributeEquipUtils.applyAttackEnchant(mainHand, attackType);
-                if (!offHand.isEmpty()) AttributeEquipUtils.applyAttackEnchant(offHand, attackType);
+                if (!mainHand.isEmpty()) {
+                    AttributeEquipUtils.applyAttackEnchant(mainHand, attackType);
+                    AttributeEquipUtils.applyUnbreaking(mainHand, 3);
+                }
+                if (!offHand.isEmpty()) {
+                    AttributeEquipUtils.applyAttackEnchant(offHand, attackType);
+                    AttributeEquipUtils.applyUnbreaking(offHand, 3);
+                }
             } else {
                 ItemStack sword = new ItemStack(Items.IRON_SWORD);
                 AttributeEquipUtils.applyAttackEnchant(sword, attackType);
+                AttributeEquipUtils.applyUnbreaking(sword, 3);
                 mob.setItemSlot(EquipmentSlot.MAINHAND, sword);
                 mob.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
             }
@@ -176,15 +184,23 @@ public class MobAttributeLogic {
                     if (!hasWeapon) {
                         ItemStack sword = new ItemStack(Items.IRON_SWORD);
                         AttributeEquipUtils.applyAttackEnchant(sword, attackType);
+                        AttributeEquipUtils.applyUnbreaking(sword, 3);
                         mob.setItemSlot(EquipmentSlot.MAINHAND, sword);
                         mob.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
                     }
                 } else if (hasWeapon) {
-                    if (!mainHand.isEmpty()) AttributeEquipUtils.applyAttackEnchant(mainHand, attackType);
-                    if (!offHand.isEmpty()) AttributeEquipUtils.applyAttackEnchant(offHand, attackType);
+                    if (!mainHand.isEmpty()) {
+                        AttributeEquipUtils.applyAttackEnchant(mainHand, attackType);
+                        AttributeEquipUtils.applyUnbreaking(mainHand, 3);
+                    }
+                    if (!offHand.isEmpty()) {
+                        AttributeEquipUtils.applyAttackEnchant(offHand, attackType);
+                        AttributeEquipUtils.applyUnbreaking(offHand, 3);
+                    }
                 } else {
                     ItemStack sword = new ItemStack(Items.IRON_SWORD);
                     AttributeEquipUtils.applyAttackEnchant(sword, attackType);
+                    AttributeEquipUtils.applyUnbreaking(sword, 3);
                     mob.setItemSlot(EquipmentSlot.MAINHAND, sword);
                     mob.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
                 }
@@ -232,6 +248,7 @@ public class MobAttributeLogic {
             }
 
             AttributeEquipUtils.applyArmorEnchantsLevel(stack, enhanceType, enhanceLevels[i], resistType, resistLevels[i]);
+            AttributeEquipUtils.applyUnbreaking(stack, 3);
         }
     }
 }

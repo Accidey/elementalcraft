@@ -1,7 +1,12 @@
 package com.xulai.elementalcraft.enchantment;
 
+import com.google.common.collect.Multimap;
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.util.ElementType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentCategory;
@@ -26,8 +31,12 @@ public class ModEnchantments {
 
 
     public static final EnchantmentCategory STRICT_WEAPON = EnchantmentCategory.create("strict_weapon",
-            item -> item instanceof SwordItem || item instanceof AxeItem || item instanceof TridentItem
-                    || item instanceof BowItem || item instanceof CrossbowItem);
+            item -> {
+                Multimap<Attribute, AttributeModifier> modifiers =
+                        item.getDefaultAttributeModifiers(EquipmentSlot.MAINHAND);
+                if (modifiers.containsKey(Attributes.ATTACK_DAMAGE)) return true;
+                return item instanceof ProjectileWeaponItem;
+            });
 
 
 
