@@ -22,6 +22,8 @@ public class FrostbiteVisuals {
 
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
+        if (!ElementalVisualConfig.frostbiteAuraEnabled) return;
+
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide) return;
 

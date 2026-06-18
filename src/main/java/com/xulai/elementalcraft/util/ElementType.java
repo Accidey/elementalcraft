@@ -33,7 +33,7 @@ public enum ElementType {
     }
 
     public Component getDisplayName() {
-        return Component.translatable("element." + id).withStyle(color);
+        return Component.translatable("element." + id);
     }
 
     public static ElementType fromId(String id) {

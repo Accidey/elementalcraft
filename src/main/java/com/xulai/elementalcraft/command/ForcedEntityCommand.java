@@ -166,13 +166,13 @@ public class ForcedEntityCommand {
 
         ItemStack stack = player.getMainHandItem();
         if (stack.isEmpty() || !(stack.getItem() instanceof SpawnEggItem)) {
-            player.sendSystemMessage(Component.translatable("command.elementalcraft.forcedadd.no_egg"));
+            player.sendSystemMessage(Component.translatable("command.elementalcraft.common.no_egg"));
             return 0;
         }
 
         String entityKey = getHeldEntityId(player);
         if (entityKey == null) {
-            player.sendSystemMessage(Component.translatable("command.elementalcraft.forcedadd.no_egg"));
+            player.sendSystemMessage(Component.translatable("command.elementalcraft.common.no_egg"));
             return 0;
         }
 
@@ -226,13 +226,13 @@ public class ForcedEntityCommand {
 
         ItemStack stack = player.getMainHandItem();
         if (stack.isEmpty() || !(stack.getItem() instanceof SpawnEggItem)) {
-            player.sendSystemMessage(Component.translatable("command.elementalcraft.forcedremove.no_egg"));
+            player.sendSystemMessage(Component.translatable("command.elementalcraft.common.no_egg"));
             return 0;
         }
 
         String entityKey = getHeldEntityId(player);
         if (entityKey == null) {
-            player.sendSystemMessage(Component.translatable("command.elementalcraft.forcedremove.no_egg"));
+            player.sendSystemMessage(Component.translatable("command.elementalcraft.common.no_egg"));
             return 0;
         }
 
@@ -269,7 +269,7 @@ public class ForcedEntityCommand {
 
         String entityId = getHeldEntityId(player);
         if (entityId == null) {
-            player.sendSystemMessage(Component.translatable("command.elementalcraft.blacklist.no_egg"));
+            player.sendSystemMessage(Component.translatable("command.elementalcraft.common.no_egg"));
             return 0;
         }
 
@@ -329,7 +329,7 @@ public class ForcedEntityCommand {
 
         String entityId = getHeldEntityId(player);
         if (entityId == null) {
-            player.sendSystemMessage(Component.translatable("command.elementalcraft.blacklist.no_egg"));
+            player.sendSystemMessage(Component.translatable("command.elementalcraft.common.no_egg"));
             return 0;
         }
 

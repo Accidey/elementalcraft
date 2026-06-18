@@ -2,6 +2,7 @@ package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
+import com.xulai.elementalcraft.logic.MobAttributeLogic;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.sound.ModSounds;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
@@ -26,12 +27,10 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.TamableAnimal;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -66,21 +65,9 @@ public class FrostbiteHandler {
 
     public static final String NBT_FROSTBITE_FIRE_STAND_TIMER = "EC_FrostbiteFireStandTimer";
     public static final String NBT_FROSTBITE_SOURCE_FROST_POWER = "EC_FrostbiteSourceFrostPower";
+    public static final String NBT_FROSTBITE_PERIODIC_LOGGED = "EC_FrostbitePeriodicLogged";
+    public static final String NBT_FROSTBITE_LAST_PERIODIC_DMG = "EC_FrostbiteLastPeriodicDmg";
 
-    private static void debugMsg(LivingEntity target, String msg) {
-        if (target instanceof Player player) {
-            player.sendSystemMessage(Component.literal("[FrostbiteDebug] " + msg).withStyle(ChatFormatting.YELLOW));
-        }
-    }
-
-    private static void debugMsgAttacker(LivingEntity attacker, LivingEntity target, String msg) {
-        if (attacker instanceof Player player) {
-            player.sendSystemMessage(Component.literal("[FrostbiteDebug] " + msg).withStyle(ChatFormatting.YELLOW));
-        }
-        if (target instanceof Player player && player != attacker) {
-            player.sendSystemMessage(Component.literal("[FrostbiteDebug] " + msg).withStyle(ChatFormatting.YELLOW));
-        }
-    }
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void onLivingDamage(LivingDamageEvent event) {
@@ -98,10 +85,13 @@ public class FrostbiteHandler {
         double threshold = ElementalThunderFrostReactionsConfig.frostStrengthThreshold;
         boolean thresholdMet = threshold > 0 && frostPower >= threshold;
 
-        debugMsgAttacker(attacker, target, "=== 霜冻触发判定 ===");
-        debugMsgAttacker(attacker, target, "攻击者冰霜强化: " + String.format("%.1f", frostPower) + " | 门槛: " + String.format("%.1f", threshold) + " | " + (thresholdMet ? "已达到" : "未达到"));
-
-        if (!thresholdMet) return;
+        if (!thresholdMet) {
+            DebugCommand.sendReactionFailed(target, "frostbite", "threshold",
+                    attacker.getDisplayName(), target.getDisplayName(),
+                    Component.literal(String.format("%.1f", frostPower)).withStyle(ChatFormatting.AQUA),
+                    Component.literal(String.format("%.1f", threshold)).withStyle(ChatFormatting.GOLD));
+            return;
+        }
 
         double baseChance = ElementalThunderFrostReactionsConfig.frostbiteBaseChance;
         double scalingStep = ElementalThunderFrostReactionsConfig.frostbiteScalingStep;
@@ -109,56 +99,58 @@ public class FrostbiteHandler {
         double stackingBonus = ElementalThunderFrostReactionsConfig.frostbiteStackingBonusChance;
         double wetnessBonus = ElementalThunderFrostReactionsConfig.frostbiteWetnessBonusChance;
 
+        int scalingSteps = 0;
         double chance;
-        int steps = 0;
-        if (frostPower < scalingStep) {
+        if (frostPower < threshold + scalingStep) {
             chance = baseChance;
-            debugMsgAttacker(attacker, target, "基础触发概率: " + String.format("%.1f", baseChance * 100) + "% (未达到步长 " + String.format("%.1f", scalingStep) + ")");
         } else {
-            steps = (int) ((frostPower - scalingStep) / scalingStep);
-            chance = baseChance + (steps * scalingChance);
-            debugMsgAttacker(attacker, target, "基础触发概率: " + String.format("%.1f", baseChance * 100) + "% | 步长数: " + steps + " | 每步长增加: " + String.format("%.1f", scalingChance * 100) + "% | 步长后概率: " + String.format("%.1f", chance * 100) + "%");
+            scalingSteps = (int) ((frostPower - threshold) / scalingStep);
+            chance = baseChance + (scalingSteps * scalingChance);
         }
         chance = Math.min(1.0, chance);
 
+        double wetBonus = 0;
         int targetWetness = WetnessHandler.getWetnessLevel(target);
         if (targetWetness > 0) {
-            double bonus = targetWetness * wetnessBonus;
-            chance += bonus;
+            wetBonus = targetWetness * wetnessBonus;
+            chance += wetBonus;
             chance = Math.min(1.0, chance);
-            debugMsgAttacker(attacker, target, "目标潮湿 " + targetWetness + " 层 | 额外概率: +" + String.format("%.1f", bonus * 100) + "% | 当前总概率: " + String.format("%.1f", chance * 100) + "%");
         }
 
         boolean hasExistingFrostbite = hasFrostbite(target);
+        double appliedStackingBonus = 0;
         if (hasExistingFrostbite) {
+            appliedStackingBonus = stackingBonus;
             chance += stackingBonus;
             chance = Math.min(1.0, chance);
-            debugMsgAttacker(attacker, target, "目标已有霜冻效果 | 额外叠加概率: +" + String.format("%.1f", stackingBonus * 100) + "% | 当前总概率: " + String.format("%.1f", chance * 100) + "%");
         }
 
-        debugMsgAttacker(attacker, target, "最终触发概率: " + String.format("%.1f", chance * 100) + "%");
-
         if (RANDOM.nextDouble() >= chance) {
-            debugMsgAttacker(attacker, target, "随机判定: 未触发 (骰子值 >= " + String.format("%.2f", chance) + ")");
+            DebugCommand.sendFrostbiteChanceFailed(attacker, target, frostPower, baseChance, scalingSteps, scalingChance, appliedStackingBonus, wetBonus);
             return;
         }
 
-        debugMsgAttacker(attacker, target, "随机判定: 触发成功!");
-
         int stacksToApply = ElementalThunderFrostReactionsConfig.frostbiteMaxStacksPerAttack;
-        applyFrostbite(target, attacker, stacksToApply);
+        applyFrostbite(target, attacker, stacksToApply, chance, frostPower, baseChance, scalingSteps, scalingChance, appliedStackingBonus, wetBonus);
     }
 
-    public static boolean applyFrostbite(LivingEntity target, LivingEntity attacker, int layersToAdd) {
+    public static boolean applyFrostbite(LivingEntity target, LivingEntity attacker, int layersToAdd, double chance, double frostPower, double baseChance, int scalingSteps, double scalingChance, double stackingBonus, double wetBonus) {
         if (target.level().isClientSide) return false;
         if (target instanceof Player player && player.isCreative()) return false;
 
         if (SteamReactionHandler.isInHighHeatCloud(target)) {
+            if (attacker != null) {
+                DebugCommand.sendReactionFailed(target, "frostbite", "high_heat_cloud",
+                        attacker.getDisplayName(), target.getDisplayName());
+            }
             return false;
         }
 
         if (isFrostbiteImmune(target)) {
-            debugMsgAttacker(attacker, target, "目标免疫霜冻，跳过施加");
+            if (attacker != null) {
+                DebugCommand.sendReactionFailed(target, "frostbite", "immune",
+                        attacker.getDisplayName(), target.getDisplayName());
+            }
             return false;
         }
 
@@ -167,17 +159,23 @@ public class FrostbiteHandler {
 
         if (data.contains(NBT_FROSTBITE_APPLY_TICK)) {
             if (data.getLong(NBT_FROSTBITE_APPLY_TICK) == gameTime) {
-                debugMsgAttacker(attacker, target, "同一 tick 已施加过霜冻，跳过");
+                if (attacker != null) {
+                    DebugCommand.sendReactionFailed(target, "frostbite", "same_tick",
+                            attacker.getDisplayName(), target.getDisplayName());
+                }
                 return false;
             }
         }
-
 
         int currentStacks = data.getInt(NBT_FROSTBITE_STACKS);
         int maxStacks = ElementalThunderFrostReactionsConfig.frostbiteMaxTotalStacks;
 
         if (currentStacks >= maxStacks) {
-            debugMsgAttacker(attacker, target, "霜冻层数已达上限 " + maxStacks + " 层，无法继续叠加");
+            if (attacker != null) {
+                DebugCommand.sendReactionFailed(target, "frostbite", "max_stacks",
+                        attacker.getDisplayName(), target.getDisplayName(),
+                        Component.literal(String.valueOf(maxStacks)).withStyle(ChatFormatting.RED));
+            }
             return false;
         }
 
@@ -187,37 +185,26 @@ public class FrostbiteHandler {
         int perExtraStack = ElementalThunderFrostReactionsConfig.frostbiteDurationPerExtraStackTicks;
         int durationTicks = baseDuration + (newStacks - 1) * perExtraStack;
 
-
         if (target.level().dimension() == Level.NETHER) {
             durationTicks = (int) (durationTicks * ElementalThunderFrostReactionsConfig.frostbiteNetherDurationMultiplier);
         }
 
         double speedReduction = ElementalThunderFrostReactionsConfig.frostbiteSpeedReductionPerStack;
 
-        debugMsgAttacker(attacker, target, "=== 施加霜冻 ===");
-        debugMsgAttacker(attacker, target, "当前层数: " + currentStacks + " | 施加层数: " + layersToAdd + " | 新层数: " + newStacks + " | 最大层数: " + maxStacks);
-        debugMsgAttacker(attacker, target, "持续时间: " + durationTicks + " tick (" + (durationTicks / 20) + " 秒) | 每层减速: " + String.format("%.0f", speedReduction * 100) + "%");
-
         data.putInt(NBT_FROSTBITE_STACKS, newStacks);
         data.putInt(NBT_FROSTBITE_DURATION, durationTicks);
         data.putLong(NBT_FROSTBITE_APPLY_TICK, gameTime);
-        int frostPower = ElementUtils.getDisplayEnhancement(attacker, ElementType.FROST);
-        data.putInt(NBT_FROSTBITE_SOURCE_FROST_POWER, frostPower);
+        data.putInt(NBT_FROSTBITE_SOURCE_FROST_POWER, (int) frostPower);
+        data.putInt(NBT_FROSTBITE_PERIODIC_LOGGED, 0);
 
         if (!target.level().isClientSide) {
             target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.5f, 1.5f);
-            DebugCommand.FrostbiteLogContext fctx = new DebugCommand.FrostbiteLogContext();
-            fctx.attacker = attacker;
-            fctx.target = target;
-            fctx.stacksApplied = layersToAdd;
-            fctx.totalStacks = newStacks;
-            fctx.chance = 1.0;
-            DebugCommand.sendFrostbiteLog(fctx);
+            DebugCommand.sendFrostbiteLog(attacker, target, layersToAdd, chance, durationTicks, speedReduction * newStacks, frostPower, baseChance, scalingSteps, scalingChance, stackingBonus, wetBonus);
         }
 
         syncFrostbiteEffect(target, newStacks, durationTicks);
 
-        checkFreezeFromWetness(target, attacker, frostPower);
+        checkFreezeFromWetness(target, attacker, (int) frostPower);
 
         return true;
     }
@@ -326,21 +313,6 @@ public class FrostbiteHandler {
         }
         clearFrostbite(target);
         WetnessHandler.clearWetnessData(target);
-
-        if (attacker != null && !target.level().isClientSide && ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel > 0
-                && frostPower >= ElementalFireNatureReactionsConfig.steamLowHeatTriggerThreshold
-                && !SteamReactionHandler.isOnSteamCooldown(attacker)) {
-            int steamLevel = Math.max(1, Math.min(wetnessLevel, ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel));
-            SteamReactionHandler.applySteamCooldown(attacker, SteamReactionHandler.computeCloudDuration(false, steamLevel));
-            AreaEffectCloud steamCloud = SteamReactionHandler.spawnSteamCloud(target, false, steamLevel);
-            if (steamCloud != null) {
-                steamCloud.addTag(SteamReactionHandler.TAG_FROSTED);
-                String cloudUUID = SteamReactionHandler.getCloudUUID(steamCloud);
-                if (!cloudUUID.isEmpty()) {
-                    target.getPersistentData().putString(SteamReactionHandler.NBT_FROSTED_CLOUD_UUID, cloudUUID);
-                }
-            }
-        }
 
         if (target.level() instanceof ServerLevel serverLevel && frostbiteStacks >= 3) {
             double radius = 3.0 + (frostbiteStacks - 3) * 1.0;
@@ -512,6 +484,8 @@ public class FrostbiteHandler {
         data.remove(NBT_FROSTBITE_APPLY_TICK);
         data.remove(NBT_FROSTBITE_FIRE_STAND_TIMER);
         data.remove(NBT_FROSTBITE_SOURCE_FROST_POWER);
+        data.remove(NBT_FROSTBITE_PERIODIC_LOGGED);
+        data.remove(NBT_FROSTBITE_LAST_PERIODIC_DMG);
 
         if (entity.hasEffect(ModMobEffects.FROSTBITE.get())) {
             entity.removeEffect(ModMobEffects.FROSTBITE.get());
@@ -569,13 +543,11 @@ public class FrostbiteHandler {
     public static boolean isFrostbiteImmune(LivingEntity target) {
         String entityId = ForgeRegistries.ENTITY_TYPES.getKey(target.getType()).toString();
         if (ElementalThunderFrostReactionsConfig.cachedFrostbiteImmunityBlacklist != null && ElementalThunderFrostReactionsConfig.cachedFrostbiteImmunityBlacklist.contains(entityId)) {
-            debugMsg(target, "免疫霜冻: 实体ID " + entityId + " 在黑名单中");
             return true;
         }
         double frostResistance = ElementUtils.getDisplayResistance(target, ElementType.FROST);
         double threshold = ElementalThunderFrostReactionsConfig.frostbiteResistImmunityThreshold;
         if (frostResistance >= threshold) {
-            debugMsg(target, "免疫霜冻: 冰霜抗性 " + String.format("%.1f", frostResistance) + " >= 阈值 " + String.format("%.1f", threshold));
             return true;
         }
         return false;
@@ -810,18 +782,21 @@ public class FrostbiteHandler {
             double dz = target.getZ() - source.getZ();
             double horizontalDist = Math.sqrt(dx * dx + dz * dz);
             if (horizontalDist > range) continue;
+            if (target.getPersistentData().getBoolean("EC_FleeActive")) continue;
 
             float damage = baseDamage;
             ElementType targetElement = ElementUtils.getConsistentAttackElement(target);
+            float elementMult = 1.0f;
             if (targetElement == ElementType.FIRE) {
-                damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFireMultiplier;
+                elementMult = (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFireMultiplier;
             } else if (targetElement == ElementType.NATURE) {
-                damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageNatureMultiplier;
+                elementMult = (float) ElementalThunderFrostReactionsConfig.frostbiteDamageNatureMultiplier;
             } else if (targetElement == ElementType.THUNDER) {
-                damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageThunderMultiplier;
+                elementMult = (float) ElementalThunderFrostReactionsConfig.frostbiteDamageThunderMultiplier;
             } else if (targetElement == ElementType.FROST) {
-                damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFrostMultiplier;
+                elementMult = (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFrostMultiplier;
             }
+            damage *= elementMult;
             ElementDamageHelper.applyDamage(target, damage, target.damageSources().freeze());
 
             if (ElementalThunderFrostReactionsConfig.frostScorchSteamReactionEnabled
@@ -849,12 +824,15 @@ public class FrostbiteHandler {
                 }
             }
 
-            DebugCommand.AuraDamageLogContext actx = new DebugCommand.AuraDamageLogContext();
+            DebugCommand.FrostbiteAuraDamageLogContext actx = new DebugCommand.FrostbiteAuraDamageLogContext();
             actx.source = source;
             actx.target = target;
-            actx.damage = damage;
-            actx.reactionKey = "frostbite";
-            DebugCommand.sendAuraDamageLog(actx);
+            actx.baseDamage = baseDamage;
+            actx.element = targetElement;
+            actx.elementMult = elementMult;
+            actx.finalDamage = damage;
+            DebugCommand.sendFrostbiteAuraDamageLog(actx);
+            MobAttributeLogic.processFlee(target, source, range);
         }
     }
 

@@ -186,9 +186,9 @@ public class WetnessHandler {
                 int shallowCap = ElementalFireNatureReactionsConfig.wetnessShallowWaterCap;
                 targetLevel = Math.min(shallowCap, maxLevel);
             }
-            if (currentLevel < targetLevel) {
-                currentLevel = targetLevel;
-                updateWetnessLevel(entity, currentLevel);
+            if (currentLevel < targetLevel && !blockWetnessIfParalyzed(entity)) {
+                updateWetnessLevel(entity, targetLevel);
+                currentLevel = data.getInt(NBT_WETNESS);
             }
             data.putInt(NBT_RAIN_TIMER, 0);
             data.putInt(NBT_DECAY_TIMER, 0);
@@ -197,9 +197,9 @@ public class WetnessHandler {
             if (currentLevel < maxLevel) {
                 int rainTimer = data.getInt(NBT_RAIN_TIMER) + 1;
                 int requiredRainCount = Math.max(1, ElementalFireNatureReactionsConfig.wetnessRainGainInterval);
-                if (rainTimer >= requiredRainCount) {
-                    currentLevel++;
-                    updateWetnessLevel(entity, currentLevel);
+                if (rainTimer >= requiredRainCount && !blockWetnessIfParalyzed(entity)) {
+                    updateWetnessLevel(entity, currentLevel + 1);
+                    currentLevel = data.getInt(NBT_WETNESS);
                     data.putInt(NBT_RAIN_TIMER, 0);
                 } else {
                     data.putInt(NBT_RAIN_TIMER, rainTimer);
@@ -226,10 +226,12 @@ public class WetnessHandler {
             boolean hasStatic = data.getInt(StaticShockHandler.NBT_STATIC_STACKS) > 0;
             boolean hasFrostbite = FrostbiteHandler.hasFrostbite(entity);
             if (hasStatic || hasFrostbite) {
-                if (!(inWater && hasStatic)) {
+                if (inWater && hasStatic) {
+                } else {
                     resolveElementReactionConflict(entity, null);
+                    data.putBoolean(NBT_REACTION_RESOLVED, true);
                 }
-                data.putBoolean(NBT_REACTION_RESOLVED, true);
+                currentLevel = getWetnessLevel(entity);
             }
         }
 
@@ -388,7 +390,14 @@ public class WetnessHandler {
 
     public static void updateWetnessLevel(LivingEntity entity, int level) {
         if (ElementalFireNatureReactionsConfig.wetnessMaxLevel <= 0) return;
+        if (level > getWetnessLevel(entity) && SteamReactionHandler.isInCondensingCloud(entity)) return;
         entity.getPersistentData().putInt(NBT_WETNESS, level);
+    }
+
+    static boolean blockWetnessIfParalyzed(LivingEntity entity) {
+        if (!entity.hasEffect(ModMobEffects.PARALYSIS.get())) return false;
+        DebugCommand.sendWetnessReactionFailed(entity, "paralysis", entity.getDisplayName());
+        return true;
     }
 
     private static void handleExhaustion(LivingEntity entity) {
@@ -490,13 +499,14 @@ public class WetnessHandler {
         }
         if (isImmune(livingTarget)) return;
         if (projectile instanceof ThrownPotion) {
+            if (blockWetnessIfParalyzed(livingTarget)) return;
             int add = ElementalFireNatureReactionsConfig.wetnessPotionAddLevel;
             int current = getWetnessLevel(livingTarget);
             int max = ElementalFireNatureReactionsConfig.wetnessMaxLevel;
             int newLevel = Math.min(max, current + add);
             livingTarget.getPersistentData().putInt(NBT_DECAY_TIMER, 0);
             updateWetnessLevel(livingTarget, newLevel);
-            syncEffect(livingTarget, newLevel, false);
+            syncEffect(livingTarget, getWetnessLevel(livingTarget), false);
         }
     }
 }

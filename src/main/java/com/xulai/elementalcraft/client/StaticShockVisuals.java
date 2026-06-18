@@ -21,9 +21,10 @@ public class StaticShockVisuals {
 
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
+        if (!ElementalVisualConfig.staticShockAuraEnabled) return;
+
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide) return;
-        if (!ElementalVisualConfig.staticShockAuraEnabled) return;
 
         CompoundTag data = entity.getPersistentData();
         if (!data.contains(NBT_STATIC_STACKS)) return;

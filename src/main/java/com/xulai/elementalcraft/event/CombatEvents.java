@@ -117,6 +117,7 @@ public class CombatEvents {
             return;
         }
 
+        boolean selfDryingSpawnedSteam = false;
         float sporeVulnMult = 1.0f;
         if (attackElement == ElementType.FIRE && sporeEffect != null && target.hasEffect(sporeEffect)) {
             net.minecraft.world.effect.MobEffectInstance spore = target.getEffect(sporeEffect);
@@ -148,6 +149,16 @@ public class CombatEvents {
                         }
                         int maxBurstLevel = ElementalFireNatureReactionsConfig.steamHighHeatMaxLevel;
                         EffectHelper.playSteamBurst((ServerLevel) attacker.level(), attacker, 0.5f, Math.min(layersToRemove, maxBurstLevel), true);
+                        int spawnedSteamLevel = 0;
+                        if (ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel > 0
+                                && firePower >= ElementalFireNatureReactionsConfig.steamLowHeatTriggerThreshold
+                                && !SteamReactionHandler.isOnSteamCooldown(attacker)) {
+                            int steamLevel = Math.max(1, Math.min(actuallyRemoved, ElementalFireNatureReactionsConfig.steamLowHeatMaxLevel));
+                            SteamReactionHandler.spawnSteamCloud(target, false, steamLevel);
+                            SteamReactionHandler.applySteamCooldown(attacker, SteamReactionHandler.computeCloudDuration(false, steamLevel));
+                            spawnedSteamLevel = steamLevel;
+                            selfDryingSpawnedSteam = true;
+                        }
                         attackerData.putInt(NBT_SELF_DRYING_PENALTY, 1);
 
                         DebugCommand.DryLogContext dryCtx = new DebugCommand.DryLogContext();
@@ -156,6 +167,7 @@ public class CombatEvents {
                         dryCtx.newLevel = newLevel;
                         dryCtx.removedLayers = actuallyRemoved;
                         dryCtx.firePower = firePower;
+                        dryCtx.steamLevel = spawnedSteamLevel;
                         DebugCommand.sendDryLog(dryCtx);
                     }
                 } else {
@@ -225,7 +237,7 @@ public class CombatEvents {
         float globalResistMult = (float) ElementalConfig.elementalResistanceMultiplier;
 
         float freezeVulnMult = 1.0f;
-        if (FrostbiteHandler.hasFrostbite(target) && attackElement != ElementType.NONE) {
+        if (FrostbiteHandler.isFrozen(target) && attackElement != ElementType.NONE) {
             freezeVulnMult = (float) ElementalThunderFrostReactionsConfig.freezeElementalVulnerability;
         }
 
@@ -305,7 +317,7 @@ public class CombatEvents {
             if (frozenMelted) {
                 applyFireFreezeMelt(target, attacker, enhancementPoints);
             } else {
-                tryTriggerScorched(attacker, target, enhancementPoints);
+                tryTriggerScorched(attacker, target, enhancementPoints, selfDryingSpawnedSteam);
             }
         } else if (attackElement == ElementType.NATURE) {
             if (ElementUtils.getConsistentAttackElement(target) == ElementType.THUNDER) {
@@ -401,7 +413,8 @@ public class CombatEvents {
         }
     }
 
-    private static void tryTriggerScorched(LivingEntity attacker, LivingEntity target, int firePower) {
+    private static void tryTriggerScorched(LivingEntity attacker, LivingEntity target, int firePower, boolean selfDryingSpawnedSteam) {
+        if (selfDryingSpawnedSteam) return;
         if (FrostbiteHandler.hasFrostbite(target)) {
             int fbStacks = FrostbiteHandler.getFrostbiteStacks(target);
             int required = ElementalThunderFrostReactionsConfig.fireFrostMeltBaseThreshold
@@ -452,7 +465,10 @@ public class CombatEvents {
                     target.getDisplayName());
             return;
         }
-        {
+        boolean hasPoison = target.hasEffect(net.minecraft.world.effect.MobEffects.POISON);
+        net.minecraft.world.effect.MobEffect sporeEffect2 = SPORES_EFFECT.get();
+        boolean hasSpores = sporeEffect2 != null && target.hasEffect(sporeEffect2);
+        if (!hasSpores) {
             CompoundTag attackerData = attacker.getPersistentData();
             long gameTime = target.level().getGameTime();
             if (attackerData.contains(ScorchedHandler.NBT_ATTACKER_SCORCHED_COOLDOWN)) {
@@ -469,9 +485,6 @@ public class CombatEvents {
         int threshold = ElementalFireNatureReactionsConfig.scorchedTriggerThreshold;
         double growth = Math.floor((firePower - threshold) / (double) pointsPerStep) * 0.05;
         double totalChance = Math.min(1.0, Math.max(0.0, baseChance + growth));
-        boolean hasPoison = target.hasEffect(net.minecraft.world.effect.MobEffects.POISON);
-        net.minecraft.world.effect.MobEffect sporeEffect2 = SPORES_EFFECT.get();
-        boolean hasSpores = sporeEffect2 != null && target.hasEffect(sporeEffect2);
         boolean triggered;
         if (hasPoison || hasSpores) {
             totalChance = 1.0;
@@ -500,11 +513,11 @@ public class CombatEvents {
             String chanceInfo;
             if (hasPoison && hasSpores) {
                 chanceInfo = String.format("%.0f%%", totalChance * 100)
-                        + "(" + Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString()
+                        + "(" + Component.translatable("effect.minecraft.poison").getString()
                         + "+" + Component.translatable("debug.elementalcraft.reaction.scorched.spore_label").getString() + ")";
             } else if (hasPoison) {
                 chanceInfo = String.format("%.0f%%", totalChance * 100)
-                        + "(" + Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString() + ")";
+                        + "(" + Component.translatable("effect.minecraft.poison").getString() + ")";
             } else if (hasSpores) {
                 chanceInfo = String.format("%.0f%%", totalChance * 100)
                         + "(" + Component.translatable("debug.elementalcraft.reaction.scorched.spore_label").getString() + ")";
@@ -515,7 +528,7 @@ public class CombatEvents {
                 double enhancedSec = (int)(duration * ElementalFireNatureReactionsConfig.poisonScorchDurationMultiplier) / 20.0;
                 durationInfo = Component.translatable("debug.elementalcraft.reaction.scorched.duration_poison_enhanced",
                         String.format("%.1f", durationSec), String.format("%.1f", enhancedSec)).getString()
-                        + "(" + Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString() + ")";
+                        + "(" + Component.translatable("effect.minecraft.poison").getString() + ")";
             }
             float baseDamage = ScorchedHandler.calculateScorchedDamage(firePower, target);
             DebugCommand.sendReactionSuccess(target, "scorched",

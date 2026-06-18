@@ -2,10 +2,12 @@ package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
+import com.xulai.elementalcraft.logic.MobAttributeLogic;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.potion.ModMobEffects;
+import com.xulai.elementalcraft.event.SteamReactionHandler;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
 import com.xulai.elementalcraft.util.ElementDamageHelper;
@@ -90,6 +92,12 @@ public class ScorchedHandler {
         if (ElementalFireNatureReactionsConfig.scorchedTriggerThreshold <= 0) return ScorchedApplyResult.FAILED;
         if (target.level().isClientSide) return ScorchedApplyResult.FAILED;
         if (target instanceof Player player && player.isCreative()) return ScorchedApplyResult.FAILED;
+        if (SteamReactionHandler.isInCondensingCloud(target)) {
+            if (attacker != null) {
+                DebugCommand.sendReactionFailed(target, "scorched", "steam_cloud", attacker.getDisplayName(), target.getDisplayName());
+            }
+            return ScorchedApplyResult.FAILED;
+        }
         var key = ForgeRegistries.ENTITY_TYPES.getKey(target.getType());
         if (key == null) return ScorchedApplyResult.FAILED;
         String entityId = key.toString();
@@ -257,6 +265,7 @@ public class ScorchedHandler {
     }
 
     public static void applyTempScorch(LivingEntity target, int fireStrength, int ttl) {
+        if (SteamReactionHandler.isInCondensingCloud(target)) return;
         CompoundTag data = target.getPersistentData();
         data.putBoolean(NBT_TEMP_SCORCH, true);
         data.putInt(NBT_TEMP_SCORCH_STRENGTH, fireStrength);
@@ -525,6 +534,7 @@ public class ScorchedHandler {
             if (Math.sqrt(dx * dx + dz * dz) > radius) continue;
 
             if (isScorched(target)) continue;
+            if (target.getPersistentData().getBoolean("EC_FleeActive")) continue;
 
             applyTempScorch(target, fireStrength, tempTtl);
             igniteCreeperIfScorched(target);
@@ -545,6 +555,7 @@ public class ScorchedHandler {
                 }
                 level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.1, target.getZ(), 5, 0.3, 0.1, 0.3, 0.01);
             }
+            MobAttributeLogic.processFlee(target, source, radius);
         }
     }
 

@@ -35,6 +35,8 @@ public final class ElementalConfig {
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> FORCED_ENTITIES;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLACKLISTED_ENTITIES;
 
+    public static final ForgeConfigSpec.BooleanValue MOB_FLEE_ENABLED;
+
     public static final ForgeConfigSpec.DoubleValue ENCHANTED_BOOK_DROP_CHANCE;
     public static final ForgeConfigSpec.DoubleValue ENCHANTED_BOOK_LOOTING_BONUS;
     public static final ForgeConfigSpec.DoubleValue ENCHANTED_BOOK_LEVEL_SPREAD;
@@ -178,6 +180,16 @@ public final class ElementalConfig {
                         "",
                         "Default: 0.10 / 默认：0.10")
                 .defineInRange("chance_80_100", 0.10, 0.0, 1.0);
+
+        MOB_FLEE_ENABLED = BUILDER
+                .comment("When enabled, elemental mobs will flee from aura-affected entities.",
+                        "This controls the flee behavior triggered by Scorched/StaticShock/Frostbite auras.",
+                        "",
+                        "开启后，属性生物会被光环影响的生物吓跑。",
+                        "控制灼烧/静电/霜冻光环触发的逃跑行为。",
+                        "",
+                        "Default: true / 默认：true")
+                .define("mob_flee_enabled", true);
 
         BUILDER.pop();
 
@@ -706,6 +718,8 @@ public final class ElementalConfig {
     public static List<? extends String> cachedRestraints = List.of();
     public static List<? extends String> cachedBlacklist = List.of();
 
+    public static boolean mobFleeEnabled = true;
+
     public static double enchantedBookDropChance = 0.05;
     public static double enchantedBookLootingBonus = 0.10;
     public static double enchantedBookLevelSpread = 1.0;
@@ -745,6 +759,8 @@ public final class ElementalConfig {
 
         cachedRestraints = ELEMENT_RESTRAINTS.get();
         cachedBlacklist = BLACKLISTED_ENTITIES.get();
+
+        mobFleeEnabled = MOB_FLEE_ENABLED.get();
 
         enchantedBookDropChance = ENCHANTED_BOOK_DROP_CHANCE.get();
         enchantedBookLootingBonus = ENCHANTED_BOOK_LOOTING_BONUS.get();

@@ -48,8 +48,10 @@ import net.minecraftforge.registries.ForgeRegistries;
 import java.util.Objects;
 import net.minecraftforge.eventbus.api.EventPriority;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber(modid = ElementalCraft.MODID)
@@ -203,38 +205,34 @@ public class ReactionHandler {
         if (attackType == ElementType.NATURE) {
             if (ElementalFireNatureReactionsConfig.natureParasiteBaseThreshold > 0
                     && naturePower >= ElementalFireNatureReactionsConfig.natureParasiteBaseThreshold) {
-                double chance;
+                double baseChance = ElementalFireNatureReactionsConfig.natureParasiteBaseChance;
+                double scalingChance = ElementalFireNatureReactionsConfig.natureParasiteScalingChance;
                 double scalingStep = ElementalFireNatureReactionsConfig.natureParasiteScalingStep;
-                if (naturePower < scalingStep) {
-                    chance = ElementalFireNatureReactionsConfig.natureParasiteBaseChance;
-                } else {
-                    int steps = (int) ((naturePower - scalingStep) / scalingStep);
-                    chance = ElementalFireNatureReactionsConfig.natureParasiteBaseChance + (steps * ElementalFireNatureReactionsConfig.natureParasiteScalingChance);
-                }
-                chance = Math.min(1.0, chance);
+                int scalingSteps = (scalingStep > 0 && naturePower >= scalingStep)
+                        ? (int) ((naturePower - scalingStep) / scalingStep) : 0;
+                double chance = Math.min(1.0, baseChance + scalingSteps * scalingChance);
+                double scaledBase = chance;
 
-                double baseChance = chance;
                 int attackerWetness = WetnessHandler.getWetnessLevel(attacker);
                 double wetnessCfg = ElementalFireNatureReactionsConfig.natureParasiteWetnessBonus;
-                double wetnessBonus = 0;
                 if (attackerWetness > 0) {
-                    wetnessBonus = attackerWetness * wetnessCfg;
-                    chance += wetnessBonus;
+                    chance += attackerWetness * wetnessCfg;
                     chance = Math.min(1.0, chance);
                 }
+
+                double stackingBonus = target.hasEffect(ModMobEffects.SPORES.get())
+                        ? ElementalFireNatureReactionsConfig.natureParasiteStackingBonus : 0.0;
+                if (stackingBonus > 0) {
+                    chance += stackingBonus;
+                    chance = Math.min(1.0, chance);
+                }
+
                 boolean triggered = RANDOM.nextDouble() < chance;
                 if (triggered) {
                     SporeApplyResult result = stackSporeEffect(target, ElementalFireNatureReactionsConfig.natureParasiteAmount, attacker);
                     if (result == SporeApplyResult.SUCCESS) {
                         EffectHelper.playSporeAmbient(target);
-                        DebugCommand.sendReactionSuccess(target, "nature_parasite",
-                                attacker.getDisplayName(),
-                                target.getDisplayName(),
-                                Component.literal(String.valueOf(ElementalFireNatureReactionsConfig.natureParasiteAmount)).withStyle(ChatFormatting.GREEN),
-                                String.format("%.0f", baseChance * 100),
-                                String.valueOf(attackerWetness),
-                                String.format("%.1f", wetnessCfg),
-                                String.format("%.0f", chance * 100));
+                        DebugCommand.sendNatureParasiteSuccess(attacker, target, ElementalFireNatureReactionsConfig.natureParasiteAmount, baseChance, scalingSteps, scalingChance, stackingBonus, attackerWetness, wetnessCfg, chance);
                     } else {
                         String reasonKey = switch (result) {
                             case BLACKLISTED -> "blacklist";
@@ -257,13 +255,7 @@ public class ReactionHandler {
                         }
                     }
                 } else {
-                    DebugCommand.sendReactionFailed(target, "nature_parasite", "chance",
-                            attacker.getDisplayName(),
-                            target.getDisplayName(),
-                            String.format("%.0f", baseChance * 100),
-                            String.valueOf(attackerWetness),
-                            String.format("%.1f", wetnessCfg),
-                            String.format("%.0f", chance * 100));
+                    DebugCommand.sendNatureParasiteChanceFailed(attacker, target, baseChance, scalingSteps, scalingChance, stackingBonus, attackerWetness, wetnessCfg, chance);
                 }
             } else if (ElementalFireNatureReactionsConfig.natureParasiteBaseThreshold > 0
                     && naturePower < ElementalFireNatureReactionsConfig.natureParasiteBaseThreshold) {
@@ -494,12 +486,17 @@ public class ReactionHandler {
     }
 
     public static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower, LivingEntity killCredit) {
-        triggerToxicBlast(level, attacker, target, firePower, killCredit, 0);
+        triggerToxicBlast(level, attacker, target, firePower, killCredit, 0, new HashSet<>());
     }
 
     public static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower, LivingEntity killCredit, int minStacks) {
+        triggerToxicBlast(level, attacker, target, firePower, killCredit, minStacks, new HashSet<>());
+    }
+
+    private static void triggerToxicBlast(Level level, LivingEntity attacker, LivingEntity target, double firePower, LivingEntity killCredit, int minStacks, Set<LivingEntity> visited) {
         if (ElementalFireNatureReactionsConfig.sporeReactionThreshold <= 0) return;
         if (ModMobEffects.SPORES.get() == null) return;
+        if (!visited.add(target)) return;
         MobEffectInstance sporeEffect = target.getEffect(ModMobEffects.SPORES.get());
         int amplifier = (sporeEffect != null) ? sporeEffect.getAmplifier() : -1;
         int stacks = amplifier + 1;
@@ -545,6 +542,7 @@ public class ReactionHandler {
                     AABB area = targetBox.inflate(blastRadius);
                     List<LivingEntity> nearbyEntities = level.getEntitiesOfClass(LivingEntity.class, area);
                     int affectedCount = 0;
+                    List<LivingEntity> chainTargets = new ArrayList<>();
                     for (LivingEntity entity : nearbyEntities) {
                         if (entity == target) continue;
                         float mitigation = calculateBlastMitigation(entity);
@@ -560,6 +558,12 @@ public class ReactionHandler {
                         if (ScorchedHandler.applyScorched(entity, killCredit, (int) firePower, actualDuration, (int) firePower, actualDmgMult, true) != ScorchedHandler.ScorchedApplyResult.FAILED)
                             ScorchedHandler.igniteCreeperIfScorched(entity);
                         affectedCount++;
+                        if (ModMobEffects.SPORES.isPresent() && ModMobEffects.SPORES.get() != null) {
+                            MobEffectInstance entitySpore = entity.getEffect(ModMobEffects.SPORES.get());
+                            if (entitySpore != null && (entitySpore.getAmplifier() + 1) >= ElementalFireNatureReactionsConfig.sporeReactionThreshold) {
+                                chainTargets.add(entity);
+                            }
+                        }
                     }
 
                     float targetMitigation = calculateBlastMitigation(target);
@@ -575,6 +579,17 @@ public class ReactionHandler {
                     blastCtx.blastProtLevel = getTotalEnchantmentLevel(Enchantments.BLAST_PROTECTION, target);
                     blastCtx.generalProtLevel = getTotalEnchantmentLevel(Enchantments.ALL_DAMAGE_PROTECTION, target);
                     DebugCommand.sendToxicBlastLog(blastCtx);
+
+                    if (!chainTargets.isEmpty()) {
+                        net.minecraft.server.MinecraftServer server = serverLevel.getServer();
+                        int scheduleTick = server.getTickCount() + 20;
+                        for (LivingEntity chainTarget : chainTargets) {
+                            server.tell(new net.minecraft.server.TickTask(scheduleTick, () -> {
+                                triggerToxicBlast(level, killCredit, chainTarget,
+                                        ElementalFireNatureReactionsConfig.scorchedTriggerThreshold, killCredit, 0, visited);
+                            }));
+                        }
+                    }
                 });
             }
         }

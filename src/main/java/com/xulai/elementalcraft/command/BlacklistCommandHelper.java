@@ -122,7 +122,7 @@ public class BlacklistCommandHelper {
 
         String entityId = getHeldEntityId(player);
         if (entityId == null) {
-            context.getSource().sendFailure(Component.translatable(entry.translationPrefix + ".no_egg"));
+            context.getSource().sendFailure(Component.translatable("command.elementalcraft.common.no_egg"));
             return 0;
         }
 
@@ -150,7 +150,7 @@ public class BlacklistCommandHelper {
 
         String entityId = getHeldEntityId(player);
         if (entityId == null) {
-            context.getSource().sendFailure(Component.translatable(entry.translationPrefix + ".no_egg"));
+            context.getSource().sendFailure(Component.translatable("command.elementalcraft.common.no_egg"));
             return 0;
         }
 

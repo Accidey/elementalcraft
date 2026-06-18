@@ -1,9 +1,12 @@
 package com.xulai.elementalcraft.potion;
 
+import com.xulai.elementalcraft.command.DebugCommand;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
+import com.xulai.elementalcraft.event.FrostbiteHandler;
 import com.xulai.elementalcraft.init.ModDamageTypes;
 import com.xulai.elementalcraft.util.ElementType;
 import com.xulai.elementalcraft.util.ElementUtils;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffect;
@@ -48,17 +51,29 @@ public class FrostbiteEffect extends MobEffect {
 
         int damageInterval = ElementalThunderFrostReactionsConfig.frostbiteDamageIntervalTicks;
         if (entity.tickCount % damageInterval == 0) {
-            float damage = (float) ElementalThunderFrostReactionsConfig.frostbitePeriodicDamage;
+            float baseDamage = (float) ElementalThunderFrostReactionsConfig.frostbitePeriodicDamage;
+            float damage = baseDamage;
             ElementType element = ElementUtils.getConsistentAttackElement(entity);
+            float elementMult = 1.0f;
             if (element == ElementType.FIRE) {
-                damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFireMultiplier;
+                elementMult = (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFireMultiplier;
             } else if (element == ElementType.NATURE) {
-                damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageNatureMultiplier;
+                elementMult = (float) ElementalThunderFrostReactionsConfig.frostbiteDamageNatureMultiplier;
             } else if (element == ElementType.THUNDER) {
-                damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageThunderMultiplier;
+                elementMult = (float) ElementalThunderFrostReactionsConfig.frostbiteDamageThunderMultiplier;
             } else if (element == ElementType.FROST) {
-                damage *= (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFrostMultiplier;
+                elementMult = (float) ElementalThunderFrostReactionsConfig.frostbiteDamageFrostMultiplier;
             }
+            damage *= elementMult;
+
+            CompoundTag data = entity.getPersistentData();
+            float lastDmg = data.getFloat(FrostbiteHandler.NBT_FROSTBITE_LAST_PERIODIC_DMG);
+            if (data.getInt(FrostbiteHandler.NBT_FROSTBITE_PERIODIC_LOGGED) == 0 || damage != lastDmg) {
+                DebugCommand.sendFrostbitePeriodicDamageLog(entity, baseDamage, element, elementMult, damage);
+                data.putFloat(FrostbiteHandler.NBT_FROSTBITE_LAST_PERIODIC_DMG, damage);
+                data.putInt(FrostbiteHandler.NBT_FROSTBITE_PERIODIC_LOGGED, 1);
+            }
+
             entity.hurt(ModDamageTypes.source(entity.level(), ModDamageTypes.FROSTBITE_THERMAL_SHOCK), damage);
 
             entity.level().playSound(null, entity.getX(), entity.getY(), entity.getZ(),

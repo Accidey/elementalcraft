@@ -48,7 +48,6 @@ public class JadePlugin implements IWailaPlugin {
                 tooltip.add(Component.translatable("jade.elementalcraft.attack_title")
                         .withStyle(ChatFormatting.BOLD, c));
                 tooltip.add(Component.literal("  ")
-                        .append(getElementSymbol(attack))
                         .append(attack.getDisplayName())
                         .append(Component.translatable("jade.elementalcraft.attack_suffix"))
                         .withStyle(c));
@@ -72,7 +71,6 @@ public class JadePlugin implements IWailaPlugin {
                 tooltip.add(Component.translatable("jade.elementalcraft.strengths_title")
                         .withStyle(ChatFormatting.BOLD, c));
                 tooltip.add(Component.literal("  ")
-                        .append(getElementSymbol(enhanceType))
                         .append(enhanceType.getDisplayName())
                         .append(Component.translatable("jade.elementalcraft.strength_prefix"))
                         .append(Component.literal(String.valueOf(totalEnhance)))
@@ -96,7 +94,6 @@ public class JadePlugin implements IWailaPlugin {
                 }
 
                 tooltip.add(Component.literal("  ")
-                        .append(getElementSymbol(t))
                         .append(t.getDisplayName())
                         .append(Component.translatable("jade.elementalcraft.resist_prefix"))
                         .append(Component.literal(String.valueOf(val)))
@@ -135,8 +132,5 @@ public class JadePlugin implements IWailaPlugin {
             }
         }
 
-        private String getElementSymbol(ElementType type) {
-            return type.getSymbol();
-        }
     }
 }

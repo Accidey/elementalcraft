@@ -2,6 +2,7 @@ package com.xulai.elementalcraft.command;
 
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.mojang.brigadier.CommandDispatcher;
 import com.xulai.elementalcraft.util.ConfigAutoSync;
 import com.xulai.elementalcraft.util.DebugMode;
@@ -149,12 +150,12 @@ public class DebugCommand {
 
     private static String buildEnchDetail(int blastProtLevel, int generalProtLevel) {
         if (blastProtLevel > 0 && generalProtLevel > 0) {
-            return Component.translatable("debug.elementalcraft.reaction.toxic_blast.ench_blast").getString() + " " + blastProtLevel
-                    + " + " + Component.translatable("debug.elementalcraft.reaction.toxic_blast.ench_general").getString() + " " + generalProtLevel;
+            return Component.translatable("enchantment.minecraft.blast_protection").getString() + " " + blastProtLevel
+                    + " + " + Component.translatable("enchantment.minecraft.protection").getString() + " " + generalProtLevel;
         } else if (blastProtLevel > 0) {
-            return Component.translatable("debug.elementalcraft.reaction.toxic_blast.ench_blast").getString() + " " + blastProtLevel;
+            return Component.translatable("enchantment.minecraft.blast_protection").getString() + " " + blastProtLevel;
         } else {
-            return Component.translatable("debug.elementalcraft.reaction.toxic_blast.ench_general").getString() + " " + generalProtLevel;
+            return Component.translatable("enchantment.minecraft.protection").getString() + " " + generalProtLevel;
         }
     }
 
@@ -183,6 +184,7 @@ public class DebugCommand {
         public int newLevel;
         public int removedLayers;
         public int firePower;
+        public int steamLevel;
     }
 
     public static class ExhaustionLogContext {
@@ -213,6 +215,8 @@ public class DebugCommand {
         public LivingEntity target;
         public int paralysisStacks;
         public int remainingHits;
+        public float baseDamage;
+        public float enchReduction;
         public float totalDamage;
     }
 
@@ -225,12 +229,13 @@ public class DebugCommand {
         public int paralysisDuration;
     }
 
-    public static class FrostbiteLogContext {
-        public LivingEntity attacker;
+    public static class FrostbiteAuraDamageLogContext {
+        public LivingEntity source;
         public LivingEntity target;
-        public int stacksApplied;
-        public int totalStacks;
-        public double chance;
+        public float baseDamage;
+        public ElementType element;
+        public float elementMult;
+        public float finalDamage;
     }
 
     public static class FreezeLogContext {
@@ -348,13 +353,25 @@ public class DebugCommand {
     public static void sendDryLog(DryLogContext ctx) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         MutableComponent prefix = Component.translatable("debug.elementalcraft.drying.header").withStyle(ChatFormatting.YELLOW);
-        MutableComponent content = Component.translatable("debug.elementalcraft.drying.message",
-                ctx.entity.getDisplayName(),
-                Component.literal(String.valueOf(ctx.oldLevel)).withStyle(ChatFormatting.GOLD),
-                Component.literal(String.valueOf(ctx.newLevel)).withStyle(ChatFormatting.GREEN),
-                ctx.removedLayers,
-                ctx.firePower
-        ).withStyle(ChatFormatting.WHITE);
+        MutableComponent content;
+        if (ctx.steamLevel > 0) {
+            content = Component.translatable("debug.elementalcraft.drying.message.steam",
+                    ctx.entity.getDisplayName(),
+                    Component.literal(String.valueOf(ctx.oldLevel)).withStyle(ChatFormatting.GOLD),
+                    Component.literal(String.valueOf(ctx.newLevel)).withStyle(ChatFormatting.GREEN),
+                    ctx.removedLayers,
+                    ctx.firePower,
+                    Component.literal(String.valueOf(ctx.steamLevel)).withStyle(ChatFormatting.AQUA)
+            ).withStyle(ChatFormatting.WHITE);
+        } else {
+            content = Component.translatable("debug.elementalcraft.drying.message",
+                    ctx.entity.getDisplayName(),
+                    Component.literal(String.valueOf(ctx.oldLevel)).withStyle(ChatFormatting.GOLD),
+                    Component.literal(String.valueOf(ctx.newLevel)).withStyle(ChatFormatting.GREEN),
+                    ctx.removedLayers,
+                    ctx.firePower
+            ).withStyle(ChatFormatting.WHITE);
+        }
         sendDebugMessage(ctx.entity, prefix.append(Component.literal(" ")).append(content));
     }
 
@@ -382,6 +399,24 @@ public class DebugCommand {
         sendDebugMessage(ctx.target, prefix.append(Component.literal(" ")).append(content));
     }
 
+    public static void sendStaticSporeBlastLog(LivingEntity target, int staticStacks, int sporeStacks, double baseChance, double perStatic, double perSpore, double totalChance, boolean triggered) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.static_spore_blast.header").withStyle(ChatFormatting.LIGHT_PURPLE);
+        MutableComponent content = Component.translatable("debug.elementalcraft.reaction.static_spore_blast.message",
+                target.getDisplayName(),
+                Component.literal(String.valueOf(staticStacks)).withStyle(ChatFormatting.LIGHT_PURPLE),
+                Component.literal(String.valueOf(sporeStacks)).withStyle(ChatFormatting.DARK_GREEN),
+                Component.literal(String.format("%.0f", baseChance * 100)).withStyle(ChatFormatting.WHITE),
+                Component.literal(String.valueOf(staticStacks)).withStyle(ChatFormatting.LIGHT_PURPLE),
+                Component.literal(String.format("%.0f", perStatic * 100)).withStyle(ChatFormatting.LIGHT_PURPLE),
+                Component.literal(String.valueOf(sporeStacks)).withStyle(ChatFormatting.DARK_GREEN),
+                Component.literal(String.format("%.0f", perSpore * 100)).withStyle(ChatFormatting.DARK_GREEN),
+                Component.literal(String.format("%.0f", totalChance * 100)).withStyle(ChatFormatting.GOLD),
+                Component.translatable(triggered ? "debug.elementalcraft.reaction.static_spore_blast.hit" : "debug.elementalcraft.reaction.static_spore_blast.miss").withStyle(triggered ? ChatFormatting.GREEN : ChatFormatting.RED)
+        ).withStyle(ChatFormatting.WHITE);
+        sendDebugMessage(target, prefix.append(Component.literal(" ")).append(content));
+    }
+
     public static void sendParalysisLog(ParalysisLogContext ctx) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.paralysis.header").withStyle(ChatFormatting.DARK_PURPLE);
@@ -390,8 +425,11 @@ public class DebugCommand {
                 attackerName,
                 ctx.target.getDisplayName(),
                 Component.literal(String.valueOf(ctx.paralysisStacks)).withStyle(ChatFormatting.LIGHT_PURPLE),
-                Component.literal(String.valueOf(ctx.remainingHits)).withStyle(ChatFormatting.AQUA),
-                Component.literal(String.format("%.2f", ctx.totalDamage)).withStyle(ChatFormatting.RED)
+                Component.literal(String.format("%.2f", ctx.baseDamage)).withStyle(ChatFormatting.GOLD),
+                Component.literal(String.format("%.0f", ElementalThunderFrostReactionsConfig.paralysisDamagePercentage * 100)).withStyle(ChatFormatting.YELLOW),
+                Component.literal(String.format("%.0f", ctx.enchReduction * 100)).withStyle(ChatFormatting.AQUA),
+                Component.literal(String.format("%.2f", ctx.totalDamage)).withStyle(ChatFormatting.RED),
+                Component.literal(String.valueOf(ctx.remainingHits)).withStyle(ChatFormatting.AQUA)
         ).withStyle(ChatFormatting.WHITE);
         sendDebugMessage(ctx.target, prefix.append(Component.literal(" ")).append(content));
     }
@@ -410,17 +448,167 @@ public class DebugCommand {
         sendDebugMessage(ctx.source, prefix.append(Component.literal(" ")).append(content));
     }
 
-    public static void sendFrostbiteLog(FrostbiteLogContext ctx) {
+    private static String buildStaticChanceBreakdown(double baseChance, int scalingSteps, double scalingChance, double stackingBonus, double wetBonus, int wetnessLevel, double wetnessBonusPerLevel, String color) {
+        double scaledChance = Math.min(1.0, baseChance + scalingSteps * scalingChance);
+        StringBuilder sb = new StringBuilder();
+        sb.append("§7(基础 ").append(color).append(String.format("%.0f", baseChance * 100)).append("%");
+        if (scalingSteps > 0) {
+            sb.append(" §7+ 强化 §b").append(scalingSteps).append("×").append(String.format("%.0f", scalingChance * 100)).append("%")
+              .append(" §7→ ").append(color).append(String.format("%.0f", scaledChance * 100)).append("%");
+        }
+        if (stackingBonus > 0) {
+            scaledChance = Math.min(1.0, scaledChance + stackingBonus);
+            sb.append(" §7+ 叠层 §b").append(String.format("%.0f", stackingBonus * 100)).append("%")
+              .append(" §7→ ").append(color).append(String.format("%.0f", scaledChance * 100)).append("%");
+        }
+        if (wetnessLevel > 0) {
+            double wetAmount = wetnessLevel * wetnessBonusPerLevel;
+            scaledChance = Math.min(1.0, scaledChance + wetAmount);
+            sb.append(" §7+ 潮湿 §b").append(wetnessLevel).append("×").append(String.format("%.0f", wetnessBonusPerLevel * 100)).append("%")
+              .append(" §7→ ").append(color).append(String.format("%.0f", scaledChance * 100)).append("%");
+        }
+        sb.append("§7)");
+        return sb.toString();
+    }
+
+    public static void sendStaticShockSuccess(LivingEntity attacker, LivingEntity target, int stacksApplied, double baseChance, int scalingSteps, double scalingChance, double stackingBonus, int wetnessLevel, double wetnessBonusPerLevel, double chance) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
+        String breakdown = buildStaticChanceBreakdown(baseChance, scalingSteps, scalingChance, stackingBonus, 0, wetnessLevel, wetnessBonusPerLevel, "§a");
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.static_shock.success",
+                attacker.getDisplayName(),
+                target.getDisplayName(),
+                Component.literal(String.valueOf(stacksApplied)).withStyle(ChatFormatting.LIGHT_PURPLE),
+                Component.literal(breakdown),
+                String.format("%.0f", chance * 100)
+        ).withStyle(ChatFormatting.LIGHT_PURPLE);
+        sendDebugMessage(target, msg);
+    }
+
+    public static void sendStaticShockChanceFailed(LivingEntity attacker, LivingEntity target, double baseChance, int scalingSteps, double scalingChance, double stackingBonus, int wetnessLevel, double wetnessBonusPerLevel, double chance) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        String breakdown = buildStaticChanceBreakdown(baseChance, scalingSteps, scalingChance, stackingBonus, 0, wetnessLevel, wetnessBonusPerLevel, "§e");
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.static_shock.failed.chance",
+                attacker.getDisplayName(),
+                target.getDisplayName(),
+                Component.literal(breakdown),
+                String.format("%.0f", chance * 100)
+        ).withStyle(ChatFormatting.GRAY);
+        sendDebugMessage(target, msg);
+    }
+
+    public static void sendNatureParasiteSuccess(LivingEntity attacker, LivingEntity target, int stacksApplied, double baseChance, int scalingSteps, double scalingChance, double stackingBonus, int wetnessLevel, double wetnessBonusPerLevel, double chance) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        String breakdown = buildStaticChanceBreakdown(baseChance, scalingSteps, scalingChance, stackingBonus, 0, wetnessLevel, wetnessBonusPerLevel, "§a");
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.nature_parasite.success",
+                attacker.getDisplayName(),
+                target.getDisplayName(),
+                Component.literal(String.valueOf(stacksApplied)).withStyle(ChatFormatting.DARK_GREEN),
+                Component.literal(breakdown),
+                String.format("%.0f", chance * 100)
+        ).withStyle(ChatFormatting.DARK_GREEN);
+        sendDebugMessage(target, msg);
+    }
+
+    public static void sendNatureParasiteChanceFailed(LivingEntity attacker, LivingEntity target, double baseChance, int scalingSteps, double scalingChance, double stackingBonus, int wetnessLevel, double wetnessBonusPerLevel, double chance) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        String breakdown = buildStaticChanceBreakdown(baseChance, scalingSteps, scalingChance, stackingBonus, 0, wetnessLevel, wetnessBonusPerLevel, "§e");
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.nature_parasite.failed.chance",
+                attacker.getDisplayName(),
+                target.getDisplayName(),
+                Component.literal(breakdown),
+                String.format("%.0f", chance * 100)
+        ).withStyle(ChatFormatting.GRAY);
+        sendDebugMessage(target, msg);
+    }
+
+    private static String buildFrostbiteChanceBreakdown(double frostPower, double baseChance, int scalingSteps, double scalingChance, double stackingBonus, double wetBonus, String color) {
+        double scaledChance = Math.min(1.0, baseChance + scalingSteps * scalingChance);
+        StringBuilder sb = new StringBuilder();
+        sb.append("§7(冰霜 ").append(color).append(String.format("%.0f", frostPower))
+          .append(" §7基础 ").append(color).append(String.format("%.0f", baseChance * 100)).append("%");
+        if (scalingSteps > 0) {
+            sb.append(" §7+ 成长 §b").append(scalingSteps).append("×").append(String.format("%.0f", scalingChance * 100)).append("%")
+              .append(" §7→ ").append(color).append(String.format("%.0f", scaledChance * 100)).append("%");
+        }
+        if (stackingBonus > 0) {
+            scaledChance = Math.min(1.0, scaledChance + stackingBonus);
+            sb.append(" §7+ 叠层 §b").append(String.format("%.0f", stackingBonus * 100)).append("%")
+              .append(" §7→ ").append(color).append(String.format("%.0f", scaledChance * 100)).append("%");
+        }
+        if (wetBonus > 0) {
+            scaledChance = Math.min(1.0, scaledChance + wetBonus);
+            sb.append(" §7+ 潮湿 §b").append(String.format("%.0f", wetBonus * 100)).append("%")
+              .append(" §7→ ").append(color).append(String.format("%.0f", scaledChance * 100)).append("%");
+        }
+        sb.append("§7)");
+        return sb.toString();
+    }
+
+    public static void sendFrostbiteLog(LivingEntity attacker, LivingEntity target, int stacksApplied, double chance, int durationTicks, double speedReduction, double frostPower, double baseChance, int scalingSteps, double scalingChance, double stackingBonus, double wetBonus) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        String breakdown = buildFrostbiteChanceBreakdown(frostPower, baseChance, scalingSteps, scalingChance, stackingBonus, wetBonus, "§a");
         MutableComponent prefix = Component.translatable("debug.elementalcraft.reaction.frostbite.header").withStyle(ChatFormatting.AQUA);
         MutableComponent content = Component.translatable("debug.elementalcraft.reaction.frostbite.message",
-                ctx.attacker.getDisplayName(),
-                ctx.target.getDisplayName(),
-                Component.literal(String.valueOf(ctx.stacksApplied)).withStyle(ChatFormatting.WHITE),
-                Component.literal(String.valueOf(ctx.totalStacks)).withStyle(ChatFormatting.LIGHT_PURPLE),
-                String.format("%.0f", ctx.chance * 100)
+                attacker.getDisplayName(),
+                target.getDisplayName(),
+                Component.literal(String.valueOf(stacksApplied)).withStyle(ChatFormatting.AQUA),
+                Component.literal(breakdown),
+                String.format("%.1f", durationTicks / 20.0),
+                String.format("%.0f", Math.min(speedReduction, 0.9) * 100)
         ).withStyle(ChatFormatting.WHITE);
-        sendDebugMessage(ctx.attacker, prefix.append(Component.literal(" ")).append(content));
+        sendDebugMessage(attacker, prefix.append(Component.literal(" ")).append(content));
+    }
+
+    public static void sendFrostbitePeriodicDamageLog(LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.frostbite_periodic.header").withStyle(ChatFormatting.AQUA);
+        msg.append(Component.literal(" "));
+        msg.append(target.getDisplayName());
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.frostbite_periodic.base",
+                Component.literal(String.format("%.1f", baseDamage)).withStyle(ChatFormatting.WHITE)));
+        if (element != ElementType.NONE && elementMult != 1.0f) {
+            msg.append(Component.translatable("debug.elementalcraft.reaction.frostbite_periodic.element_mult",
+                    element.getDisplayName(),
+                    Component.literal(String.format("%.1f", elementMult)).withStyle(element.getColor())));
+        }
+        msg.append(Component.literal(" | "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.frostbite_periodic.final",
+                Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED)));
+        sendDebugMessage(target, msg);
+    }
+
+    public static void sendFrostbiteChanceFailed(LivingEntity attacker, LivingEntity target, double frostPower, double baseChance, int scalingSteps, double scalingChance, double stackingBonus, double wetBonus) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        String breakdown = buildFrostbiteChanceBreakdown(frostPower, baseChance, scalingSteps, scalingChance, stackingBonus, wetBonus, "§e");
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.frostbite.failed.chance",
+                attacker.getDisplayName(),
+                target.getDisplayName(),
+                Component.literal(breakdown)
+        ).withStyle(ChatFormatting.GRAY);
+        sendDebugMessage(attacker, msg);
+    }
+
+    public static void sendFrostbiteAuraDamageLog(FrostbiteAuraDamageLogContext ctx) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.frostbite_aura.header").withStyle(ChatFormatting.AQUA);
+        msg.append(Component.literal(" "));
+        msg.append(ctx.target.getDisplayName());
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.frostbite_aura.base",
+                Component.literal(String.format("%.1f", ctx.baseDamage)).withStyle(ChatFormatting.WHITE)));
+        if (ctx.element != ElementType.NONE && ctx.elementMult != 1.0f) {
+            msg.append(Component.translatable("debug.elementalcraft.reaction.frostbite_aura.element_mult",
+                    ctx.element.getDisplayName(),
+                    Component.literal(String.format("%.1f", ctx.elementMult)).withStyle(ctx.element.getColor())));
+        }
+        msg.append(Component.literal(" | "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.frostbite_aura.final",
+                Component.literal(String.format("%.1f", ctx.finalDamage)).withStyle(ChatFormatting.RED)));
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.frostbite_aura.source",
+                ctx.source.getDisplayName()));
+        sendDebugMessage(ctx.target, msg);
     }
 
     public static void sendFreezeLog(FreezeLogContext ctx) {
@@ -498,6 +686,70 @@ public class DebugCommand {
         sendDebugMessage(ctx.target, message);
     }
 
+    public static void sendStaticDamageLog(LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage, float enchReduction, int protLevel, int projProtLevel) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.static_damage.header").withStyle(ChatFormatting.GOLD);
+        msg.append(Component.literal(" "));
+        msg.append(target.getDisplayName());
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.static_damage.base",
+                Component.literal(String.format("%.1f", baseDamage)).withStyle(ChatFormatting.WHITE)));
+        if (element != ElementType.NONE) {
+            msg.append(Component.translatable("debug.elementalcraft.reaction.static_damage.element_mult",
+                    element.getDisplayName(),
+                    Component.literal(String.format("%.1f", elementMult)).withStyle(element.getColor())));
+        }
+        if (enchReduction > 0) {
+            String enchDetail = buildStaticEnchDetail(protLevel, projProtLevel);
+            msg.append(Component.translatable("debug.elementalcraft.reaction.static_damage.ench_format",
+                    Component.literal(enchDetail).withStyle(ChatFormatting.BLUE),
+                    Component.literal(String.format("%.0f", enchReduction * 100)).withStyle(ChatFormatting.BLUE)));
+        }
+        msg.append(Component.literal(" | "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.static_damage.final",
+                Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED)));
+        sendDebugMessage(target, msg);
+    }
+
+    private static String buildStaticEnchDetail(int protLevel, int projProtLevel) {
+        if (protLevel > 0 && projProtLevel > 0) {
+            return Component.translatable("enchantment.minecraft.protection").getString() + " " + protLevel
+                    + " + " + Component.translatable("enchantment.minecraft.projectile_protection").getString() + " " + projProtLevel;
+        } else if (protLevel > 0) {
+            return Component.translatable("enchantment.minecraft.protection").getString() + " " + protLevel;
+        } else {
+            return Component.translatable("enchantment.minecraft.projectile_protection").getString() + " " + projProtLevel;
+        }
+    }
+
+    public static void sendStaticAuraDamageLog(LivingEntity source, LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage, float enchReduction, int protLevel, int projProtLevel) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.static_damage.aura_header").withStyle(ChatFormatting.GOLD);
+        msg.append(Component.literal(" "));
+        msg.append(target.getDisplayName());
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.static_damage.base",
+                Component.literal(String.format("%.1f", baseDamage)).withStyle(ChatFormatting.WHITE)));
+        if (element != ElementType.NONE) {
+            msg.append(Component.translatable("debug.elementalcraft.reaction.static_damage.element_mult",
+                    element.getDisplayName(),
+                    Component.literal(String.format("%.1f", elementMult)).withStyle(element.getColor())));
+        }
+        if (enchReduction > 0) {
+            String enchDetail = buildStaticEnchDetail(protLevel, projProtLevel);
+            msg.append(Component.translatable("debug.elementalcraft.reaction.static_damage.ench_format",
+                    Component.literal(enchDetail).withStyle(ChatFormatting.BLUE),
+                    Component.literal(String.format("%.0f", enchReduction * 100)).withStyle(ChatFormatting.BLUE)));
+        }
+        msg.append(Component.literal(" | "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.static_damage.final",
+                Component.literal(String.format("%.1f", finalDamage)).withStyle(ChatFormatting.RED)));
+        msg.append(Component.literal(" "));
+        msg.append(Component.translatable("debug.elementalcraft.reaction.static_damage.source",
+                source.getDisplayName()));
+        sendDebugMessage(target, msg);
+    }
+
     public static void sendScorchedTickLog(LivingEntity target, float baseDamage, ElementType element, float elementMult, float finalDamage, float dmgMult, String multSrc, int fireProtLevel, int genProtLevel, float enchReduction) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         MutableComponent msg = Component.translatable("debug.elementalcraft.reaction.scorched_tick.header").withStyle(ChatFormatting.GOLD);
@@ -523,7 +775,7 @@ public class DebugCommand {
             if (!multipliers.isEmpty()) multipliers += ", ";
             String label;
             if ("poison".equals(multSrc)) {
-                label = Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString();
+                label = Component.translatable("effect.minecraft.poison").getString();
             } else if ("weak_blast".equals(multSrc)) {
                 label = Component.translatable("debug.elementalcraft.reaction.scorched.weak_blast_label").getString();
             } else {
@@ -556,7 +808,7 @@ public class DebugCommand {
             if (!multipliers.isEmpty()) multipliers += ", ";
             String label;
             if ("poison".equals(multSrc)) {
-                label = Component.translatable("debug.elementalcraft.reaction.scorched.poison_label").getString();
+                label = Component.translatable("effect.minecraft.poison").getString();
             } else if ("weak_blast".equals(multSrc)) {
                 label = Component.translatable("debug.elementalcraft.reaction.scorched.weak_blast_label").getString();
             } else {
@@ -651,7 +903,7 @@ public class DebugCommand {
         }
         msg.append(Component.translatable("debug.elementalcraft.steam_cloud_combined.damage", dmgPart));
         msg.append(Component.translatable("debug.elementalcraft.steam_cloud_combined.aggro",
-                Component.translatable(clearAggro ? "debug.elementalcraft.yes" : "debug.elementalcraft.no")
+                Component.translatable(clearAggro ? "gui.yes" : "gui.no")
                         .withStyle(clearAggro ? ChatFormatting.GREEN : ChatFormatting.RED)));
         sendDebugMessage(target, prefix.append(Component.literal(" ")).append(msg));
     }
@@ -663,15 +915,14 @@ public class DebugCommand {
         MutableComponent body;
         if (ctx.success) {
             body = Component.translatable("debug.elementalcraft.reaction.thunder_counter.success",
-                    ctx.target.getDisplayName(),
                     ctx.attacker.getDisplayName(),
-                    String.format("%.1f", ctx.chance * 100),
+                    ctx.target.getDisplayName(),
+                    Component.literal(String.format("%.1f", ctx.lightningDamage)).withStyle(ChatFormatting.GOLD),
                     String.valueOf(ctx.appliedStacks),
                     Component.translatable(ctx.appliedEffectKey)
                             .withStyle(ctx.appliedEffectKey.equals("effect.elementalcraft.paralysis")
                                     ? ChatFormatting.LIGHT_PURPLE
-                                    : ChatFormatting.GOLD),
-                    Component.literal(String.format("%.1f", ctx.lightningDamage)).withStyle(ChatFormatting.GOLD)
+                                    : ChatFormatting.GOLD)
             ).withStyle(ChatFormatting.WHITE);
         } else {
             body = Component.translatable("debug.elementalcraft.reaction.thunder_counter.fail",
@@ -707,8 +958,12 @@ public class DebugCommand {
     }
 
     public static void sendReactionSuccess(LivingEntity contextEntity, String reactionKey, Object... args) {
+        sendReactionSuccessSuffix(contextEntity, reactionKey, ".success", args);
+    }
+
+    public static void sendReactionSuccessSuffix(LivingEntity contextEntity, String reactionKey, String suffix, Object... args) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
-        MutableComponent message = Component.translatable("debug.elementalcraft.reaction." + reactionKey + ".success", args)
+        MutableComponent message = Component.translatable("debug.elementalcraft.reaction." + reactionKey + suffix, args)
                 .withStyle(ChatFormatting.GREEN);
         sendDebugMessage(contextEntity, message);
     }
@@ -728,6 +983,13 @@ public class DebugCommand {
     public static void sendReactionFailed(LivingEntity contextEntity, String reactionKey, String reason, Object... args) {
         if (!DebugMode.hasAnyDebugEnabled()) return;
         MutableComponent message = Component.translatable("debug.elementalcraft.reaction." + reactionKey + ".failed." + reason, args)
+                .withStyle(ChatFormatting.GRAY);
+        sendDebugMessage(contextEntity, message);
+    }
+
+    public static void sendWetnessReactionFailed(LivingEntity contextEntity, String reason, Object... args) {
+        if (!DebugMode.hasAnyDebugEnabled()) return;
+        MutableComponent message = Component.translatable("debug.elementalcraft.reaction.wetness.failed." + reason, args)
                 .withStyle(ChatFormatting.GRAY);
         sendDebugMessage(contextEntity, message);
     }

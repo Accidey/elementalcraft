@@ -1,5 +1,6 @@
 package com.xulai.elementalcraft.potion;
 
+import com.xulai.elementalcraft.util.EffectHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
@@ -21,6 +22,8 @@ public class ParalysisEffect extends MobEffect {
     public void applyEffectTick(LivingEntity pLivingEntity, int pAmplifier) {
         if (!pLivingEntity.level().isClientSide) {
             disableAI(pLivingEntity);
+
+            EffectHelper.playParalysisAmbient(pLivingEntity, pAmplifier);
 
             if (pLivingEntity.isInWater()) {
                 pLivingEntity.move(MoverType.SELF, new Vec3(0, -0.05, 0));

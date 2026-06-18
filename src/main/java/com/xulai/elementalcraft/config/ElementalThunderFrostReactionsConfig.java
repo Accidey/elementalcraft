@@ -34,9 +34,6 @@ public final class ElementalThunderFrostReactionsConfig {
 
     public static final ForgeConfigSpec.IntValue STATIC_AURA_THRESHOLD;
     public static final ForgeConfigSpec.DoubleValue STATIC_AURA_BASE_RANGE;
-    public static final ForgeConfigSpec.IntValue STATIC_AURA_DAMAGE_INTERVAL_TICKS;
-    public static final ForgeConfigSpec.BooleanValue STATIC_AURA_EXCLUDE_FRIENDLY;
-    public static final ForgeConfigSpec.BooleanValue STATIC_AURA_ONLY_HOSTILE;
     public static final ForgeConfigSpec.DoubleValue STATIC_AURA_HEIGHT_CEILING;
 
     public static final ForgeConfigSpec.IntValue THUNDER_COUNTER_MIN_SPORE_STACKS;
@@ -62,7 +59,6 @@ public final class ElementalThunderFrostReactionsConfig {
 
     public static final ForgeConfigSpec.DoubleValue WATER_ELECTRIFICATION_RANGE_BASE;
     public static final ForgeConfigSpec.DoubleValue WATER_ELECTRIFICATION_RANGE_PER_STACK;
-    public static final ForgeConfigSpec.DoubleValue WATER_ELECTRIFICATION_MAX_RANGE;
     public static final ForgeConfigSpec.IntValue WATER_ELECTRIFICATION_PARALYSIS_DURATION;
 
     public static final ForgeConfigSpec.DoubleValue FROST_STRENGTH_THRESHOLD;
@@ -134,10 +130,18 @@ public final class ElementalThunderFrostReactionsConfig {
         ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
         BUILDER.comment("Static Shock (Thunder) Reaction Configuration",
-                        "静电（雷霆）效果配置")
+                        "静电（雷霆）效果配置",
+                        "当雷霆属性强化达到门槛的生物攻击目标时，有概率施加「静电」效果。",
+                        "静电会周期性造成雷击伤害，并可与其他元素（潮湿、孢子、冰霜）产生连锁反应。",
+                        "静电层数越高，触发元素反应的概率和伤害越大。",
+                        "When a mob with sufficient Thunder Strength attacks a target, there is a chance to apply Static Shock.",
+                        "Static Shock deals periodic lightning damage and can trigger chain reactions with other elements (Wetness, Spores, Frost).",
+                        "Higher stacks increase the probability and damage of elemental reactions.")
                 .push("static_shock");
 
-        BUILDER.comment("Trigger & Stack Rules", "触发与叠加规则")
+        BUILDER.comment("触发与叠加规则 - Trigger & Stack Rules",
+                        "控制静电效果的施加条件、概率成长和层数上限。",
+                        "Controls the conditions for applying Static Shock, chance scaling, and stack limits.")
                 .push("trigger_and_stack");
 
         THUNDER_STRENGTH_THRESHOLD = BUILDER
@@ -157,8 +161,8 @@ public final class ElementalThunderFrostReactionsConfig {
         BUILDER.comment(" ");
 
         STATIC_SCALING_STEP = BUILDER
-                .comment("触发概率成长所需的强化点数步长。",
-                         "Strength step size for increasing the application chance.",
+                .comment("静电概率成长的属性阶梯值（基于门槛之上计算）。例如门槛20、步长20时，雷霆强化达到40/60/80点都会触发概率提升。",
+                         "The step size for Static Shock chance scaling (calculated above the threshold). E.g., threshold=20, step=20 → chance increases at 40, 60, 80 points.",
                          "Default: 20")
                 .defineInRange("static_scaling_step", 20, 1, 10000);
 
@@ -212,7 +216,9 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Immunity Rule", "免疫规则")
+        BUILDER.comment("免疫规则 - Immunity Rule",
+                        "控制哪些实体可以完全免疫静电效果。",
+                        "Controls which entities are completely immune to Static Shock.")
                 .push("immunity");
 
         STATIC_RESIST_IMMUNITY_THRESHOLD = BUILDER
@@ -231,7 +237,11 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Periodic Damage (Damage over Time)", "周期性伤害（持续伤害）")
+        BUILDER.comment("周期性伤害（持续伤害） - Periodic Damage",
+                        "静电效果每间隔一段时间对目标造成一次雷击伤害。",
+                        "伤害值在最小值和最大值之间随机浮动，受元素属性修正和附魔减免影响。",
+                        "Static Shock deals periodic lightning damage to the target at regular intervals.",
+                        "Damage is randomized between min and max values, modified by elemental attributes and enchantment reduction.")
                 .push("periodic_damage");
 
         STATIC_DAMAGE_MIN = BUILDER
@@ -258,7 +268,11 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Elemental Attribute Modifiers", "元素属性修正")
+        BUILDER.comment("元素属性修正 - Elemental Attribute Modifiers",
+                        "不同元素属性的生物受到静电伤害时，会根据自身属性获得伤害倍率修正。",
+                        "例：冰霜属性生物受到 200% 静电伤害，自然属性生物只受到 50%。",
+                        "Entities of different elemental attributes receive modified Static Shock damage based on their type.",
+                        "Example: Frost entities take 200% damage, Nature entities take only 50%.")
                 .push("elemental_modifiers");
 
         STATIC_DAMAGE_FIRE_MULTIPLIER = BUILDER
@@ -293,8 +307,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Static Shock Aura (Visual Ring Threshold)",
-                        "静电光环（视觉光圈阈值）")
+        BUILDER.comment("静电光环（视觉光圈阈值） - Static Shock Aura",
+                        "当静电层数达到阈值时，目标周围会显示静电光环（视觉光圈）。",
+                        "光环会对范围内的敌对生物造成静电伤害，层数越高范围越大。",
+                        "可配置是否排除友方生物（玩家和已驯服宠物）。",
+                        "When Static Shock stacks reach the threshold, a visual aura ring appears around the target.",
+                        "The aura deals Static Shock damage to hostile entities within range; higher stacks increase the range.",
+                        "You can configure whether to exclude friendly entities (players and tamed pets).")
                 .push("static_aura");
 
         STATIC_AURA_THRESHOLD = BUILDER
@@ -313,30 +332,6 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.comment(" ");
 
-        STATIC_AURA_DAMAGE_INTERVAL_TICKS = BUILDER
-                .comment("静电光环伤害触发的间隔时间（以刻为单位）。20刻 = 1秒。",
-                         "Interval (in ticks) between each Static Aura damage tick. 20 ticks = 1 second.",
-                         "Default: 40 (2 seconds)")
-                .defineInRange("static_aura_damage_interval_ticks", 40, 1, 72000);
-
-        BUILDER.comment(" ");
-
-        STATIC_AURA_EXCLUDE_FRIENDLY = BUILDER
-                .comment("如果为 true，玩家和已驯服的宠物免疫静电光环伤害。",
-                         "If true, players and tamed pets are immune to Static Aura damage.",
-                         "Default: true")
-                .define("static_aura_exclude_friendly", true);
-
-        BUILDER.comment(" ");
-
-        STATIC_AURA_ONLY_HOSTILE = BUILDER
-                .comment("如果为 true，只有敌对生物会受到静电光环影响，中立/被动生物将被忽略。",
-                         "If true, only hostile mobs (MobCategory.MONSTER) are affected by Static Aura.",
-                         "Default: false")
-                .define("static_aura_only_hostile", false);
-
-        BUILDER.comment(" ");
-
         STATIC_AURA_HEIGHT_CEILING = BUILDER
                 .comment("静电光环可影响生物的最大高度差（格）。超过此 Y 偏移量的目标免疫光环伤害和效果。",
                          "Maximum height difference (blocks) for the Static Aura to affect entities above the source. Entities above this Y offset are immune to aura damage and effects.",
@@ -345,8 +340,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Static Shock + Spores -> Toxic Blast Configuration",
-                        "静电+孢子触发毒火爆燃配置")
+        BUILDER.comment("静电+孢子触发毒火爆燃 - Static Shock + Spores -> Toxic Blast",
+                        "当目标同时拥有静电和易燃孢子效果时，静电会引爆孢子触发毒火爆燃。",
+                        "总概率 = 基础概率 + 静电层数 × 每层静电加成 + 孢子层数 × 每层孢子加成。",
+                        "当目标同时拥有麻痹效果时，必定触发（无概率判定）。",
+                        "When a target has both Static Shock and Flammable Spores, Static Shock detonates the spores causing a Toxic Blast.",
+                        "Total chance = base + static_stacks × per_static + spore_stacks × per_spore.",
+                        "If the target also has Paralysis effect, it triggers unconditionally (no chance roll).")
                 .push("static_spore_blast");
 
         STATIC_SPORE_BLAST_BASE_CHANCE = BUILDER
@@ -373,8 +373,11 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Static Shock Creeper Ignite (Converts to Charged Creeper then Ignites)",
-                        "静电苦力怕变高压+引爆")
+        BUILDER.comment("静电苦力怕变高压+引爆 - Static Shock Creeper Ignite",
+                        "静电击中苦力怕时，有概率将其变为高压苦力怕并点燃（1.5秒引信）。",
+                        "变高压后会触发原版高压爆炸机制，伤害和范围均按高压苦力怕计算。",
+                        "When Static Shock hits a Creeper, there is a chance to convert it to a Charged Creeper and ignite it (1.5s fuse).",
+                        "The Charged Creeper then triggers vanilla Charged explosion mechanics with increased damage and radius.")
                 .push("static_creeper_ignite");
 
         STATIC_CREEPER_IGNITE_CHANCE = BUILDER
@@ -385,8 +388,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Static Shock Enchantment Reduction Configuration",
-                        "静电附魔减伤配置")
+        BUILDER.comment("静电附魔减伤配置 - Enchantment Reduction",
+                        "控制附魔对静电伤害的减免上限。",
+                        "减免计算公式：减免率 = min(附魔等级 × (上限值 / 分母), 上限值)。",
+                        "多种附魔的减免效果可叠加，但总减免不超过 100%。",
+                        "Controls the maximum damage reduction from enchantments against Static Shock damage.",
+                        "Reduction formula: rate = min(enchantment_level × (cap / denominator), cap).",
+                        "Multiple enchantments stack, but total reduction cannot exceed 100%.")
                 .push("static_enchantment_reduction");
 
         STATIC_MAX_PROT_CAP = BUILDER
@@ -411,9 +419,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Thunder Counter Configuration",
-
-                        "雷霆反制配置")
+        BUILDER.comment("雷霆反制配置 - Thunder Counter",
+                        "当雷霆属性目标携带足够孢子层数时，自然属性攻击者会触发雷霆反制。",
+                        "反制会消耗目标身上的孢子，并对攻击者施加静电效果。",
+                        "攻击者若有潮湿效果，潮湿会被消耗并转化为更多静电层数。",
+                        "When a Thunder target carries enough Spore stacks, a Nature attacker triggers Thunder Counter.",
+                        "The counter consumes Spores on the target and applies Static Shock to the attacker.",
+                        "If the attacker has Wetness, it is consumed and converted into additional Static Shock stacks.")
                 .push("thunder_counter");
 
         THUNDER_COUNTER_MIN_SPORE_STACKS = BUILDER
@@ -448,8 +460,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Paralysis Reaction Configuration",
-                        "麻痹反应配置")
+        BUILDER.comment("麻痹反应配置 - Paralysis Reaction",
+                        "当静电层数积累到一定程度时，目标会被「麻痹」，无法移动和攻击。",
+                        "麻痹期间若目标同时拥有易燃孢子，会必定触发毒火爆燃（无概率判定）。",
+                        "麻痹会消耗剩余静电伤害的一定比例作为一次性伤害。",
+                        "When Static Shock stacks accumulate enough, the target becomes Paralyzed and cannot move or attack.",
+                        "During Paralysis, if the target also has Flammable Spores, Toxic Blast triggers unconditionally (no chance roll).",
+                        "Paralysis consumes a percentage of remaining Static Shock damage as instant damage.")
                 .push("paralysis");
 
         PARALYSIS_MAX_STACKS = BUILDER
@@ -497,22 +514,30 @@ public final class ElementalThunderFrostReactionsConfig {
                          "Example: [\"minecraft:iron_golem\", \"minecraft:wither\"]")
                 .defineListAllowEmpty("paralysis_immunity_blacklist", List.of(), o -> o instanceof String);
 
-        BUILDER.comment("Static Steam Cloud Reaction (Static Shock + Condensing Steam Cloud)",
-                        "静电蒸汽云反应（静电+低温蒸汽云）")
+        BUILDER.comment("静电蒸汽云反应 - Static Steam Cloud Reaction",
+                        "当带有静电的实体进入低温蒸汽云时，会触发麻痹和感电化反应。",
+                        "感电化会使蒸汽云对范围内所有生物造成静电伤害，形成导电区域。",
+                        "When an entity with Static Shock enters a Condensing Steam Cloud, it triggers Paralysis and Electrification.",
+                        "Electrification makes the Steam Cloud deal Static Shock damage to all entities within range, creating a conductive zone.")
                 .push("static_steam_cloud");
 
         STATIC_STEAM_CLOUD_TRIGGER_STACKS = BUILDER
                 .comment("带静电的实体进入低温蒸汽云时触发麻痹和感电化所需的最低静电层数，设为0则关闭静电蒸汽云反应。",
                          "Minimum Static stacks to trigger the Static Steam Cloud reaction. Set to 0 to disable.",
-                         "Default: 3")
-                .defineInRange("static_steam_cloud_trigger_stacks", 3, 0, 1000);
+                         "Default: 1")
+                .defineInRange("static_steam_cloud_trigger_stacks", 1, 0, 1000);
 
         BUILDER.comment(" ");
 
         BUILDER.pop();
 
-        BUILDER.comment("Water Electrification (Static Shock + Water)",
-                        "感电水域（静电+水体）")
+        BUILDER.comment("感电水域 - Water Electrification",
+                        "当带有静电的实体站在水中时，会感电周围的水域。",
+                        "感电水域会对范围内所有水中的生物造成静电伤害和麻痹效果。",
+                        "范围 = 基础范围 + (静电层数 - 1) × 每层范围。",
+                        "When an entity with Static Shock stands in water, it electrifies the surrounding water.",
+                        "Electrified water deals Static Shock damage and Paralysis to all entities in water within range.",
+                        "Range = base + (static_stacks - 1) × per_stack.")
                 .push("water_electrification");
 
         WATER_ELECTRIFICATION_RANGE_BASE = BUILDER
@@ -524,18 +549,10 @@ public final class ElementalThunderFrostReactionsConfig {
         BUILDER.comment(" ");
 
         WATER_ELECTRIFICATION_RANGE_PER_STACK = BUILDER
-                .comment("源实体每层静电增加的范围。",
-                         "Additional range per static stack of the source entity.",
+                .comment("源实体每层静电增加的范围，从第2层开始叠加。",
+                         "Additional range per static stack, stacking from the 2nd stack onward.",
                          "Default: 1.0")
                 .defineInRange("water_electrification_range_per_stack", 1.0, 0.0, 10.0);
-
-        BUILDER.comment(" ");
-
-        WATER_ELECTRIFICATION_MAX_RANGE = BUILDER
-                .comment("感电水域的最大范围限制。",
-                         "Maximum range of water electrification regardless of stacks.",
-                         "Default: 16.0")
-                .defineInRange("water_electrification_max_range", 16.0, 1.0, 64.0);
 
         BUILDER.comment(" ");
 
@@ -551,11 +568,18 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Frostbite (Frost) Reaction Configuration",
-                        "霜冻（冰霜）效果配置")
+        BUILDER.comment("霜冻（冰霜）效果配置 - Frostbite (Frost) Reaction",
+                        "当冰霜属性强化达到门槛的生物攻击目标时，有概率施加「霜冻」效果。",
+                        "霜冻会降低目标移动速度和攻击速度，层数越高效果越强。",
+                        "霜冻可与潮湿、静电产生元素反应，也可转化为冻结状态。",
+                        "When a mob with sufficient Frost Strength attacks a target, there is a chance to apply Frostbite.",
+                        "Frostbite reduces target's movement and attack speed; higher stacks intensify the effect.",
+                        "Frostbite can react with Wetness and Static Shock, or convert to Freeze state.")
                 .push("frostbite");
 
-        BUILDER.comment("Trigger & Stack Rules", "触发与叠加规则")
+        BUILDER.comment("触发与叠加规则 - Trigger & Stack Rules",
+                        "控制霜冻效果的施加条件、概率成长和层数上限。",
+                        "Controls the conditions for applying Frostbite, chance scaling, and stack limits.")
                 .push("trigger_and_stack");
 
         FROST_STRENGTH_THRESHOLD = BUILDER
@@ -575,8 +599,8 @@ public final class ElementalThunderFrostReactionsConfig {
         BUILDER.comment(" ");
 
         FROSTBITE_SCALING_STEP = BUILDER
-                .comment("触发概率成长所需的强化点数步长。",
-                         "Strength step size for increasing the application chance.",
+                .comment("霜冻概率成长的属性阶梯值（基于门槛之上计算）。例如门槛20、步长20时，冰霜强化达到40/60/80点都会触发概率提升。",
+                         "The step size for Frostbite chance scaling (calculated above the threshold). E.g., threshold=20, step=20 → chance increases at 40, 60, 80 points.",
                          "Default: 20")
                 .defineInRange("frostbite_scaling_step", 20.0, 1.0, 10000.0);
 
@@ -715,7 +739,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Freeze Reaction Configuration", "冻结反应配置（霜冻+潮湿触发）")
+        BUILDER.comment("冻结反应配置（霜冻+潮湿触发） - Freeze Reaction",
+                        "当目标同时拥有霜冻和潮湿效果时，会触发「冻结」反应。",
+                        "冻结会消耗霜冻和潮湿，将目标冰封在原地（无法移动、攻击、使用物品）。",
+                        "冻结期间目标受到的物理伤害会增加，且可以被击碎（碎冰反应）。",
+                        "When a target has both Frostbite and Wetness, a Freeze reaction triggers.",
+                        "Freeze consumes Frostbite and Wetness, encasing the target in ice (cannot move, attack, or use items).",
+                        "During Freeze, physical damage taken is increased, and the target can be shattered (Ice Shatter reaction).")
                 .push("freeze");
 
         FREEZE_MAX_STACKS = BUILDER
@@ -735,8 +765,8 @@ public final class ElementalThunderFrostReactionsConfig {
         BUILDER.comment(" ");
 
         FREEZE_ELEMENTAL_VULNERABILITY = BUILDER
-                .comment("霜冻(Frostbite)期间受到的元素伤害倍率。1.5 = 150%伤害。",
-                         "Damage multiplier for elemental damage while Frostbitten. 1.5 = 150% damage.",
+                .comment("冰冻(Freeze)期间受到的元素伤害倍率。1.5 = 150%伤害。",
+                         "Damage multiplier for elemental damage while Frozen. 1.5 = 150% damage.",
                          "Default: 1.5")
                 .defineInRange("freeze_elemental_vulnerability", 1.5, 0.0, 10.0);
 
@@ -784,8 +814,11 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Frozen + Fire (Fire melts Frozen to Wetness)",
-                        "冻结+赤焰（赤焰融冰→潮湿）")
+        BUILDER.comment("冻结+赤焰（赤焰融冰→潮湿） - Frozen + Fire",
+                        "赤焰属性攻击冰冻目标时，会解除冻结并转化为潮湿效果。",
+                        "所需的赤焰强化值为固定阈值，不随冻结层数变化。",
+                        "When a Fire entity attacks a Frozen target, Freeze is removed and converted to Wetness.",
+                        "The required Fire Enhancement is a flat threshold, not scaling with Freeze stacks.")
                 .push("frostbite_fire_steam");
 
         FROSTBITE_FIRE_STEAM_THRESHOLD = BUILDER
@@ -796,8 +829,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Fire + Frostbite -> Steam (Fire clears Frostbite, spawns High-Heat Steam)",
-                        "赤焰+霜冻->蒸汽（赤焰清除霜冻，生成高温蒸汽云）")
+        BUILDER.comment("赤焰+霜冻->蒸汽 - Fire + Frostbite -> Steam",
+                        "赤焰属性攻击霜冻目标时，会清除霜冻并生成高温蒸汽云。",
+                        "所需的赤焰强化值 = 基础阈值 + 霜冻层数 × 额外消耗。",
+                        "高温蒸汽云会对范围内生物造成蒸汽烫伤伤害。",
+                        "When a Fire entity attacks a Frostbitten target, Frostbite is cleared and High-Heat Steam Cloud spawns.",
+                        "Required Fire Enhancement = base_threshold + frostbite_stacks × additional_cost.",
+                        "The High-Heat Steam Cloud deals scalding damage to entities within range.")
                 .push("fire_frost_melt");
 
         FIRE_FROST_MELT_BASE_THRESHOLD = BUILDER
@@ -830,8 +868,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Frostbite + Flammable Spores (Frost Reduces Spore Duration)",
-                        "霜冻+易燃孢子（霜冻削减孢子持续时间）")
+        BUILDER.comment("霜冻+易燃孢子（霜冻削减孢子持续时间） - Frostbite + Spores",
+                        "当目标同时拥有霜冻和易燃孢子时，霜冻会加速孢子效果的消退。",
+                        "孢子剩余时间按配置的倍率加速流逝，霜冻也会被消耗。",
+                        "此机制可防止霜冻+孢子的组合被无限维持。",
+                        "When a target has both Frostbite and Flammable Spores, Frostbite accelerates Spore decay.",
+                        "Spore duration ticks down at the configured speed multiplier, and Frostbite is also consumed.",
+                        "This prevents the Frostbite + Spores combo from being maintained indefinitely.")
                 .push("frostbite_spores");
 
         FROSTBITE_REDUCE_SPORES_ENABLED = BUILDER
@@ -852,8 +895,11 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Freeze + Flammable Spores (Freeze Clears Spores)",
-                        "冻结+易燃孢子（冻结清除孢子）")
+        BUILDER.comment("冻结+易燃孢子（冻结清除孢子） - Freeze + Spores",
+                        "冻结状态的生物无法获得易燃孢子效果，已有孢子会在进入冻结时被清除。",
+                        "此机制防止冻结+孢子的组合被利用（冻结期间无法触发毒火爆燃）。",
+                        "Frozen entities cannot gain Flammable Spores; existing spores are cleared on freeze.",
+                        "This prevents the Freeze + Spores combo from being exploited (Toxic Blast cannot trigger during Freeze).")
                 .push("freeze_spores");
 
         FREEZE_CLEAR_SPORES_ENABLED = BUILDER
@@ -864,8 +910,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Frozen-Scorch Steam Reaction (Scorched + Frozen triggers Low-Heat Steam)",
-                        "灼烧-冻结蒸汽反应（灼烧与冻结同时存在时触发低温蒸汽云）")
+        BUILDER.comment("灼烧-冻结蒸汽反应 - Frozen-Scorch Steam Reaction",
+                        "当目标同时拥有灼烧和冻结(Frozen)效果时，会触发低温蒸汽云反应。",
+                        "反应会解除冻结、清除霜冻和灼烧，生成低温蒸汽云。",
+                        "蒸汽等级 = sourceFirePower / step + frozenStacks。",
+                        "When a target has both Scorched and Frozen effects, a Low-Heat Steam Cloud reaction triggers.",
+                        "The reaction removes Freeze, clears Frostbite and Scorched, and spawns a Low-Heat Steam Cloud.",
+                        "Steam level = sourceFirePower / step + frozenStacks.")
                 .push("frost_scorch_steam_reaction");
 
         FROST_SCORCH_STEAM_REACTION_ENABLED = BUILDER
@@ -877,8 +928,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Scorched-Frostbite to Wetness Conversion (Scorched + Frostbite converts to Wetness)",
-                        "灼烧-霜冻转潮湿（灼烧与霜冻共存时，霜冻转化为潮湿并清除灼烧）")
+        BUILDER.comment("灼烧-霜冻转潮湿 - Scorched-Frostbite to Wetness",
+                        "当目标同时拥有灼烧和霜冻(Frostbite，未冻结)时，霜冻层数会转化为潮湿层数。",
+                        "转化后灼烧效果会被清除，防止灼烧+霜冻的冲突状态持续存在。",
+                        "转化比例可配置：1 = 1层霜冻转1层潮湿，2 = 1层霜冻转2层潮湿。",
+                        "When a target has both Scorched and Frostbite (not Frozen), Frostbite stacks convert to Wetness.",
+                        "Scorched is cleared after conversion, preventing the conflicting Scorched + Frostbite state.",
+                        "Conversion ratio is configurable: 1 = 1 Frostbite → 1 Wetness, 2 = 1 Frostbite → 2 Wetness.")
                 .push("scorched_frostbite_to_wetness");
 
         SCORCHED_FROSTBITE_TO_WETNESS_ENABLED = BUILDER
@@ -898,8 +954,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Frostbite Heat Clearing (Heat Sources Remove Frostbite)",
-                        "霜冻热源清除（热源清除霜冻效果）")
+        BUILDER.comment("霜冻热源清除 - Frostbite Heat Clearing",
+                        "热源（火焰、熔岩、岩浆块、下界）会清除霜冻效果。",
+                        "下界维度会立即清除霜冻，其他热源需要接触才会清除。",
+                        "此机制模拟霜冻在高温环境下自然融化的物理现象。",
+                        "Heat sources (fire, lava, magma blocks, Nether) will remove Frostbite.",
+                        "The Nether clears Frostbite immediately; other heat sources require contact.",
+                        "This simulates the physical phenomenon of frost melting in high-temperature environments.")
                 .push("frostbite_heat_clearing");
 
         FROSTBITE_CLEAR_BY_HEAT_ENABLED = BUILDER
@@ -943,8 +1004,11 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Frosted Steam Cloud Reaction (Frostbite + Condensing Steam Cloud)",
-                        "霜寒蒸汽云反应（霜寒+低温蒸汽云）")
+        BUILDER.comment("霜冻蒸汽云反应 - Frosted Steam Cloud Reaction",
+                        "当带有霜冻的实体进入低温蒸汽云时，会触发霜寒蒸汽云反应。",
+                        "反应会将蒸汽云转化为霜寒蒸汽云，对范围内生物造成冰霜伤害和减速效果。",
+                        "When an entity with Frostbite enters a Condensing Steam Cloud, a Frosted Steam Cloud reaction triggers.",
+                        "The reaction converts the Steam Cloud into a Frosted Steam Cloud, dealing Frost damage and slowing entities in range.")
                 .push("frosted_steam_cloud");
 
         FROSTED_STEAM_CLOUD_TRIGGER_STACKS = BUILDER
@@ -955,8 +1019,13 @@ public final class ElementalThunderFrostReactionsConfig {
 
         BUILDER.pop();
 
-        BUILDER.comment("Frostbite Aura (AoE Frost Damage)",
-                        "霜冻光环（范围冰霜伤害）")
+        BUILDER.comment("霜冻光环（范围冰霜伤害） - Frostbite Aura",
+                        "当霜冻层数达到阈值时，目标周围会形成霜冻光环。",
+                        "光环会对范围内的敌对生物造成冰霜伤害和减速效果，层数越高范围越大。",
+                        "可配置是否排除友方生物（玩家和已驯服宠物）。",
+                        "When Frostbite stacks reach the threshold, a Frostbite Aura forms around the target.",
+                        "The aura deals Frost damage and slows hostile entities within range; higher stacks increase the range.",
+                        "You can configure whether to exclude friendly entities (players and tamed pets).")
                 .push("frostbite_aura");
 
         FROSTBITE_AURA_THRESHOLD = BUILDER
@@ -1046,9 +1115,6 @@ public final class ElementalThunderFrostReactionsConfig {
 
     public static int staticAuraThreshold;
     public static double staticAuraBaseRange;
-    public static int staticAuraDamageIntervalTicks;
-    public static boolean staticAuraExcludeFriendly;
-    public static boolean staticAuraOnlyHostile;
     public static double staticAuraHeightCeiling;
 
     public static int thunderCounterMinSporeStacks;
@@ -1130,7 +1196,6 @@ public final class ElementalThunderFrostReactionsConfig {
 
     public static double waterElectrificationRangeBase;
     public static double waterElectrificationRangePerStack;
-    public static double waterElectrificationMaxRange;
     public static int waterElectrificationParalysisDuration;
 
     public static int frostbiteAuraThreshold;
@@ -1172,9 +1237,6 @@ public final class ElementalThunderFrostReactionsConfig {
 
         staticAuraThreshold = STATIC_AURA_THRESHOLD.get();
         staticAuraBaseRange = STATIC_AURA_BASE_RANGE.get();
-        staticAuraDamageIntervalTicks = STATIC_AURA_DAMAGE_INTERVAL_TICKS.get();
-        staticAuraExcludeFriendly = STATIC_AURA_EXCLUDE_FRIENDLY.get();
-        staticAuraOnlyHostile = STATIC_AURA_ONLY_HOSTILE.get();
         staticAuraHeightCeiling = STATIC_AURA_HEIGHT_CEILING.get();
 
         thunderCounterMinSporeStacks = THUNDER_COUNTER_MIN_SPORE_STACKS.get();
@@ -1250,7 +1312,6 @@ public final class ElementalThunderFrostReactionsConfig {
 
         waterElectrificationRangeBase = WATER_ELECTRIFICATION_RANGE_BASE.get();
         waterElectrificationRangePerStack = WATER_ELECTRIFICATION_RANGE_PER_STACK.get();
-        waterElectrificationMaxRange = WATER_ELECTRIFICATION_MAX_RANGE.get();
         waterElectrificationParalysisDuration = WATER_ELECTRIFICATION_PARALYSIS_DURATION.get();
 
         frostbiteAuraThreshold = FROSTBITE_AURA_THRESHOLD.get();

@@ -47,6 +47,7 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.DoubleValue NATURE_PARASITE_SCALING_CHANCE;
     public static final ForgeConfigSpec.IntValue NATURE_PARASITE_AMOUNT;
     public static final ForgeConfigSpec.DoubleValue NATURE_PARASITE_WETNESS_BONUS;
+    public static final ForgeConfigSpec.DoubleValue NATURE_PARASITE_STACKING_BONUS;
     public static final ForgeConfigSpec.IntValue NATURE_IMMUNITY_THRESHOLD;
     public static final ForgeConfigSpec.DoubleValue WILDFIRE_TRIGGER_THRESHOLD;
     public static final ForgeConfigSpec.IntValue WILDFIRE_COOLDOWN;
@@ -78,6 +79,7 @@ public class ElementalFireNatureReactionsConfig {
     public static final ForgeConfigSpec.BooleanValue STEAM_CLEAR_AGGRO;
     public static final ForgeConfigSpec.DoubleValue STEAM_CLOUD_HEIGHT_CEILING;
     public static final ForgeConfigSpec.IntValue STEAM_CONDENSATION_DELAY;
+    public static final ForgeConfigSpec.DoubleValue STEAM_CONDENSATION_RADIUS;
     public static final ForgeConfigSpec.IntValue STEAM_CONDENSATION_DURATION_BASE;
     public static final ForgeConfigSpec.IntValue STEAM_CONDENSATION_DURATION_PER_LEVEL;
 
@@ -241,11 +243,12 @@ public class ElementalFireNatureReactionsConfig {
 
     BUILDER.push("steam_reaction");
     BUILDER.comment("蒸汽反应系统 - Steam Reaction System",
-            "当赤焰或冰霜属性攻击潮湿目标时，会在目标位置生成一团蒸汽云。",
-            "蒸汽云分为高温（烫伤）和低温（冷凝/繁殖孢子）两种。蒸汽云等级由目标潮湿等级决定，赤焰/冰霜强化仅用于触发判定。",
-            "Steam clouds are created when Fire or Frost attacks a wet target.",
-            "They come in High-Heat (scalding) and Low-Heat (condensation/spore growth) varieties.",
-            "Steam cloud level is determined by the target's wetness level; Fire or Frost power only affects the trigger threshold.");
+            "当赤焰属性攻击潮湿目标时，会在目标位置生成高温蒸汽云（烫伤）。",
+            "赤焰属性自我干燥时会生成低温蒸汽云（冷凝/繁殖孢子）。",
+            "蒸汽云等级由目标潮湿等级或实际蒸发层数决定，赤焰强化仅用于触发判定。",
+            "High-Heat Steam clouds are created when Fire attacks a wet target (scalding).",
+            "Low-Heat Steam clouds are created when a Fire entity self-dries its wetness (condensation/spore growth).",
+            "Steam cloud level is determined by wetness level or layers evaporated; Fire power only affects the trigger threshold.");
     BUILDER.comment(" ");
 
     STEAM_HIGH_HEAT_MAX_LEVEL = BUILDER
@@ -271,10 +274,10 @@ public class ElementalFireNatureReactionsConfig {
             .defineInRange("steam_high_heat_trigger_threshold", 50, 0, 10000);
     BUILDER.comment(" ");
     STEAM_LOW_HEAT_TRIGGER_THRESHOLD = BUILDER
-            .comment("攻击潮湿目标时，触发低温蒸汽云所需的最小冰霜属性强化点数。",
-                     "层数由目标潮湿等级决定，冰霜强化仅用于触发判定。",
-                     "Minimum Frost points required to trigger a Low-Heat Steam Cloud when attacking a wet target.",
-                     "The cloud level is determined by the target's wetness level; Frost power only controls the trigger.",
+            .comment("赤焰属性自我干燥时，触发低温蒸汽云所需的最小赤焰强化点数。",
+                     "触发后，蒸汽等级由实际蒸发的潮湿层数决定。",
+                     "Minimum Fire enhancement points required to trigger a Low-Heat Steam Cloud during self-drying.",
+                     "The steam level is determined by the number of wetness layers actually evaporated.",
                      "Default: 50")
             .defineInRange("steam_low_heat_trigger_threshold", 50, 0, 10000);
     BUILDER.comment(" ");
@@ -347,6 +350,13 @@ public class ElementalFireNatureReactionsConfig {
                     "Time (Ticks) required to stay in Low-Heat Steam to gain Wetness.",
                     "Default: 100")
             .defineInRange("steam_condensation_delay", 100, 1, 24000);
+    BUILDER.comment(" ");
+
+    STEAM_CONDENSATION_RADIUS = BUILDER
+            .comment("低温蒸汽云的半径（格）。",
+                    "Radius (blocks) for Low-Heat Steam clouds.",
+                    "Default: 3.0")
+            .defineInRange("steam_condensation_radius", 3.0, 0.5, 1000.0);
     BUILDER.comment(" ");
 
     STEAM_CONDENSATION_DURATION_BASE = BUILDER
@@ -738,6 +748,12 @@ public class ElementalFireNatureReactionsConfig {
                     "Extra Flammable Spores chance provided per stack of self-wetness.",
                     "Default: 0.1")
             .defineInRange("wetness_bonus", 0.1, 0.0, 1.0);
+
+    NATURE_PARASITE_STACKING_BONUS = BUILDER
+            .comment("目标已有易燃孢子效果时的额外触发概率。",
+                    "Extra Flammable Spores chance when target already has Spores effect.",
+                    "Default: 0.05")
+            .defineInRange("stacking_bonus", 0.05, 0.0, 1.0);
     BUILDER.comment(" ");
 
     NATURE_IMMUNITY_THRESHOLD = BUILDER
@@ -1069,6 +1085,7 @@ public class ElementalFireNatureReactionsConfig {
     public static double natureParasiteScalingChance;
     public static int natureParasiteAmount;
     public static double natureParasiteWetnessBonus;
+    public static double natureParasiteStackingBonus;
     public static int natureImmunityThreshold;
     public static double wildfireTriggerThreshold;
     public static int wildfireCooldown;
@@ -1096,6 +1113,7 @@ public class ElementalFireNatureReactionsConfig {
     public static boolean steamClearAggro;
     public static double steamCloudHeightCeiling;
     public static int steamCondensationDelay;
+    public static double steamCondensationRadius;
     public static int steamCondensationDurationBase;
     public static int steamCondensationDurationPerLevel;
 
@@ -1181,6 +1199,7 @@ public class ElementalFireNatureReactionsConfig {
         natureParasiteScalingChance = NATURE_PARASITE_SCALING_CHANCE.get();
         natureParasiteAmount = NATURE_PARASITE_AMOUNT.get();
         natureParasiteWetnessBonus = NATURE_PARASITE_WETNESS_BONUS.get();
+        natureParasiteStackingBonus = NATURE_PARASITE_STACKING_BONUS.get();
         natureImmunityThreshold = NATURE_IMMUNITY_THRESHOLD.get();
         wildfireTriggerThreshold = WILDFIRE_TRIGGER_THRESHOLD.get();
         wildfireCooldown = WILDFIRE_COOLDOWN.get();
@@ -1211,6 +1230,7 @@ public class ElementalFireNatureReactionsConfig {
         steamClearAggro = STEAM_CLEAR_AGGRO.get();
         steamCloudHeightCeiling = STEAM_CLOUD_HEIGHT_CEILING.get();
         steamCondensationDelay = STEAM_CONDENSATION_DELAY.get();
+        steamCondensationRadius = STEAM_CONDENSATION_RADIUS.get();
         steamCondensationDurationBase = STEAM_CONDENSATION_DURATION_BASE.get();
         steamCondensationDurationPerLevel = STEAM_CONDENSATION_DURATION_PER_LEVEL.get();
 

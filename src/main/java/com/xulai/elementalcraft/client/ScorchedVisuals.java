@@ -2,6 +2,7 @@ package com.xulai.elementalcraft.client;
 
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalVisualConfig;
 import com.xulai.elementalcraft.event.ScorchedHandler;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -16,6 +17,8 @@ public class ScorchedVisuals {
 
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
+        if (!ElementalVisualConfig.scorchedAuraEnabled) return;
+
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide) return;
 

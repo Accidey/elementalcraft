@@ -33,7 +33,7 @@ public class TooltipEvents {
         Component originalName = tooltip.get(0);
 
         MutableComponent prefix = Component.literal("[")
-                .append(Component.translatable("element." + element.getId()))
+                .append(Component.translatable("element." + element.getId() + ".bracket").withStyle(element.getColor()))
                 .append("]")
                 .withStyle(style -> style.withColor(element.getColor()).withBold(true));
 

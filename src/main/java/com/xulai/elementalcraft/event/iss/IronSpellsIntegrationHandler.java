@@ -5,6 +5,7 @@ import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
 import com.xulai.elementalcraft.config.ElementalISSIntegrationConfig;
 import com.xulai.elementalcraft.config.ElementalThunderFrostReactionsConfig;
 import com.xulai.elementalcraft.enchantment.ModEnchantments;
+import com.xulai.elementalcraft.logic.MobAttributeLogic;
 import com.xulai.elementalcraft.event.ReactionHandler;
 import com.xulai.elementalcraft.event.ScorchedHandler;
 import com.xulai.elementalcraft.event.StaticShockHandler;
@@ -176,6 +177,8 @@ public class IronSpellsIntegrationHandler {
         CompoundTag data = target.getPersistentData();
         int current = data.getInt("ec_static_stacks");
         if (current >= maxStacks) return;
+
+        if (StaticShockHandler.blockStaticIfParalyzed(target)) return;
 
         data.putInt("ec_static_stacks", maxStacks);
         data.putInt("ec_static_timer", duration);
@@ -470,6 +473,10 @@ public class IronSpellsIntegrationHandler {
         Entity vehicle = target.getVehicle();
         if (vehicle == null || !isRootEntity(vehicle)) return;
 
+        if (target.getPersistentData().getBoolean("EC_FleeActive")) {
+            MobAttributeLogic.stopFlee(target);
+        }
+
         CompoundTag data = target.getPersistentData();
         String NBT_ROOT_SPORE_APPLIED = "ec_root_spore_applied";
 
@@ -621,8 +628,7 @@ public class IronSpellsIntegrationHandler {
 
         int stacks = ElementalThunderFrostReactionsConfig.staticMaxTotalStacks;
         double range = ElementalThunderFrostReactionsConfig.waterElectrificationRangeBase
-                + stacks * ElementalThunderFrostReactionsConfig.waterElectrificationRangePerStack;
-        range = Math.min(range, ElementalThunderFrostReactionsConfig.waterElectrificationMaxRange);
+                + (stacks - 1) * ElementalThunderFrostReactionsConfig.waterElectrificationRangePerStack;
 
         int duration = ElementalThunderFrostReactionsConfig.waterElectrificationParalysisDuration;
 

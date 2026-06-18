@@ -19,6 +19,21 @@ public class ElementalVisualConfig {
 
     public static final ForgeConfigSpec.BooleanValue SCORCHED_AURA_ENABLED;
 
+    public static final ForgeConfigSpec.BooleanValue FROSTBITE_AURA_ENABLED;
+
+    public static final ForgeConfigSpec.BooleanValue PARALYSIS_VISUAL_ENABLED;
+    public static final ForgeConfigSpec.IntValue PARALYSIS_SPIRAL_BASE_COUNT;
+    public static final ForgeConfigSpec.IntValue PARALYSIS_SPIRAL_COUNT_PER_STACK;
+    public static final ForgeConfigSpec.DoubleValue PARALYSIS_SPIRAL_RADIUS;
+    public static final ForgeConfigSpec.DoubleValue PARALYSIS_SPIRAL_ROTATION_SPEED;
+    public static final ForgeConfigSpec.DoubleValue PARALYSIS_SPIRAL_RISE_SPEED;
+    public static final ForgeConfigSpec.DoubleValue PARALYSIS_DUST_CHANCE;
+    public static final ForgeConfigSpec.IntValue PARALYSIS_DUST_COUNT_MIN;
+    public static final ForgeConfigSpec.IntValue PARALYSIS_DUST_COUNT_MAX;
+    public static final ForgeConfigSpec.DoubleValue PARALYSIS_DUST_SIZE;
+    public static final ForgeConfigSpec.DoubleValue PARALYSIS_SPARK_CHANCE;
+    public static final ForgeConfigSpec.IntValue PARALYSIS_SPARK_COUNT;
+
     public static final ForgeConfigSpec.BooleanValue FROST_MELEE_ENABLED;
     public static final ForgeConfigSpec.BooleanValue FROST_RANGED_ENABLED;
 
@@ -357,6 +372,20 @@ public class ElementalVisualConfig {
 
     public static boolean staticShockAuraEnabled = true;
     public static boolean scorchedAuraEnabled = true;
+    public static boolean frostbiteAuraEnabled = true;
+
+    public static boolean paralysisVisualEnabled = true;
+    public static int paralysisSpiralBaseCount = 1;
+    public static int paralysisSpiralCountPerStack = 1;
+    public static double paralysisSpiralRadius = 0.8;
+    public static double paralysisSpiralRotationSpeed = 0.3;
+    public static double paralysisSpiralRiseSpeed = 0.04;
+    public static double paralysisDustChance = 0.7;
+    public static int paralysisDustCountMin = 2;
+    public static int paralysisDustCountMax = 5;
+    public static double paralysisDustSize = 1.0;
+    public static double paralysisSparkChance = 0.35;
+    public static int paralysisSparkCount = 4;
 
     public static boolean frostMeleeEnabled = true;
     public static boolean frostRangedEnabled = true;
@@ -1194,28 +1223,102 @@ public class ElementalVisualConfig {
         BUILDER.pop();
         BUILDER.pop();
 
-        BUILDER.comment("Static Shock Aura Visuals", "静电光环特效")
-                .push("static_shock_aura");
+        BUILDER.comment("Paralysis Visuals", "麻痹特效")
+                .push("paralysis_visual");
 
-        STATIC_SHOCK_AURA_ENABLED = BUILDER
-                .comment("Whether to enable static shock aura visual effects (electric ring around entity with shock stacks).",
-                        "是否开启静电光环视觉特效（拥有静电层数的实体周围显示电网光环）。",
-                        "Default: true")
-                .define("enabled", true);
-
-        BUILDER.pop();
-
-        BUILDER.comment("Scorched Aura Visuals", "灼烧光环特效")
-                .push("scorched_aura");
-
-        SCORCHED_AURA_ENABLED = BUILDER
-                .comment("Whether to enable scorched aura visual effects (flame ring at feet of scorched entities with sufficient fire power).",
-                        "是否开启灼烧光环视觉特效（赤焰强化足够的灼烧实体脚底显示火焰光环）。",
+        PARALYSIS_VISUAL_ENABLED = BUILDER
+                .comment("Whether to enable paralysis visual effects (spiral thunder sparks around entity).",
+                        "是否开启麻痹视觉特效（闪电粒子环绕生物螺旋上升）。",
                         "Default: true")
                 .define("enabled", true);
 
         BUILDER.comment(" ");
 
+        PARALYSIS_SPIRAL_BASE_COUNT = BUILDER
+                .comment("Base number of spiral strands at 1 stack.",
+                        "1层麻痹时的基础螺旋线条数。",
+                        "Default: 1")
+                .defineInRange("spiral_base_count", 1, 0, 8);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_SPIRAL_COUNT_PER_STACK = BUILDER
+                .comment("Additional spiral strands per paralysis stack. Total = base + per_stack * stacks.",
+                        "每层麻痹额外增加的螺旋线条数。总数 = 基础 + 每层 × 层数。",
+                        "Default: 1")
+                .defineInRange("spiral_count_per_stack", 1, 0, 4);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_SPIRAL_RADIUS = BUILDER
+                .comment("Radius of the spiral around the entity (blocks).",
+                        "螺旋环绕半径（方块）。",
+                        "Default: 0.8")
+                .defineInRange("spiral_radius", 0.8, 0.3, 3.0);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_SPIRAL_ROTATION_SPEED = BUILDER
+                .comment("Rotation speed of the spiral (radians per tick).",
+                        "螺旋旋转速度（弧度/tick）。",
+                        "Default: 0.3")
+                .defineInRange("spiral_rotation_speed", 0.3, 0.05, 2.0);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_SPIRAL_RISE_SPEED = BUILDER
+                .comment("Upward drift speed of spiral particles.",
+                        "螺旋粒子的向上飘动速度。",
+                        "Default: 0.04")
+                .defineInRange("spiral_rise_speed", 0.04, 0.005, 0.2);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_DUST_CHANCE = BUILDER
+                .comment("Probability (0-1) of spawning yellow dust particles per tick.",
+                        "每tick生成黄白电光尘埃粒子的概率（0-1）。",
+                        "Default: 0.7")
+                .defineInRange("dust_chance", 0.7, 0.0, 1.0);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_DUST_COUNT_MIN = BUILDER
+                .comment("Minimum dust particles per spawn.",
+                        "每次生成尘埃粒子的最小数量。",
+                        "Default: 2")
+                .defineInRange("dust_count_min", 2, 0, 10);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_DUST_COUNT_MAX = BUILDER
+                .comment("Maximum dust particles per spawn (exclusive, like Random.nextInt(max)).",
+                        "每次生成尘埃粒子的最大数量（不含，类似 Random.nextInt(max)）。",
+                        "Default: 5")
+                .defineInRange("dust_count_max", 5, 1, 15);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_DUST_SIZE = BUILDER
+                .comment("Size of the yellow dust particles.",
+                        "黄白电光尘埃粒子的大小。",
+                        "Default: 1.0")
+                .defineInRange("dust_size", 1.0, 0.3, 3.0);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_SPARK_CHANCE = BUILDER
+                .comment("Probability (0-1) of spawning electric spark burst per tick.",
+                        "每tick生成电火花爆发的概率（0-1）。",
+                        "Default: 0.35")
+                .defineInRange("spark_chance", 0.35, 0.0, 1.0);
+
+        BUILDER.comment(" ");
+
+        PARALYSIS_SPARK_COUNT = BUILDER
+                .comment("Number of electric sparks per burst.",
+                        "每次电火花爆发的粒子数量。",
+                        "Default: 4")
+                .defineInRange("spark_count", 4, 0, 15);
 
         BUILDER.pop();
 
@@ -2014,6 +2117,39 @@ public class ElementalVisualConfig {
         BUILDER.pop();
         BUILDER.pop();
 
+        BUILDER.comment("Scorched Aura Visuals", "灼烧光环特效")
+                .push("scorched_aura");
+
+        SCORCHED_AURA_ENABLED = BUILDER
+                .comment("Whether to enable scorched aura visual effects (flame ring at feet of scorched entities with sufficient fire power).",
+                        "是否开启灼烧光环视觉特效（赤焰强化足够的灼烧实体脚底显示火焰光环）。",
+                        "Default: true")
+                .define("enabled", true);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Static Shock Aura Visuals", "静电光环特效")
+                .push("static_shock_aura");
+
+        STATIC_SHOCK_AURA_ENABLED = BUILDER
+                .comment("Whether to enable static shock aura visual effects (electric ring around entity with shock stacks).",
+                        "是否开启静电光环视觉特效（拥有静电层数的实体周围显示电网光环）。",
+                        "Default: true")
+                .define("enabled", true);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Frostbite Aura Visuals", "霜冻光环特效")
+                .push("frostbite_aura");
+
+        FROSTBITE_AURA_ENABLED = BUILDER
+                .comment("Whether to enable frostbite aura visual effects (frost ring and snowflake particles around entity with frostbite stacks).",
+                        "是否开启霜冻光环视觉特效（拥有霜冻层数的实体周围显示冰霜光环和雪花粒子）。",
+                        "Default: true")
+                .define("enabled", true);
+
+        BUILDER.pop();
+
         BUILDER.pop();
 
         SPEC = BUILDER.build();
@@ -2041,6 +2177,21 @@ public class ElementalVisualConfig {
         staticShockAuraEnabled = STATIC_SHOCK_AURA_ENABLED.get();
 
         scorchedAuraEnabled = SCORCHED_AURA_ENABLED.get();
+
+        frostbiteAuraEnabled = FROSTBITE_AURA_ENABLED.get();
+
+        paralysisVisualEnabled = PARALYSIS_VISUAL_ENABLED.get();
+        paralysisSpiralBaseCount = PARALYSIS_SPIRAL_BASE_COUNT.get();
+        paralysisSpiralCountPerStack = PARALYSIS_SPIRAL_COUNT_PER_STACK.get();
+        paralysisSpiralRadius = PARALYSIS_SPIRAL_RADIUS.get();
+        paralysisSpiralRotationSpeed = PARALYSIS_SPIRAL_ROTATION_SPEED.get();
+        paralysisSpiralRiseSpeed = PARALYSIS_SPIRAL_RISE_SPEED.get();
+        paralysisDustChance = PARALYSIS_DUST_CHANCE.get();
+        paralysisDustCountMin = PARALYSIS_DUST_COUNT_MIN.get();
+        paralysisDustCountMax = PARALYSIS_DUST_COUNT_MAX.get();
+        paralysisDustSize = PARALYSIS_DUST_SIZE.get();
+        paralysisSparkChance = PARALYSIS_SPARK_CHANCE.get();
+        paralysisSparkCount = PARALYSIS_SPARK_COUNT.get();
 
         fireMeleeRadius = FIRE_MELEE_RADIUS.get();
         fireMeleeBaseAngleDegrees = FIRE_MELEE_BASE_ANGLE_DEGREES.get();

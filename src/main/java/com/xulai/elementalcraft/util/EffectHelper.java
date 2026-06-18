@@ -16,6 +16,7 @@ import org.joml.Vector3f;
 
 import com.xulai.elementalcraft.client.ModParticles;
 import com.xulai.elementalcraft.config.ElementalFireNatureReactionsConfig;
+import com.xulai.elementalcraft.config.ElementalVisualConfig;
 import java.util.List;
 import java.util.Random;
 
@@ -25,6 +26,7 @@ public class EffectHelper {
 
     private static final Vector3f SMOG_COLOR = new Vector3f(0.1f, 0.8f, 0.2f);
     private static final Vector3f STATIC_PURPLE_BLUE = new Vector3f(0.5f, 0.2f, 1.0f);
+    private static final Vector3f PARALYSIS_YELLOW = new Vector3f(1.0f, 1.0f, 0.6f);
     private static final Vector3f TOXIC_GREEN = new Vector3f(0.1f, 0.8f, 0.2f);
 
     public static void playSporeContagion(Entity source, List<LivingEntity> targets, double radius) {
@@ -85,6 +87,54 @@ public class EffectHelper {
                 double z = entity.getZ() + (RANDOM.nextDouble() - 0.5) * entity.getBbWidth() * 0.8;
                 level.sendParticles(ModParticles.FROST_SNOWFLAKE.get(), x, y, z, 1, 0, 0, 0, 0);
             }
+        }
+    }
+
+    public static void playParalysisAmbient(Entity entity, int amplifier) {
+        if (!(entity.level() instanceof ServerLevel level)) return;
+        if (!ElementalVisualConfig.paralysisVisualEnabled) return;
+
+        int stacks = amplifier + 1;
+        double radius = ElementalVisualConfig.paralysisSpiralRadius;
+        double height = entity.getBbHeight();
+        double rotationSpeed = ElementalVisualConfig.paralysisSpiralRotationSpeed;
+        double riseSpeed = ElementalVisualConfig.paralysisSpiralRiseSpeed;
+        int spiralCount = ElementalVisualConfig.paralysisSpiralBaseCount
+                + ElementalVisualConfig.paralysisSpiralCountPerStack * stacks;
+        if (spiralCount < 1) spiralCount = 1;
+
+        int cycleTicks = Math.max(10, (int) (height / riseSpeed));
+        double angleStep = (Math.PI * 2.0) / spiralCount;
+
+        for (int s = 0; s < spiralCount; s++) {
+            double angle = (entity.tickCount * rotationSpeed) + s * angleStep;
+            double spiralY = ((entity.tickCount + s * (cycleTicks / spiralCount)) % cycleTicks) / (double) cycleTicks * height;
+            double sx = entity.getX() + Math.cos(angle) * radius;
+            double sz = entity.getZ() + Math.sin(angle) * radius;
+            double sy = entity.getY() + spiralY;
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                    sx, sy, sz, 1, 0, riseSpeed, 0, 0);
+        }
+
+        if (RANDOM.nextFloat() < ElementalVisualConfig.paralysisDustChance) {
+            int dustRange = ElementalVisualConfig.paralysisDustCountMax - ElementalVisualConfig.paralysisDustCountMin;
+            int count = ElementalVisualConfig.paralysisDustCountMin + (dustRange > 0 ? RANDOM.nextInt(dustRange) : 0);
+            float size = (float) ElementalVisualConfig.paralysisDustSize;
+            for (int i = 0; i < count; i++) {
+                double x = entity.getX() + (RANDOM.nextDouble() - 0.5) * radius * 2;
+                double y = entity.getY() + RANDOM.nextDouble() * height;
+                double z = entity.getZ() + (RANDOM.nextDouble() - 0.5) * radius * 2;
+                level.sendParticles(new DustParticleOptions(PARALYSIS_YELLOW, size),
+                        x, y, z, 1, 0, riseSpeed * 1.5, 0, 0);
+            }
+        }
+
+        if (RANDOM.nextFloat() < ElementalVisualConfig.paralysisSparkChance) {
+            double x = entity.getX() + (RANDOM.nextDouble() - 0.5) * radius;
+            double y = entity.getY() + RANDOM.nextDouble() * height;
+            double z = entity.getZ() + (RANDOM.nextDouble() - 0.5) * radius;
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y, z,
+                    ElementalVisualConfig.paralysisSparkCount, 0.08, 0.08, 0.08, 0);
         }
     }
 

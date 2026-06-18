@@ -2,6 +2,7 @@ package com.xulai.elementalcraft.event;
 
 import com.xulai.elementalcraft.ElementalCraft;
 import com.xulai.elementalcraft.command.DebugCommand;
+import com.xulai.elementalcraft.logic.MobAttributeLogic;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LightningBolt;
@@ -28,9 +29,6 @@ import net.minecraft.world.item.enchantment.Enchantments;
 
 import com.xulai.elementalcraft.event.ScorchedHandler;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.OwnableEntity;
-import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -65,11 +63,14 @@ public class StaticShockHandler {
     public static final String NBT_STATIC_STACKS = "ec_static_stacks";
     private static final String NBT_STATIC_TIMER = "ec_static_timer";
     private static final String NBT_STATIC_DAMAGE_TIMER = "ec_static_damage_timer";
-    private static final String NBT_STATIC_AURA_DAMAGE_TIMER = "ec_static_aura_damage_timer";
     private static final String NBT_PARALYSIS_STACKS = "ec_paralysis_stacks";
     private static final String NBT_PARALYSIS_TIMER = "ec_paralysis_timer";
     private static final String NBT_PARALYSIS_COOLDOWN_TIMER = "ec_paralysis_cooldown_timer";
     private static final String NBT_STATIC_PRIMED = "ec_static_primed";
+    private static final String NBT_TEMP_STATIC = "ec_temp_static";
+    private static final String NBT_TEMP_STATIC_STACKS = "ec_temp_static_stacks";
+    private static final String NBT_AURA_TRACKED = "ec_static_aura_tracked";
+    private static final String NBT_LAST_STATIC_DAMAGE = "ec_last_static_damage";
     private static final Map<ResourceKey<Level>, ActiveElectrification> activeElectrifications = new HashMap<>();
 
     private static class ActiveElectrification {
@@ -100,28 +101,21 @@ public class StaticShockHandler {
         return ElementalThunderFrostReactionsConfig.cachedParalysisImmunityBlacklist.contains(entityId);
     }
 
+    public static boolean blockStaticIfParalyzed(LivingEntity entity) {
+        if (!entity.hasEffect(ModMobEffects.PARALYSIS.get())) return false;
+        DebugCommand.sendReactionFailed(entity, "static_shock", "paralysis", entity.getDisplayName());
+        return true;
+    }
+
+
     private static boolean isInOrOnWater(LivingEntity entity) {
         if (entity.isInWater()) return true;
         return entity.level().getFluidState(entity.blockPosition()).is(FluidTags.WATER);
     }
 
-    private static boolean isFriendlyToSource(LivingEntity target, LivingEntity source) {
-        if (target instanceof Player) return true;
-        if (target instanceof TamableAnimal tamable && tamable.isTame()) return true;
-        if (source != null) {
-            if (target instanceof OwnableEntity ownable) {
-                Entity owner = ownable.getOwner();
-                if (owner != null && owner.getUUID().equals(source.getUUID())) return true;
-            }
-        }
-        return false;
-    }
-
     private static boolean shouldSkipAuraTarget(LivingEntity target, LivingEntity source) {
         if (target instanceof Player player && player.isCreative()) return true;
         if (target.isDeadOrDying()) return true;
-        if (ElementalThunderFrostReactionsConfig.staticAuraExcludeFriendly && isFriendlyToSource(target, source)) return true;
-        if (ElementalThunderFrostReactionsConfig.staticAuraOnlyHostile && target.getType().getCategory() != MobCategory.MONSTER) return true;
         return false;
     }
 
@@ -151,6 +145,8 @@ public class StaticShockHandler {
         if (target instanceof Player player && player.isCreative()) return;
 
         if (isImmuneToStatic(target)) {
+            DebugCommand.sendReactionFailed(target, "static_shock", "immune",
+                    attacker.getDisplayName(), target.getDisplayName());
             CompoundTag data = target.getPersistentData();
             int targetStacks = data.getInt(NBT_STATIC_STACKS);
             if (ElementalThunderFrostReactionsConfig.staticAuraThreshold > 0 && targetStacks >= ElementalThunderFrostReactionsConfig.staticAuraThreshold) {
@@ -167,9 +163,14 @@ public class StaticShockHandler {
             return;
         }
 
+        if (blockStaticIfParalyzed(target)) return;
+
         int thunderStrength = ElementUtils.getDisplayEnhancement(attacker, ElementType.THUNDER);
         int threshold = ElementalThunderFrostReactionsConfig.thunderStrengthThreshold;
         if (threshold <= 0 || thunderStrength < threshold) {
+            DebugCommand.sendReactionFailed(target, "static_shock", "threshold",
+                    attacker.getDisplayName(), target.getDisplayName(),
+                    String.valueOf(thunderStrength), String.valueOf(threshold));
             return;
         }
 
@@ -182,12 +183,17 @@ public class StaticShockHandler {
             }
         }
 
-        double chance = calculateTriggerChance(thunderStrength, wetnessLevel, target);
+        double stackingBonus = target.hasEffect(ModMobEffects.STATIC_SHOCK.get())
+                ? ElementalThunderFrostReactionsConfig.staticStackingBonusChance : 0.0;
+        double chance = calculateTriggerChance(thunderStrength, wetnessLevel, target, stackingBonus);
         boolean triggered = RANDOM.nextDouble() < chance;
 
         if (!triggered) {
-            DebugCommand.sendReactionFailed(target, "static_shock", "chance",
-                    attacker.getDisplayName(), target.getDisplayName(), String.format("%.0f", chance * 100));
+            double baseChance = ElementalThunderFrostReactionsConfig.staticBaseChance;
+            double scalingChance = ElementalThunderFrostReactionsConfig.staticScalingChance;
+            int scalingSteps = getScalingSteps(thunderStrength);
+            double wetnessBonus = ElementalThunderFrostReactionsConfig.staticWetnessBonusChancePerLevel;
+            DebugCommand.sendStaticShockChanceFailed(attacker, target, baseChance, scalingSteps, scalingChance, stackingBonus, wetnessLevel, wetnessBonus, chance);
             return;
         }
 
@@ -196,6 +202,9 @@ public class StaticShockHandler {
             int currentStacks = data.getInt(NBT_STATIC_STACKS);
             int maxStacks = ElementalThunderFrostReactionsConfig.staticMaxTotalStacks;
             if (currentStacks >= maxStacks) {
+                DebugCommand.sendReactionFailed(target, "static_shock", "max_stacks",
+                        attacker.getDisplayName(), target.getDisplayName(),
+                        String.valueOf(maxStacks));
                 return;
             }
             int addStacks = ElementalThunderFrostReactionsConfig.staticMaxStacksPerAttack;
@@ -206,10 +215,11 @@ public class StaticShockHandler {
             int newTotalTicks = data.getInt(NBT_STATIC_TIMER) + addTicks;
             data.putInt(NBT_STATIC_STACKS, newStacks);
             data.putInt(NBT_STATIC_TIMER, newTotalTicks);
-            DebugCommand.sendReactionSuccess(target, "static_shock",
-                    attacker.getDisplayName(), target.getDisplayName(),
-                    Component.literal(String.valueOf(actualAdded)).withStyle(ChatFormatting.LIGHT_PURPLE),
-                    String.format("%.0f", chance * 100));
+            double baseChance = ElementalThunderFrostReactionsConfig.staticBaseChance;
+            double scalingChance = ElementalThunderFrostReactionsConfig.staticScalingChance;
+            int scalingSteps = getScalingSteps(thunderStrength);
+            double wetnessBonus = ElementalThunderFrostReactionsConfig.staticWetnessBonusChancePerLevel;
+            DebugCommand.sendStaticShockSuccess(attacker, target, actualAdded, baseChance, scalingSteps, scalingChance, stackingBonus, wetnessLevel, wetnessBonus, chance);
             if (!target.isInWater() || ElementalThunderFrostReactionsConfig.waterElectrificationRangeBase <= 0) {
                 WetnessHandler.resolveElementReactionConflict(target, attacker);
             }
@@ -223,6 +233,9 @@ public class StaticShockHandler {
         int currentStacks = data.getInt(NBT_STATIC_STACKS);
         int maxStacks = ElementalThunderFrostReactionsConfig.staticMaxTotalStacks;
         if (currentStacks >= maxStacks) {
+            DebugCommand.sendReactionFailed(target, "static_shock", "max_stacks",
+                    attacker.getDisplayName(), target.getDisplayName(),
+                    String.valueOf(maxStacks));
             return;
         }
         int addStacks = ElementalThunderFrostReactionsConfig.staticMaxStacksPerAttack;
@@ -236,10 +249,11 @@ public class StaticShockHandler {
         data.putInt(NBT_STATIC_TIMER, newTotalTicks);
         data.putInt(NBT_STATIC_DAMAGE_TIMER, data.getInt(NBT_STATIC_DAMAGE_TIMER));
         updateEffect(target, newStacks, newTotalTicks);
-        DebugCommand.sendReactionSuccess(target, "static_shock",
-                attacker.getDisplayName(), target.getDisplayName(),
-                Component.literal(String.valueOf(actualAdded)).withStyle(ChatFormatting.LIGHT_PURPLE),
-                String.format("%.0f", chance * 100));
+        data.remove(WetnessHandler.NBT_REACTION_RESOLVED);
+        double baseChance = ElementalThunderFrostReactionsConfig.staticBaseChance;
+        double scalingChance = ElementalThunderFrostReactionsConfig.staticScalingChance;
+        int scalingSteps = getScalingSteps(thunderStrength);
+        DebugCommand.sendStaticShockSuccess(attacker, target, actualAdded, baseChance, scalingSteps, scalingChance, stackingBonus, 0, 0, chance);
         if (target.hasEffect(ModMobEffects.SPORES.get())) {
             tryTriggerSporeBlast(target);
         }
@@ -312,33 +326,7 @@ public class StaticShockHandler {
             return;
         }
 
-        if (ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers > 0
-                && ElementalThunderFrostReactionsConfig.thunderBreakFreezeChance > 0
-                && ElementalThunderFrostReactionsConfig.staticAuraThreshold > 0 && stacks >= ElementalThunderFrostReactionsConfig.staticAuraThreshold
-                && FrostbiteHandler.isFrozen(entity)
-                && !FrostbiteHandler.isFreezeImmune(entity)
-                && RANDOM.nextDouble() < stacks * ElementalThunderFrostReactionsConfig.thunderBreakFreezeChance) {
-            entity.removeEffect(ModMobEffects.FREEZE.get());
-            CompoundTag fd = entity.getPersistentData();
-            fd.remove(FrostbiteHandler.NBT_FROZEN_FROSTBITE_STACKS);
-            fd.remove(FrostbiteHandler.NBT_FREEZE_STACKS);
-            fd.remove(FrostbiteHandler.NBT_FREEZE_AI_DISABLED);
-            fd.remove("EC_SharedOriginalNoAI");
-            fd.remove("EC_DrownTimer");
-            fd.putLong(FrostbiteHandler.NBT_FREEZE_COOLDOWN,
-                    entity.level().getGameTime() + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
-            int layers = ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers;
-            WetnessHandler.updateWetnessLevel(entity, layers);
-            if (entity.hasEffect(ModMobEffects.WETNESS.get())) {
-                entity.removeEffect(ModMobEffects.WETNESS.get());
-            }
-            entity.addEffect(new MobEffectInstance(
-                    ModMobEffects.WETNESS.get(),
-                    layers * 200,
-                    layers - 1,
-                    true, false, true
-            ));
-        }
+        tryBreakFreeze(entity, stacks);
 
         if (entity.level() instanceof ServerLevel serverLevel) {
             EffectHelper.playStaticShockParticles(serverLevel, entity);
@@ -381,15 +369,7 @@ public class StaticShockHandler {
         data.putInt(NBT_STATIC_DAMAGE_TIMER, damageTimer);
 
         if (auraActive && totalTimer > 0) {
-            int auraInterval = ElementalThunderFrostReactionsConfig.staticAuraDamageIntervalTicks;
-            if (auraInterval < 1) auraInterval = 1;
-            int auraDamageTimer = data.getInt(NBT_STATIC_AURA_DAMAGE_TIMER);
-            auraDamageTimer++;
-            if (auraDamageTimer >= auraInterval) {
-                applyStaticAuraDamage(entity, stacks);
-                auraDamageTimer = 0;
-            }
-            data.putInt(NBT_STATIC_AURA_DAMAGE_TIMER, auraDamageTimer);
+            applyStaticAuraDamage(entity, stacks);
         }
 
         if (totalTimer > 0) {
@@ -496,8 +476,7 @@ public class StaticShockHandler {
         if (!isInOrOnWater(source)) return false;
 
         double range = ElementalThunderFrostReactionsConfig.waterElectrificationRangeBase
-                + stacks * ElementalThunderFrostReactionsConfig.waterElectrificationRangePerStack;
-        range = Math.min(range, ElementalThunderFrostReactionsConfig.waterElectrificationMaxRange);
+                + (stacks - 1) * ElementalThunderFrostReactionsConfig.waterElectrificationRangePerStack;
 
         ActiveElectrification existing = activeElectrifications.get(source.level().dimension());
         if (existing != null && source.level().getGameTime() - existing.startTick >= existing.duration) {
@@ -633,6 +612,7 @@ public class StaticShockHandler {
             if (isImmuneToStatic(target)) continue;
 
             int targetStaticStacks = target.getPersistentData().getInt(NBT_STATIC_STACKS);
+            if (targetStaticStacks <= 0) targetStaticStacks = target.getPersistentData().getInt(NBT_TEMP_STATIC_STACKS);
             if (ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers > 0
                     && ElementalThunderFrostReactionsConfig.thunderBreakFreezeChance > 0
                     && FrostbiteHandler.isFrozen(target)
@@ -648,16 +628,18 @@ public class StaticShockHandler {
                 fd.putLong(FrostbiteHandler.NBT_FREEZE_COOLDOWN,
                         target.level().getGameTime() + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
                 int layers = ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers;
-                WetnessHandler.updateWetnessLevel(target, layers);
-                if (target.hasEffect(ModMobEffects.WETNESS.get())) {
-                    target.removeEffect(ModMobEffects.WETNESS.get());
+                if (!WetnessHandler.blockWetnessIfParalyzed(target) && !SteamReactionHandler.isInCondensingCloud(target)) {
+                    WetnessHandler.updateWetnessLevel(target, layers);
+                    if (target.hasEffect(ModMobEffects.WETNESS.get())) {
+                        target.removeEffect(ModMobEffects.WETNESS.get());
+                    }
+                    target.addEffect(new MobEffectInstance(
+                            ModMobEffects.WETNESS.get(),
+                            layers * 200,
+                            layers - 1,
+                            true, false, true
+                    ));
                 }
-                target.addEffect(new MobEffectInstance(
-                        ModMobEffects.WETNESS.get(),
-                        layers * 200,
-                        layers - 1,
-                        true, false, true
-                ));
                 continue;
             }
 
@@ -742,11 +724,22 @@ public class StaticShockHandler {
     private static void applyStaticAuraDamage(LivingEntity source, int stacks) {
         double range = stacks * ElementalThunderFrostReactionsConfig.staticAuraBaseRange;
 
+        CompoundTag sourceData = source.getPersistentData();
+        String trackedStr = sourceData.getString(NBT_AURA_TRACKED);
+        Set<UUID> oldTracked = new HashSet<>();
+        if (!trackedStr.isEmpty()) {
+            for (String s : trackedStr.split(",")) {
+                try { oldTracked.add(UUID.fromString(s)); } catch (Exception ignored) {}
+            }
+        }
+
         AABB auraArea = new AABB(
                 source.getX() - range, source.getY() - range, source.getZ() - range,
                 source.getX() + range, source.getY() + range, source.getZ() + range
         );
         java.util.List<LivingEntity> nearby = source.level().getEntitiesOfClass(LivingEntity.class, auraArea);
+
+        Set<UUID> currentTracked = new HashSet<>();
 
         for (LivingEntity target : nearby) {
             if (target == source) continue;
@@ -761,27 +754,108 @@ public class StaticShockHandler {
             if (dy > ElementalThunderFrostReactionsConfig.staticAuraHeightCeiling) continue;
 
             if (isImmuneToStatic(target)) continue;
+            if (target.getPersistentData().getBoolean("EC_FleeActive")) continue;
+            if (target.getPersistentData().contains(NBT_STATIC_STACKS)) continue;
 
-            float auraDamage = getRandomStaticDamage(target);
-            auraDamage = applyEnchantmentReduction(target, auraDamage);
-            if (auraDamage > 0) {
-                ElementDamageHelper.applyDamage(target, auraDamage, ModDamageTypes.source(source.level(), ModDamageTypes.STATIC_SHOCK, source));
-                DebugCommand.AuraDamageLogContext actx = new DebugCommand.AuraDamageLogContext();
-                actx.source = source;
-                actx.target = target;
-                actx.damage = auraDamage;
-                actx.reactionKey = "static";
-                DebugCommand.sendAuraDamageLog(actx);
-                if (source.level() instanceof ServerLevel serverLevel) {
-                    EffectHelper.playStaticSplashParticles(serverLevel, source, target);
+            currentTracked.add(target.getUUID());
+            applyAuraTargetTempStatic(target, stacks);
+
+            MobAttributeLogic.processFlee(target, source, range);
+        }
+
+        for (UUID oldId : oldTracked) {
+            if (currentTracked.contains(oldId)) continue;
+            if (source.level() instanceof ServerLevel sl) {
+                Entity e = sl.getEntity(oldId);
+                if (e instanceof LivingEntity le) {
+                    clearAuraTargetTempStatic(le);
                 }
             }
+        }
+
+        int syncPhase = sourceData.getInt("ec_aura_sync_phase");
+        if (syncPhase > 0 && source.level() instanceof ServerLevel sl) {
+            float lastDamage = sourceData.getFloat(NBT_LAST_STATIC_DAMAGE);
+            if (syncPhase == 1) {
+                if (lastDamage > 0) {
+                    for (LivingEntity target : nearby) {
+                        if (!currentTracked.contains(target.getUUID())) continue;
+                        spawnConnectionParticles(sl, source, target);
+                    }
+                }
+                sourceData.putInt("ec_aura_sync_phase", 2);
+            } else if (syncPhase == 2) {
+                if (lastDamage > 0) {
+                    float lastLoggedDamage = sourceData.getFloat("ec_last_aura_log_damage");
+                    boolean damageChanged = lastLoggedDamage != lastDamage;
+                    float auraBaseDamage = sourceData.getFloat("ec_last_static_base_damage");
+                    float auraElementMult = sourceData.getFloat("ec_last_static_element_mult");
+                    if (auraElementMult == 0) auraElementMult = 1.0f;
+                    ElementType auraElement = ElementType.fromId(sourceData.getString("ec_last_static_element"));
+                    if (auraElement == null) auraElement = ElementType.NONE;
+                    for (LivingEntity target : nearby) {
+                        if (!currentTracked.contains(target.getUUID())) continue;
+                        float targetDamage = applyEnchantmentReduction(target, lastDamage);
+                        if (targetDamage > 0) {
+                            ElementDamageHelper.applyDamage(target, targetDamage, ModDamageTypes.source(sl, ModDamageTypes.STATIC_SHOCK));
+                            if (damageChanged) {
+                                float enchRed = lastDamage > 0 ? 1.0f - targetDamage / lastDamage : 0;
+                                int tProt = getTotalEnchantmentLevel(Enchantments.ALL_DAMAGE_PROTECTION, target);
+                                int tProj = getTotalEnchantmentLevel(Enchantments.PROJECTILE_PROTECTION, target);
+                                DebugCommand.sendStaticAuraDamageLog(source, target, auraBaseDamage, auraElement, auraElementMult, targetDamage, enchRed, tProt, tProj);
+                            }
+                        }
+                    }
+                    if (damageChanged) {
+                        sourceData.putFloat("ec_last_aura_log_damage", lastDamage);
+                    }
+                }
+                sourceData.putInt("ec_aura_sync_phase", 0);
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (UUID id : currentTracked) {
+            if (sb.length() > 0) sb.append(',');
+            sb.append(id);
+        }
+        sourceData.putString(NBT_AURA_TRACKED, sb.toString());
+    }
+
+    private static void spawnConnectionParticles(ServerLevel level, LivingEntity source, LivingEntity target) {
+        double sx = source.getX(), sy = source.getY() + source.getBbHeight() * 0.5, sz = source.getZ();
+        double tx = target.getX(), ty = target.getY() + target.getBbHeight() * 0.5, tz = target.getZ();
+        double dx = tx - sx, dy = ty - sy, dz = tz - sz;
+        double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < 0.1) return;
+        int steps = Math.max(3, (int) (dist * 2));
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / steps;
+            level.sendParticles(ModParticles.THUNDER_SPARK_PERSISTENT.get(),
+                    sx + dx * t, sy + dy * t, sz + dz * t,
+                    1, 0.02, 0.02, 0.02, 0);
         }
     }
 
     private static void clearStaticAuraEffects(LivingEntity source, int stacks) {
-        double range = stacks * ElementalThunderFrostReactionsConfig.staticAuraBaseRange;
+        CompoundTag sourceData = source.getPersistentData();
+        String trackedStr = sourceData.getString(NBT_AURA_TRACKED);
+        if (!trackedStr.isEmpty()) {
+            for (String s : trackedStr.split(",")) {
+                try {
+                    UUID id = UUID.fromString(s);
+                    if (source.level() instanceof ServerLevel sl) {
+                        Entity e = sl.getEntity(id);
+                        if (e instanceof LivingEntity le) {
+                            clearAuraTargetTempStatic(le);
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+            sourceData.remove(NBT_AURA_TRACKED);
+        }
 
+        double range = stacks * ElementalThunderFrostReactionsConfig.staticAuraBaseRange;
         AABB auraArea = new AABB(
                 source.getX() - range, source.getY() - range, source.getZ() - range,
                 source.getX() + range, source.getY() + range, source.getZ() + range
@@ -829,14 +903,31 @@ public class StaticShockHandler {
         return damage * (float) (1.0 - totalReduction);
     }
 
-    private static void triggerStaticDamage(LivingEntity entity) {
+    private static float triggerStaticDamage(LivingEntity entity) {
         if (isImmuneToStatic(entity)) {
             clearStaticShock(entity);
-            return;
+            return 0;
         }
-        float rawDamage = getRandomStaticDamage(entity);
+        ElementType[] elementArr = { ElementType.NONE };
+        float[] detail = getRandomStaticDamageDetailed(entity, elementArr);
+        float baseDamage = detail[0];
+        float elementMult = detail[1];
+        ElementType element = elementArr[0];
+        float rawDamage = baseDamage * elementMult;
 
         float finalDamage = applyEnchantmentReduction(entity, rawDamage);
+        float enchReduction = rawDamage > 0 ? 1.0f - finalDamage / rawDamage : 0;
+        int protLevel = getTotalEnchantmentLevel(Enchantments.ALL_DAMAGE_PROTECTION, entity);
+        int projProtLevel = getTotalEnchantmentLevel(Enchantments.PROJECTILE_PROTECTION, entity);
+
+        CompoundTag data = entity.getPersistentData();
+        data.putFloat(NBT_LAST_STATIC_DAMAGE, finalDamage);
+        data.putFloat("ec_last_static_base_damage", baseDamage);
+        data.putString("ec_last_static_element", element.getId());
+        data.putFloat("ec_last_static_element_mult", elementMult);
+        data.putInt("ec_aura_sync_phase", 1);
+
+        DebugCommand.sendStaticDamageLog(entity, baseDamage, element, elementMult, finalDamage, enchReduction, protLevel, projProtLevel);
 
         ElementDamageHelper.applyDamage(entity, finalDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK));
 
@@ -848,6 +939,7 @@ public class StaticShockHandler {
             EffectHelper.playStaticBurst(serverLevel, entity);
         }
         tryTriggerSporeBlast(entity);
+        return finalDamage;
     }
 
     private static int getTotalEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantment ench, LivingEntity entity) {
@@ -913,6 +1005,9 @@ public class StaticShockHandler {
         int sporeStacks = sporeEffect.getAmplifier() + 1;
         CompoundTag data = target.getPersistentData();
         int staticStacks = data.getInt(NBT_STATIC_STACKS);
+        if (staticStacks <= 0 && data.getBoolean(NBT_TEMP_STATIC)) {
+            staticStacks = data.getInt(NBT_TEMP_STATIC_STACKS);
+        }
         if (staticStacks <= 0) return;
 
         if (ElementalThunderFrostReactionsConfig.staticSporeBlastBaseChance <= 0) return;
@@ -921,6 +1016,7 @@ public class StaticShockHandler {
         double perSpore = ElementalThunderFrostReactionsConfig.staticSporeBlastPerSporeStack;
         double totalChance = Math.min(1.0, baseChance + staticStacks * perStatic + sporeStacks * perSpore);
         boolean triggered = RANDOM.nextDouble() < totalChance;
+        DebugCommand.sendStaticSporeBlastLog(target, staticStacks, sporeStacks, baseChance, perStatic, perSpore, totalChance, triggered);
         if (!triggered) return;
 
         double firePower = ElementalFireNatureReactionsConfig.scorchedTriggerThreshold;
@@ -946,22 +1042,48 @@ public class StaticShockHandler {
         return damage;
     }
 
-    private static double calculateTriggerChance(int thunderStrength, int wetnessLevel, LivingEntity target) {
+    static float[] getRandomStaticDamageDetailed(LivingEntity entity, ElementType[] elementOut) {
+        double minDmg = ElementalThunderFrostReactionsConfig.staticDamageMin;
+        double maxDmg = ElementalThunderFrostReactionsConfig.staticDamageMax;
+        if (maxDmg < minDmg) maxDmg = minDmg;
+        float baseDamage = (float) (minDmg + RANDOM.nextDouble() * (maxDmg - minDmg));
+        ElementType element = ElementUtils.getConsistentAttackElement(entity);
+        float mult = 1.0f;
+        if (element == ElementType.FIRE) {
+            mult = (float) ElementalThunderFrostReactionsConfig.staticDamageFireMultiplier;
+        } else if (element == ElementType.THUNDER) {
+            mult = (float) ElementalThunderFrostReactionsConfig.staticDamageThunderMultiplier;
+        } else if (element == ElementType.NATURE) {
+            mult = (float) ElementalThunderFrostReactionsConfig.staticDamageNatureMultiplier;
+        } else if (element == ElementType.FROST) {
+            mult = (float) ElementalThunderFrostReactionsConfig.staticDamageFrostMultiplier;
+        }
+        if (elementOut != null && elementOut.length > 0) {
+            elementOut[0] = element;
+        }
+        return new float[]{ baseDamage, mult };
+    }
+
+    private static int getScalingSteps(int thunderStrength) {
+        int threshold = ElementalThunderFrostReactionsConfig.thunderStrengthThreshold;
+        if (threshold <= 0 || thunderStrength < threshold) return 0;
+        int scalingStep = ElementalThunderFrostReactionsConfig.staticScalingStep;
+        if (scalingStep <= 0) return 0;
+        return (thunderStrength - threshold) / scalingStep;
+    }
+
+    private static double calculateTriggerChance(int thunderStrength, int wetnessLevel, LivingEntity target, double stackingBonus) {
         int threshold = ElementalThunderFrostReactionsConfig.thunderStrengthThreshold;
         if (threshold <= 0 || thunderStrength < threshold) return 0.0;
         double baseChance = ElementalThunderFrostReactionsConfig.staticBaseChance;
         double scalingChance = ElementalThunderFrostReactionsConfig.staticScalingChance;
-        int scalingStep = ElementalThunderFrostReactionsConfig.staticScalingStep;
-        int extraStrength = thunderStrength - threshold;
-        int extraSteps = extraStrength / scalingStep;
+        int extraSteps = getScalingSteps(thunderStrength);
         double totalChance = baseChance + (extraSteps * scalingChance);
         if (wetnessLevel > 0) {
             double wetnessBonusChance = ElementalThunderFrostReactionsConfig.staticWetnessBonusChancePerLevel;
             totalChance += wetnessLevel * wetnessBonusChance;
         }
-        if (target.hasEffect(ModMobEffects.STATIC_SHOCK.get())) {
-            totalChance += ElementalThunderFrostReactionsConfig.staticStackingBonusChance;
-        }
+        totalChance += stackingBonus;
         return Math.min(totalChance, 1.0);
     }
 
@@ -970,11 +1092,60 @@ public class StaticShockHandler {
         data.remove(NBT_STATIC_STACKS);
         data.remove(NBT_STATIC_TIMER);
         data.remove(NBT_STATIC_DAMAGE_TIMER);
-        data.remove(NBT_STATIC_AURA_DAMAGE_TIMER);
         data.remove(NBT_STATIC_PRIMED);
+        data.remove(NBT_TEMP_STATIC);
+        data.remove(NBT_TEMP_STATIC_STACKS);
+        data.remove(NBT_LAST_STATIC_DAMAGE);
         if (entity.hasEffect(ModMobEffects.STATIC_SHOCK.get())) {
             entity.removeEffect(ModMobEffects.STATIC_SHOCK.get());
         }
+    }
+
+    private static void applyAuraTargetTempStatic(LivingEntity target, int stacks) {
+        CompoundTag data = target.getPersistentData();
+        data.putBoolean(NBT_TEMP_STATIC, true);
+        data.putInt(NBT_TEMP_STATIC_STACKS, stacks);
+    }
+
+    private static void clearAuraTargetTempStatic(LivingEntity entity) {
+        CompoundTag data = entity.getPersistentData();
+        data.remove(NBT_TEMP_STATIC);
+        data.remove(NBT_TEMP_STATIC_STACKS);
+    }
+
+    private static boolean tryBreakFreeze(LivingEntity entity, int staticStacks) {
+        if (ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers <= 0
+                || ElementalThunderFrostReactionsConfig.thunderBreakFreezeChance <= 0
+                || ElementalThunderFrostReactionsConfig.staticAuraThreshold <= 0
+                || staticStacks < ElementalThunderFrostReactionsConfig.staticAuraThreshold
+                || !FrostbiteHandler.isFrozen(entity)
+                || FrostbiteHandler.isFreezeImmune(entity)
+                || RANDOM.nextDouble() >= staticStacks * ElementalThunderFrostReactionsConfig.thunderBreakFreezeChance) {
+            return false;
+        }
+        entity.removeEffect(ModMobEffects.FREEZE.get());
+        CompoundTag fd = entity.getPersistentData();
+        fd.remove(FrostbiteHandler.NBT_FROZEN_FROSTBITE_STACKS);
+        fd.remove(FrostbiteHandler.NBT_FREEZE_STACKS);
+        fd.remove(FrostbiteHandler.NBT_FREEZE_AI_DISABLED);
+        fd.remove("EC_SharedOriginalNoAI");
+        fd.remove("EC_DrownTimer");
+        fd.putLong(FrostbiteHandler.NBT_FREEZE_COOLDOWN,
+                entity.level().getGameTime() + ElementalThunderFrostReactionsConfig.freezeCooldownTicks);
+        int layers = ElementalThunderFrostReactionsConfig.thunderBreakFreezeWetnessLayers;
+        if (!WetnessHandler.blockWetnessIfParalyzed(entity) && !SteamReactionHandler.isInCondensingCloud(entity)) {
+            WetnessHandler.updateWetnessLevel(entity, layers);
+            if (entity.hasEffect(ModMobEffects.WETNESS.get())) {
+                entity.removeEffect(ModMobEffects.WETNESS.get());
+            }
+            entity.addEffect(new MobEffectInstance(
+                    ModMobEffects.WETNESS.get(),
+                    layers * 200,
+                    layers - 1,
+                    true, false, true
+            ));
+        }
+        return true;
     }
 
     private static void updateEffect(LivingEntity entity, int stacks, int totalTicks) {
@@ -1046,11 +1217,14 @@ public class StaticShockHandler {
         for (int i = 0; i < remainingHits; i++) {
             totalDamage += getRandomStaticDamage(entity);
         }
+        float baseDamage = (float) totalDamage;
         totalDamage *= ElementalThunderFrostReactionsConfig.paralysisDamagePercentage;
 
         float finalDamage = 0;
+        float enchReduction = 0;
         if (totalDamage > 0) {
             finalDamage = applyEnchantmentReduction(entity, (float) totalDamage);
+            enchReduction = totalDamage > 0 ? 1.0f - finalDamage / (float) totalDamage : 0;
             ElementDamageHelper.applyDamage(entity, finalDamage, ModDamageTypes.source(entity.level(), ModDamageTypes.STATIC_SHOCK));
         }
 
@@ -1083,6 +1257,8 @@ public class StaticShockHandler {
         pCtx.target = entity;
         pCtx.paralysisStacks = paralysisStacks;
         pCtx.remainingHits = remainingHits;
+        pCtx.baseDamage = baseDamage;
+        pCtx.enchReduction = enchReduction;
         pCtx.totalDamage = finalDamage;
         DebugCommand.sendParalysisLog(pCtx);
     }
