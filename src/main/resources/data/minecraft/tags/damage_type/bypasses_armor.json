@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "elementalcraft:steam_scalding",
+    "elementalcraft:lava_magic",
+    "elementalcraft:spores",
+    "elementalcraft:static_shock",
+    "elementalcraft:frostbite"
+  ]
+}
