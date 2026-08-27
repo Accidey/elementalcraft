@@ -1,7 +1,0 @@
-{
-  "message_id": "frostbite_thermal_shock",
-  "scaling": "never",
-  "exhaustion": 0.1,
-  "effects": "hurt",
-  "bypasses_armor": true
-}
