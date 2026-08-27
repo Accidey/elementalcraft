@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "elementalcraft:wetness",
+    "elementalcraft:static_shock",
+    "elementalcraft:frostbite",
+    "elementalcraft:freeze",
+    "elementalcraft:paralysis",
+    "elementalcraft:flammable_spores"
+  ]
+}
